@@ -1,0 +1,5 @@
+node_modules/
+.DS_Store
+*.log
+.claude/settings.local.json
+# dist/ 刻意納入版控：clone 後雙擊 dist/index.html 即可使用

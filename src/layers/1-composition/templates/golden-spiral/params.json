@@ -1,0 +1,24 @@
+{
+  "iterations": { "type": "int", "label": "迭代次數", "min": 2, "max": 12, "default": 8 },
+  "fit": {
+    "type": "select",
+    "label": "貼合方式",
+    "options": [
+      { "value": "contain", "label": "維持黃金比例" },
+      { "value": "stretch", "label": "拉伸填滿畫布" }
+    ],
+    "default": "contain"
+  },
+  "align": {
+    "type": "select",
+    "label": "對齊（維持比例時）",
+    "options": [
+      { "value": "start", "label": "靠前" },
+      { "value": "center", "label": "置中" },
+      { "value": "end", "label": "靠後" }
+    ],
+    "default": "start"
+  },
+  "showSquares": { "type": "boolean", "label": "顯示分割正方形", "default": true },
+  "showSpiral": { "type": "boolean", "label": "顯示螺旋線", "default": true }
+}

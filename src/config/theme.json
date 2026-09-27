@@ -1,0 +1,15 @@
+{
+  "guides": {
+    "composition": {
+      "mainColor": "#2f6bff",
+      "subColor": "#12b39a",
+      "main": 1.75,
+      "sub": 1.25,
+      "subOpacity": 0.85,
+      "dash": [8, 5],
+      "fineDash": [2, 4]
+    },
+    "anchor": { "color": "#8b5cf6", "radius": 4 }
+  },
+  "export": { "printDpi": 300 }
+}

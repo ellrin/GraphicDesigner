@@ -1,0 +1,5 @@
+{
+  "cols": { "type": "int", "label": "直向分割數", "min": 2, "max": 8, "default": 3 },
+  "rows": { "type": "int", "label": "橫向分割數", "min": 2, "max": 8, "default": 3 },
+  "markPoints": { "type": "boolean", "label": "標示交點", "default": true }
+}

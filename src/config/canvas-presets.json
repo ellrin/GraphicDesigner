@@ -1,0 +1,14 @@
+[
+  { "id": "a4", "name": "A4", "group": "印刷", "w": 210, "h": 297, "unit": "mm" },
+  { "id": "a5", "name": "A5", "group": "印刷", "w": 148, "h": 210, "unit": "mm" },
+  { "id": "b4-jis", "name": "B4（JIS）", "group": "印刷", "w": 257, "h": 364, "unit": "mm" },
+  { "id": "b5-jis", "name": "B5（JIS）", "group": "印刷", "w": 182, "h": 257, "unit": "mm" },
+  { "id": "dm", "name": "明信片 / DM", "group": "印刷", "w": 100, "h": 148, "unit": "mm" },
+  { "id": "card-tw", "name": "名片（台灣 90×54）", "group": "印刷", "w": 90, "h": 54, "unit": "mm" },
+  { "id": "card-jp", "name": "名片（日規 91×55）", "group": "印刷", "w": 91, "h": 55, "unit": "mm" },
+  { "id": "16x9", "name": "16:9 橫幅", "group": "螢幕", "w": 1920, "h": 1080, "unit": "px" },
+  { "id": "4x3", "name": "4:3", "group": "螢幕", "w": 1600, "h": 1200, "unit": "px" },
+  { "id": "1x1", "name": "1:1 社群方圖", "group": "螢幕", "w": 1080, "h": 1080, "unit": "px" },
+  { "id": "4x5", "name": "4:5 社群直圖", "group": "螢幕", "w": 1080, "h": 1350, "unit": "px" },
+  { "id": "9x16", "name": "9:16 限時動態", "group": "螢幕", "w": 1080, "h": 1920, "unit": "px" }
+]

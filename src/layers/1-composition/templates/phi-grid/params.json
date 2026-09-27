@@ -1,0 +1,3 @@
+{
+  "markPoints": { "type": "boolean", "label": "標示交點", "default": true }
+}

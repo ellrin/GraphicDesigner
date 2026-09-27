@@ -1,0 +1,6 @@
+{
+  "apex": { "type": "number", "label": "頂點水平位置", "min": 0, "max": 1, "step": 0.01, "default": 0.5 },
+  "marginX": { "type": "number", "label": "左右留白", "min": 0, "max": 0.4, "step": 0.01, "default": 0.08 },
+  "marginY": { "type": "number", "label": "上下留白", "min": 0, "max": 0.4, "step": 0.01, "default": 0.1 },
+  "median": { "type": "boolean", "label": "顯示中垂線", "default": false }
+}

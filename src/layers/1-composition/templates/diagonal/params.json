@@ -1,0 +1,13 @@
+{
+  "mode": {
+    "type": "select",
+    "label": "樣式",
+    "options": [
+      { "value": "golden", "label": "黃金對角線" },
+      { "value": "reciprocal", "label": "動態對稱（垂線）" },
+      { "value": "x", "label": "X 形雙對角線" },
+      { "value": "single", "label": "單一對角線" }
+    ],
+    "default": "golden"
+  }
+}
