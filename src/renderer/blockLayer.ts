@@ -5,7 +5,9 @@
 import Konva from 'konva'
 import { paintTransformer, selectionColor } from './selection'
 import type { Pt, Rect } from '../core/geometry'
-import { boundsOfPoints, snapOffset, traceShape, type BlockShape, type SnapLines } from '../core/blocks'
+import { boundsOfPoints, snapOffset, traceShape, type BlockShape } from '../core/blocks'
+import { EMPTY_SNAP, snapPoint as snapToGeometry, type SnapGeometry } from '../core/snap'
+import { SizeSnapper } from './sizeSnap'
 
 export interface BlockView {
   uid: string
@@ -37,9 +39,10 @@ export interface BlockLayerState {
   interactive: boolean
   visible: boolean
   ghosts: GhostView[]
-  snap: SnapLines
-  /** 可吸附的點（錨點、線的交點），多邊形頂點優先吸附到這些點 */
-  snapPoints: Pt[]
+  /** 吸附資料：點、任意角度的線、水平／垂直線 */
+  snap: SnapGeometry
+  /** 畫布尺寸（尺寸比例吸附用） */
+  canvas: { w: number; h: number }
   /** 在空白處拖曳（或點擊）時畫出的形狀 */
   tool: BlockTool
   /** 畫布 → 螢幕的縮放倍率 */
@@ -56,7 +59,6 @@ export interface BlockLayerEvents {
 }
 
 const SNAP_PX = 8
-const POINT_SNAP_PX = 12
 const MIN_PX = 6
 const LABEL_PX = 11
 const CLOSE_PX = 12
@@ -78,6 +80,7 @@ export class BlockLayer {
   private blockGroup = new Konva.Group()
   private vertexGroup = new Konva.Group()
   private transformer: Konva.Transformer
+  private sizeSnap: SizeSnapper
   private drawing: { start: Pt; preview: Konva.Shape } | null = null
   /** 繪製中的多邊形 */
   private poly: { points: Pt[]; preview: Konva.Line } | null = null
@@ -89,8 +92,8 @@ export class BlockLayer {
     interactive: false,
     visible: true,
     ghosts: [],
-    snap: { xs: [], ys: [] },
-    snapPoints: [],
+    snap: EMPTY_SNAP,
+    canvas: { w: 1, h: 1 },
     tool: 'rect',
     scale: 1,
   }
@@ -108,6 +111,7 @@ export class BlockLayer {
       anchorSize: 8,
       anchorDragBoundFunc: (_old, pos) => this.snapAbsolute(pos),
     })
+    this.sizeSnap = new SizeSnapper(this.transformer, this.group, () => ({ scale: this.state.scale, canvas: this.state.canvas, paper: this.paper }))
     this.group.add(this.ghostGroup, this.blockGroup, this.transformer, this.vertexGroup)
     this.bindDrawing()
     window.addEventListener('keydown', (e) => {
@@ -130,20 +134,9 @@ export class BlockLayer {
     return this.paper.getAbsoluteTransform().point(local)
   }
 
-  /** 先吸附到最近的點（錨點、交點），沒有的話再分別吸附 x、y 到水平／垂直線 */
+  /** 吸附：錨點與交點 → 任意角度的線與曲線 → 水平／垂直線 */
   private snapPoint(p: Pt): Pt {
-    const lim = POINT_SNAP_PX / this.state.scale
-    let best: Pt | null = null
-    let bestD = lim
-    for (const q of this.state.snapPoints) {
-      const d = Math.hypot(q.x - p.x, q.y - p.y)
-      if (d < bestD) [best, bestD] = [q, d]
-    }
-    if (best) return { x: best.x, y: best.y }
-    return {
-      x: p.x + snapOffset([p.x], this.state.snap.xs, this.limit),
-      y: p.y + snapOffset([p.y], this.state.snap.ys, this.limit),
-    }
+    return snapToGeometry(p, this.state.snap, this.limit).p
   }
 
   private snapAbsolute(abs: Pt) {

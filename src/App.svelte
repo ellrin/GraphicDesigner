@@ -5,6 +5,7 @@
   import exportConfig from './config/export.json'
   import { exportPng, type Renderer } from './core/exporter'
   import type { Handle } from './core/compute'
+  import { buildSnapGeometry, type SnapGeometry } from './core/snap'
   import { computeInstance, instanceHandles, instancePointFromCanvas, resolveFrame, type TemplateInstance } from './core/instances'
   import type { Template } from './core/registry'
   import type { GuideOutput, Pt, Rect } from './core/geometry'
@@ -149,6 +150,9 @@
     ...project.blocks.items.flatMap((b) => (b.points ? toCanvasPoints(b.points, project.canvas) : [])),
   ])
 
+  /** 區塊的吸附：線（含斜線與曲線）、錨點、交點、多邊形頂點 */
+  const blockSnap = $derived(buildSnapGeometry(activeOutputs.map((o) => o.output), snapLines, snapPoints))
+
   const blockViews = $derived(
     project.blocks.items.map((b) => ({
       uid: b.uid,
@@ -211,6 +215,9 @@
     }
     return { xs, ys }
   })
+
+  /** 物件的吸附：區塊的吸附再加上區塊的邊與中線 */
+  const objectSnap = $derived({ ...blockSnap, ...objectSnapLines })
 
   /** 可作為放置目標的錨點（依來源命名、去除重複） */
   const anchorOptions = $derived.by((): AnchorOption[] => {
@@ -307,10 +314,12 @@
     return [{ key: f.key, label: '主體', pos: subjectOnCanvas(f.size, f.box, f.fit, f.framing) }]
   })
 
-  const snapTargets = $derived.by((): Pt[] => [
-    ...activeOutputs.filter((o) => o.inst !== editing?.inst).flatMap((o) => o.output.anchors),
-    { x: project.canvas.w / 2, y: project.canvas.h / 2 },
-  ])
+  /** 控制點的吸附：其他構圖與引導的錨點、交點與線（不含控制點自己所屬的版型） */
+  const handleSnap = $derived.by((): SnapGeometry => {
+    const others = activeOutputs.filter((o) => o.inst !== editing?.inst).map((o) => o.output)
+    const center = { x: project.canvas.w / 2, y: project.canvas.h / 2 }
+    return buildSnapGeometry(others, { xs: [], ys: [] }, [...snapPointsFrom(others), center])
+  })
 
   function onHandleMove(key: string, p: Pt) {
     if (editing) {
@@ -496,16 +505,15 @@
       canvas={project.canvas}
       {layers}
       {handles}
-      {snapTargets}
+      {handleSnap}
       onhandlemove={onHandleMove}
       blocks={blockViews}
       selectedBlock={ui.selectedBlock}
       blocksInteractive={step.id === 'blocks'}
       blocksVisible={project.visibility.blocks}
       {ghosts}
-      {snapPoints}
       blockTool={ui.blockTool}
-      snapLines={editingObjects ? objectSnapLines : snapLines}
+      snap={editingObjects ? objectSnap : blockSnap}
       {blockEvents}
       objects={project.objects.items}
       selectedObjects={ui.selectedObjects}

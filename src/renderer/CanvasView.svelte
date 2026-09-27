@@ -28,7 +28,7 @@
   import type { Handle } from '../core/compute'
   import { drawAnchors, drawPrimitives } from './konva'
   import { BlockLayer, type BlockLayerEvents, type BlockTool, type BlockView, type GhostView } from './blockLayer'
-  import type { SnapLines } from '../core/blocks'
+  import { EMPTY_SNAP, snapPoint, type SnapGeometry } from '../core/snap'
   import { ObjectLayer, type ObjectLayerEvents } from './objectLayer'
   import { DEFAULT_BACKGROUND, fitImage, type Background, type DesignObject } from '../core/objects'
   import { getImage } from '../core/assets'
@@ -39,17 +39,16 @@
     layers: GuideLayerView[]
     /** 可拖曳的控制點（畫布座標） */
     handles?: Handle[]
-    /** 控制點拖曳時會吸附的位置 */
-    snapTargets?: Pt[]
+    /** 控制點拖曳時的吸附資料（不含控制點自己所屬的線） */
+    handleSnap?: SnapGeometry
     onhandlemove?: (key: string, p: Pt) => void
     blocks?: BlockView[]
     selectedBlock?: string | null
     blocksInteractive?: boolean
     blocksVisible?: boolean
     ghosts?: GhostView[]
-    snapLines?: SnapLines
-    /** 區塊頂點吸附的點（錨點、交點） */
-    snapPoints?: Pt[]
+    /** 區塊與物件的吸附資料 */
+    snap?: SnapGeometry
     blockTool?: BlockTool
     blockEvents: BlockLayerEvents
     objects?: DesignObject[]
@@ -72,15 +71,14 @@
     canvas,
     layers,
     handles = [],
-    snapTargets = [],
+    handleSnap = EMPTY_SNAP,
     onhandlemove,
     blocks = [],
     selectedBlock = null,
     blocksInteractive = false,
     blocksVisible = true,
     ghosts = [],
-    snapLines = { xs: [], ys: [] },
-    snapPoints = [],
+    snap = EMPTY_SNAP,
     blockTool = 'rect',
     blockEvents,
     objects = [],
@@ -180,15 +178,9 @@
     return g
   }
 
-  function snap(p: Pt): { p: Pt; snapped: boolean } {
-    const limit = HS.snapDistance / view.s
-    let best: Pt | null = null
-    let bestD = limit
-    for (const t of snapTargets) {
-      const d = Math.hypot(t.x - p.x, t.y - p.y)
-      if (d < bestD) [best, bestD] = [t, d]
-    }
-    return best ? { p: { x: best.x, y: best.y }, snapped: true } : { p, snapped: false }
+  function snapHandle(p: Pt): { p: Pt; snapped: boolean } {
+    const r = snapPoint(p, handleSnap, HS.snapDistance / view.s)
+    return { p: r.p, snapped: r.kind !== null }
   }
 
   function syncHandles() {
@@ -205,7 +197,7 @@
         node.on('mouseenter', () => (stage.container().style.cursor = 'grab'))
         node.on('mouseleave', () => (stage.container().style.cursor = ''))
         node.on('dragmove', () => {
-          const r = snap(node!.position())
+          const r = snapHandle(node!.position())
           node!.position(r.p)
           node!.fill(r.snapped ? HS.snapColor : HS.color)
           onhandlemove?.(h.key, r.p)
@@ -285,7 +277,7 @@
       selected: selectedObjects,
       interactive: objectsInteractive,
       visible: objectsVisible,
-      snap: snapLines,
+      snap,
       canvas,
       scale: view.s,
       fontVersion,
@@ -297,8 +289,8 @@
       interactive: blocksInteractive,
       visible: blocksVisible,
       ghosts,
-      snap: snapLines,
-      snapPoints,
+      snap,
+      canvas,
       tool: blockTool,
       scale: view.s,
     })

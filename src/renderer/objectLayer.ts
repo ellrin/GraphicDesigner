@@ -4,7 +4,9 @@
 import Konva from 'konva'
 import { paintTransformer, selectionColor } from './selection'
 import { getImage } from '../core/assets'
-import { snapOffset, traceShape, type BlockShape, type SnapLines } from '../core/blocks'
+import { snapOffset, traceShape, type BlockShape } from '../core/blocks'
+import { projectToSegment, snapPoint as snapToGeometry, type SnapGeometry } from '../core/snap'
+import { SizeSnapper } from './sizeSnap'
 import type { DesignObject } from '../core/objects'
 import { objectTypeOf } from '../layers/4-objects/types'
 
@@ -23,7 +25,7 @@ export interface ObjectLayerState {
   selected: string[]
   interactive: boolean
   visible: boolean
-  snap: SnapLines
+  snap: SnapGeometry
   /** 畫布尺寸（物件以 0–1 儲存，需換算） */
   canvas: { w: number; h: number }
   /** 畫布 → 螢幕的縮放倍率 */
@@ -61,6 +63,7 @@ export class ObjectLayer {
   readonly group = new Konva.Group()
   private body = new Konva.Group()
   private transformer: Konva.Transformer
+  private sizeSnap: SizeSnapper
   private nodes = new Map<string, Konva.Group>()
   /** 每個物件外面包一層不受變形影響的群組，用來套用區塊形狀的裁切 */
   private holders = new Map<string, Konva.Group>()
@@ -81,6 +84,11 @@ export class ObjectLayer {
       rotationSnapTolerance: 4,
       anchorDragBoundFunc: (_old, pos) => this.snapAbsolute(pos),
     })
+    this.sizeSnap = new SizeSnapper(this.transformer, this.group, () => ({
+      scale: this.state?.scale ?? 1,
+      canvas: this.state?.canvas ?? { w: 1, h: 1 },
+      paper: this.paper,
+    }))
     this.group.add(this.body, this.transformer)
     this.bindMarquee()
   }
@@ -151,15 +159,12 @@ export class ObjectLayer {
     return SNAP_PX / (this.state?.scale ?? 1)
   }
 
+  /** 縮放把手吸附：錨點與交點 → 任意角度的線 → 水平／垂直線 */
   private snapAbsolute(abs: { x: number; y: number }) {
     if (!this.state) return abs
     const t = this.paper.getAbsoluteTransform()
     const p = t.copy().invert().point(abs)
-    const q = {
-      x: p.x + snapOffset([p.x], this.state.snap.xs, this.limit),
-      y: p.y + snapOffset([p.y], this.state.snap.ys, this.limit),
-    }
-    return t.point(q)
+    return t.point(snapToGeometry(p, this.state.snap, this.limit).p)
   }
 
   private boxOf(g: Konva.Group, o: DesignObject): ObjectBox {
@@ -187,7 +192,20 @@ export class ObjectLayer {
       const r = g.getClientRect({ relativeTo: this.paper, skipStroke: true })
       const dx = snapOffset([r.x, r.x + r.width / 2, r.x + r.width], this.state.snap.xs, this.limit)
       const dy = snapOffset([r.y, r.y + r.height / 2, r.y + r.height], this.state.snap.ys, this.limit)
-      g.position({ x: g.x() + dx, y: g.y() + dy })
+      if (dx || dy) {
+        g.position({ x: g.x() + dx, y: g.y() + dy })
+        return
+      }
+      // 沒有對齊到水平／垂直線時：物件中心靠近斜線或曲線就吸到線上（例如沿著對角線排列）
+      const c = { x: g.x(), y: g.y() }
+      let best: { x: number; y: number } | null = null
+      let bestD = this.limit
+      for (const s of this.state.snap.segments) {
+        const q = projectToSegment(c, s)
+        const d = Math.hypot(q.x - c.x, q.y - c.y)
+        if (d < bestD) [best, bestD] = [q, d]
+      }
+      if (best) g.position(best)
     })
     let anchor: string | null = null
     g.on('transformstart', () => (anchor = this.transformer.getActiveAnchor()))
@@ -268,6 +286,13 @@ export class ObjectLayer {
   update(state: ObjectLayerState) {
     this.state = state
     this.group.visible(state.visible)
+    // 旋轉時吸附到 45° 倍數與所有引導線的角度（例如斜排文字對齊對角線）
+    const angles = new Set([0, 45, 90, 135, 180, 225, 270, 315])
+    for (const a of state.snap.angles) {
+      angles.add(Math.round(a * 10) / 10)
+      angles.add(Math.round(((a + 180) % 360) * 10) / 10)
+    }
+    this.transformer.rotationSnaps([...angles])
 
     const ids = new Set(state.objects.map((o) => o.uid))
     for (const [uid] of this.nodes) {
