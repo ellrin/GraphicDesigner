@@ -1,0 +1,6 @@
+{
+  "vp": { "type": "point", "label": "消失點", "default": { "x": 0.5, "y": 0.45 }, "min": -0.2, "max": 1.2 },
+  "rays": { "type": "int", "label": "放射線數量", "min": 0, "max": 64, "default": 24 },
+  "frames": { "type": "int", "label": "深度框層數", "min": 0, "max": 8, "default": 3 },
+  "horizon": { "type": "boolean", "label": "顯示地平線", "default": true }
+}

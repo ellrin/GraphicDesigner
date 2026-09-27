@@ -1,13 +1,15 @@
 <script lang="ts">
   import { project } from '../../core/store.svelte'
-  import { IDENTITY, rotateClockwise } from '../../core/transform'
+  import OrientationTools from '../../ui/OrientationTools.svelte'
   import ParamPanel from '../../ui/ParamPanel.svelte'
+  import TemplateThumb from '../../ui/TemplateThumb.svelte'
+  import theme from '../../config/theme.json'
   import { compositionTemplates } from './templates'
-  import Thumb from './Thumb.svelte'
 
-  const comp = project.composition
+  const comp = $derived(project.composition)
   const template = $derived(compositionTemplates.find((t) => t.id === comp.templateId)!)
   const aspect = $derived(project.canvas.w / project.canvas.h)
+  const colors = { main: theme.guides.composition.mainColor, sub: theme.guides.composition.subColor }
 </script>
 
 <section>
@@ -15,7 +17,7 @@
   <div class="grid">
     {#each compositionTemplates as t (t.id)}
       <button class="card" class:active={t.id === comp.templateId} onclick={() => (comp.templateId = t.id)} title={t.meta.description}>
-        <Thumb template={t} {aspect} orientation={comp.orientation} />
+        <TemplateThumb template={t} {aspect} orientation={comp.orientation} {colors} />
         <span>{t.meta.name}</span>
       </button>
     {/each}
@@ -27,13 +29,7 @@
 
 <section>
   <h3>方向</h3>
-  <div class="tools">
-    <button class:on={comp.orientation.flipH} onclick={() => (comp.orientation.flipH = !comp.orientation.flipH)}>⇋ 水平翻轉</button>
-    <button class:on={comp.orientation.flipV} onclick={() => (comp.orientation.flipV = !comp.orientation.flipV)}>⇵ 垂直翻轉</button>
-    <button onclick={() => (comp.orientation = rotateClockwise(comp.orientation))}>↻ 旋轉 90°</button>
-    <button onclick={() => (comp.orientation = { ...IDENTITY })}>重設</button>
-  </div>
-  <p class="hint">目前旋轉 {comp.orientation.rotate}°</p>
+  <OrientationTools bind:orientation={comp.orientation} />
 </section>
 
 <section>
@@ -41,10 +37,10 @@
   <ParamPanel
     schema={template.params}
     bind:values={comp.params[template.id]}
-    onreset={() => (comp.params[template.id] = { ...template.defaults })}
+    onreset={() => (comp.params[template.id] = structuredClone(template.defaults))}
   />
   {#if Object.keys(template.params).length === 0}
-    <p class="hint">此構圖沒有可調參數。</p>
+    <p class="desc">此構圖沒有可調參數。</p>
   {/if}
 </section>
 
@@ -65,17 +61,7 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 1px var(--accent);
   }
-  .tools {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .tools button.on {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-  .desc,
-  .hint {
+  .desc {
     margin: 8px 0 0;
     font-size: 12px;
     color: var(--muted);

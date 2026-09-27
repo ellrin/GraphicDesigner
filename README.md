@@ -87,9 +87,21 @@ export default defineGenerator<{ thickness: number }>(({ w, h }, p) => ({
 }))
 ```
 
+**視覺引導**（第二層）的寫法完全相同，放在 `src/layers/2-guides/templates/`。
+
+參數型別除了 `number`、`int`、`boolean`、`select`，還有 **`point`**（位置，0–1 相對值）：
+
+```json
+{ "vp": { "type": "point", "label": "消失點", "default": { "x": 0.5, "y": 0.45 }, "min": -0.2, "max": 1.2 } }
+```
+
+`point` 參數會自動在畫布上顯示可拖曳的控制點，並吸附到構圖錨點；`generate.ts` 拿到的已經是實際座標。
+
 規則：
 
 - 座標原點在左上，單位與畫布相同。
 - **不用處理旋轉與翻轉**，核心會自動處理（旋轉 90° 時會用長寬對調的畫框呼叫你的函式）。
-- `weight: 'sub'` 表示輔助線（較細、另一個顏色），`dashed: true` 表示細虛線。
+- `weight: 'sub'` 表示輔助線（較細、另一個顏色），`dashed: true` 表示細虛線，`arrow: true` 在終點加箭頭。
+- 文字標籤用 `text(位置, '文字')`，會以固定螢幕大小顯示。
+- 所有座標都要由畫框 `w`、`h` 算出來（不要寫死數字），這樣任何畫布尺寸都會自動貼合。
 - 錨點是後續圖層（區塊、物件）吸附的位置。

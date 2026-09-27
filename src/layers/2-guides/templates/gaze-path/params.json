@@ -1,0 +1,9 @@
+{
+  "p1": { "type": "point", "label": "第 1 眼", "default": { "x": 0.18, "y": 0.28 } },
+  "p2": { "type": "point", "label": "第 2 眼", "default": { "x": 0.62, "y": 0.22 } },
+  "p3": { "type": "point", "label": "第 3 眼", "default": { "x": 0.38, "y": 0.66 } },
+  "p4": { "type": "point", "label": "第 4 眼", "default": { "x": 0.84, "y": 0.8 } },
+  "count": { "type": "int", "label": "使用的點數", "min": 2, "max": 4, "default": 4 },
+  "smooth": { "type": "boolean", "label": "平滑曲線", "default": true },
+  "numbers": { "type": "boolean", "label": "標示順序", "default": true }
+}

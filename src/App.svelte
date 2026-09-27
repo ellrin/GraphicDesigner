@@ -1,24 +1,82 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import { STEPS } from './config/steps'
+  import theme from './config/theme.json'
   import { exportPixelSize } from './core/canvas'
-  import { completeStep, flow, project } from './core/store.svelte'
+  import { computeTemplate, handlesOf, pointParamFromCanvas, type Handle } from './core/compute'
+  import type { Pt } from './core/geometry'
+  import { initHistory, redo, undo } from './core/history.svelte'
+  import { initAutosave } from './core/persistence.svelte'
+  import { completeStep, flow, project, ui } from './core/store.svelte'
   import CompositionPanel from './layers/1-composition/Panel.svelte'
-  import { computeComposition } from './layers/1-composition/compute'
   import { compositionTemplates } from './layers/1-composition/templates'
-  import CanvasView from './renderer/CanvasView.svelte'
+  import GuidesPanel from './layers/2-guides/Panel.svelte'
+  import { guideTemplates } from './layers/2-guides/templates'
+  import CanvasView, { type GuideLayerView } from './renderer/CanvasView.svelte'
   import CanvasSettings from './ui/CanvasSettings.svelte'
   import FontLibrary from './ui/FontLibrary.svelte'
   import LayerList from './ui/LayerList.svelte'
+  import ProjectMenu from './ui/ProjectMenu.svelte'
   import Stepper from './ui/Stepper.svelte'
 
   let view: CanvasView
 
+  onMount(() => {
+    // 先讀回暫存，再開始記錄復原歷史
+    const stopAutosave = initAutosave()
+    const stopHistory = initHistory()
+    return () => {
+      stopAutosave()
+      stopHistory()
+    }
+  })
+
   const step = $derived(STEPS[flow.current])
+
   const composition = $derived.by(() => {
     const c = project.composition
     const t = compositionTemplates.find((x) => x.id === c.templateId)!
-    return computeComposition(t, project.canvas, c.params[t.id], c.orientation)
+    return computeTemplate(t, project.canvas, c.params[t.id], c.orientation)
   })
+
+  const layers = $derived.by((): GuideLayerView[] => [
+    {
+      id: 'composition',
+      output: composition,
+      style: theme.guides.composition,
+      visible: project.visibility.composition,
+      anchorsVisible: project.visibility.anchors,
+    },
+    ...project.guides.items.map((g) => ({
+      id: `guide:${g.uid}`,
+      output: computeTemplate(guideTemplates.find((t) => t.id === g.templateId)!, project.canvas, g.params, g.orientation),
+      style: theme.guides.visual,
+      visible: project.visibility.guides && g.visible,
+      anchorsVisible: project.visibility.anchors,
+    })),
+  ])
+
+  // 只有在「視覺引導」步驟、且選取的引導有位置參數時，才顯示可拖曳的控制點
+  const editing = $derived.by(() => {
+    if (step.id !== 'guides') return null
+    const g = project.guides.items.find((x) => x.uid === ui.selectedGuide)
+    const t = g && guideTemplates.find((x) => x.id === g.templateId)
+    return g && t && g.visible && project.visibility.guides ? { g, t } : null
+  })
+
+  const handles = $derived.by((): Handle[] =>
+    editing ? handlesOf(editing.t, project.canvas, editing.g.params, editing.g.orientation) : [],
+  )
+
+  const snapTargets = $derived.by((): Pt[] => [
+    ...(project.visibility.composition ? composition.anchors : []),
+    { x: project.canvas.w / 2, y: project.canvas.h / 2 },
+  ])
+
+  function onHandleMove(key: string, p: Pt) {
+    if (!editing) return
+    editing.g.params[key] = pointParamFromCanvas(editing.t, key, p, project.canvas, editing.g.orientation)
+  }
 
   function exportPng() {
     const { w } = exportPixelSize(project.canvas)
@@ -27,13 +85,32 @@
     a.download = `design-${project.composition.templateId}.png`
     a.click()
   }
+
+  function onKeydown(e: KeyboardEvent) {
+    const target = e.target as HTMLElement
+    if (target.matches('input[type="text"], input[type="number"], input:not([type]), textarea, select')) return
+    if (!(e.metaKey || e.ctrlKey)) return
+    const key = e.key.toLowerCase()
+    if (key === 'z' && !e.shiftKey) {
+      e.preventDefault()
+      undo()
+    } else if ((key === 'z' && e.shiftKey) || key === 'y') {
+      e.preventDefault()
+      redo()
+    }
+  }
 </script>
+
+<svelte:window onkeydown={onKeydown} />
 
 <div class="app">
   <header>
     <strong class="brand">GraphicDesigner</strong>
     <Stepper />
-    <button class="primary" onclick={exportPng}>匯出 PNG</button>
+    <div class="right">
+      <ProjectMenu />
+      <button class="primary" onclick={exportPng}>匯出 PNG</button>
+    </div>
   </header>
 
   <aside>
@@ -44,6 +121,8 @@
 
     {#if step.id === 'composition'}
       <CompositionPanel />
+    {:else if step.id === 'guides'}
+      <GuidesPanel />
     {:else if step.id === 'objects'}
       <section>
         <h3>字型庫</h3>
@@ -73,9 +152,10 @@
     <CanvasView
       bind:this={view}
       canvas={project.canvas}
-      {composition}
-      showComposition={project.visibility.composition}
-      showAnchors={project.visibility.anchors}
+      {layers}
+      {handles}
+      {snapTargets}
+      onhandlemove={onHandleMove}
     />
   </main>
 </div>
@@ -96,9 +176,14 @@
     padding: 10px 16px;
     border-bottom: 1px solid var(--line);
     background: var(--panel);
+    flex-wrap: wrap;
   }
-  header .primary {
+  .right {
     margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
   }
   .brand {
     font-size: 15px;

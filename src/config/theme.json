@@ -3,12 +3,26 @@
     "composition": {
       "mainColor": "#2f6bff",
       "subColor": "#12b39a",
+      "anchorColor": "#8b5cf6",
       "main": 1.75,
       "sub": 1.25,
       "subOpacity": 0.85,
       "dash": [8, 5],
-      "fineDash": [2, 4]
+      "fineDash": [2, 4],
+      "labelSize": 12
     },
-    "anchor": { "color": "#8b5cf6", "radius": 4 }
+    "visual": {
+      "mainColor": "#f0642a",
+      "subColor": "#f2a516",
+      "anchorColor": "#e5484d",
+      "main": 1.75,
+      "sub": 1,
+      "subOpacity": 0.8,
+      "dash": [10, 4, 2, 4],
+      "fineDash": [2, 4],
+      "labelSize": 12
+    },
+    "anchor": { "radius": 4 },
+    "handle": { "radius": 7, "color": "#ffffff", "stroke": "#1f2937", "snapColor": "#8b5cf6", "snapDistance": 14 }
   }
 }

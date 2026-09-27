@@ -36,6 +36,27 @@ export function mapPoint(p: Pt, gen: Frame, o: Orientation): Pt {
   }
 }
 
+/** mapPoint 的反向：畫布座標 → 生成畫框座標（拖曳控制點時使用）。 */
+export function unmapPoint(p: Pt, gen: Frame, o: Orientation): Pt {
+  let x: number
+  let y: number
+  switch (o.rotate) {
+    case 0:
+      ;[x, y] = [p.x, p.y]
+      break
+    case 90:
+      ;[x, y] = [p.y, gen.h - p.x]
+      break
+    case 180:
+      ;[x, y] = [gen.w - p.x, gen.h - p.y]
+      break
+    case 270:
+      ;[x, y] = [gen.w - p.y, p.x]
+      break
+  }
+  return { x: o.flipH ? gen.w - x : x, y: o.flipV ? gen.h - y : y }
+}
+
 function mapPrimitive(p: Primitive, gen: Frame, o: Orientation): Primitive {
   const m = (q: Pt) => mapPoint(q, gen, o)
   switch (p.kind) {
@@ -45,6 +66,8 @@ function mapPrimitive(p: Primitive, gen: Frame, o: Orientation): Primitive {
       return { ...p, points: p.points.map(m) }
     case 'circle':
       return { ...p, c: m(p.c) }
+    case 'text':
+      return { ...p, at: m(p.at) }
   }
 }
 

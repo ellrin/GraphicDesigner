@@ -1,0 +1,5 @@
+{
+  "far": { "type": "number", "label": "背景／中景分界", "min": 0.05, "max": 0.95, "step": 0.01, "default": 0.38 },
+  "near": { "type": "number", "label": "中景／前景分界", "min": 0.05, "max": 0.95, "step": 0.01, "default": 0.72 },
+  "labels": { "type": "boolean", "label": "顯示標籤", "default": true }
+}

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CANVAS_PRESETS, type CanvasSpec } from '../core/canvas'
+  import { CANVAS_MAX, CANVAS_PRESETS, type CanvasSpec } from '../core/canvas'
 
   let { canvas = $bindable() }: { canvas: CanvasSpec } = $props()
 
@@ -24,6 +24,23 @@
   function manual() {
     canvas.presetId = null
   }
+
+  const MAX = CANVAS_MAX
+
+  /**
+   * 輸入完成（Enter 或離開欄位）才套用，打字途中的空白、0 或過大的中間值不會影響畫布。
+   * 不合法的數字會還原成目前的尺寸。
+   */
+  function commit(axis: 'w' | 'h', input: HTMLInputElement) {
+    const v = Number(input.value)
+    if (input.value.trim() !== '' && Number.isFinite(v) && v >= 1 && v <= MAX) {
+      if (v !== canvas[axis]) {
+        canvas[axis] = v
+        manual()
+      }
+    }
+    input.value = String(canvas[axis])
+  }
 </script>
 
 <div class="settings">
@@ -39,9 +56,9 @@
   </select>
 
   <div class="dims">
-    <input type="number" min="1" bind:value={canvas.w} oninput={manual} aria-label="寬" />
+    <input type="number" min="1" max={MAX} value={canvas.w} onchange={(e) => commit('w', e.currentTarget)} aria-label="寬" />
     <span>×</span>
-    <input type="number" min="1" bind:value={canvas.h} oninput={manual} aria-label="高" />
+    <input type="number" min="1" max={MAX} value={canvas.h} onchange={(e) => commit('h', e.currentTarget)} aria-label="高" />
     <select bind:value={canvas.unit} onchange={manual} aria-label="單位">
       <option value="mm">mm</option>
       <option value="px">px</option>

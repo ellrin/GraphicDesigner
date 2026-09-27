@@ -1,0 +1,7 @@
+{
+  "focus": { "type": "point", "label": "焦點", "default": { "x": 0.5, "y": 0.5 } },
+  "count": { "type": "int", "label": "線條數量", "min": 12, "max": 180, "default": 72 },
+  "clear": { "type": "number", "label": "中央留白半徑", "min": 0.05, "max": 0.6, "step": 0.01, "default": 0.22 },
+  "jitter": { "type": "number", "label": "長短變化", "min": 0, "max": 1, "step": 0.01, "default": 0.35 },
+  "ring": { "type": "boolean", "label": "顯示留白範圍", "default": false }
+}

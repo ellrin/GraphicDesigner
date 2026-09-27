@@ -14,5 +14,8 @@ export function primitiveToSvg(p: Primitive, attrs: string): string {
     }
     case 'circle':
       return `<circle cx="${fmt(p.c.x)}" cy="${fmt(p.c.y)}" r="${fmt(p.r)}" fill="none" ${attrs}/>`
+    case 'text':
+      // 縮圖太小，文字標籤略過
+      return ''
   }
 }

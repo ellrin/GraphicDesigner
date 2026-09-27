@@ -1,6 +1,6 @@
 <script lang="ts">
   // 依 ParamSchema 自動產生的參數面板，所有圖層共用。
-  import type { ParamSchema, ParamValues } from '../core/params'
+  import type { ParamSchema, ParamValues, PointValue } from '../core/params'
 
   interface Props {
     schema: ParamSchema
@@ -20,6 +20,25 @@
         {#if spec.type === 'boolean'}
           <input type="checkbox" bind:checked={values[key] as boolean} />
           <span>{spec.label}</span>
+        {:else if spec.type === 'point'}
+          {@const v = values[key] as PointValue}
+          <span class="head">
+            {spec.label}
+            <output>({fmt(v.x)}, {fmt(v.y)})</output>
+          </span>
+          <span class="xy">
+            {#each ['x', 'y'] as const as axis (axis)}
+              <input
+                type="range"
+                min={spec.min ?? 0}
+                max={spec.max ?? 1}
+                step="0.001"
+                value={v[axis]}
+                aria-label="{spec.label} {axis}"
+                oninput={(e) => (values[key] = { ...v, [axis]: Number(e.currentTarget.value) })}
+              />
+            {/each}
+          </span>
         {:else if spec.type === 'select'}
           <span>{spec.label}</span>
           <select bind:value={values[key]}>
@@ -73,5 +92,11 @@
   }
   input[type='range'] {
     width: 100%;
+    min-width: 0;
+  }
+  .xy {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
 </style>

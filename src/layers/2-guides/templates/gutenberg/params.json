@@ -1,0 +1,5 @@
+{
+  "splitX": { "type": "number", "label": "垂直分界", "min": 0.2, "max": 0.8, "step": 0.01, "default": 0.5 },
+  "splitY": { "type": "number", "label": "水平分界", "min": 0.2, "max": 0.8, "step": 0.01, "default": 0.5 },
+  "labels": { "type": "boolean", "label": "顯示區域名稱", "default": true }
+}
