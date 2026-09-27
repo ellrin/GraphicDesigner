@@ -18,7 +18,8 @@
 ```
 GraphicDesigner/
 ├─ GraphicDesigner.html   ← 主程式，雙擊開啟
-├─ docs/                  設計規劃、字型授權說明
+├─ LICENSE                授權（MIT）
+├─ docs/                  設計規劃、授權說明
 └─ source/                原始碼（開發用，一般使用不需要理會）
 ```
 
@@ -177,3 +178,9 @@ regions: [region(x, y, w, h, '主要視覺區', 'title')]  // 最後一個參數
 - 文字標籤用 `text(位置, '文字')`，會以固定螢幕大小顯示。
 - 所有座標都要由畫框 `w`、`h` 算出來（不要寫死數字），這樣任何畫布尺寸都會自動貼合。
 - 錨點是後續圖層（區塊、物件）吸附的位置。
+
+## 授權
+
+[MIT](LICENSE) © 2026 Ellrin。可自由使用、修改與商用，保留版權聲明即可。
+
+`GraphicDesigner.html` 內含的第三方套件（Konva、jsPDF、Svelte 等，皆為 MIT 系列授權）列在 [docs/THIRD_PARTY_LICENSES.md](docs/THIRD_PARTY_LICENSES.md)，同樣的聲明也以註解附在 HTML 檔開頭；打包時自動產生。字型授權見 [docs/FONTS.md](docs/FONTS.md)。

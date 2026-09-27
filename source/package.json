@@ -2,6 +2,8 @@
   "name": "graphic-designer",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "author": "Ellrin",
   "description": "以構圖為起點、分層線性進行的瀏覽器 2D 平面設計工具",
   "type": "module",
   "scripts": {
