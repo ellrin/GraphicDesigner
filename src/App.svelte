@@ -4,8 +4,10 @@
   import theme from './config/theme.json'
   import exportConfig from './config/export.json'
   import { exportPng, type Renderer } from './core/exporter'
-  import { computeTemplate, handlesOf, pointParamFromCanvas, type Handle } from './core/compute'
-  import type { Pt, Rect } from './core/geometry'
+  import type { Handle } from './core/compute'
+  import { computeInstance, instanceHandles, instancePointFromCanvas, resolveFrame, type TemplateInstance } from './core/instances'
+  import type { Template } from './core/registry'
+  import type { GuideOutput, Pt, Rect } from './core/geometry'
   import { collectSuggestions, roleOf, snapLinesFrom, toCanvasRect, toRelativeRect, type Suggestion } from './core/blocks'
   import { initHistory, redo, undo } from './core/history.svelte'
   import { downloadProject, initAutosave } from './core/persistence.svelte'
@@ -64,32 +66,44 @@
 
   const step = $derived(STEPS[flow.current])
 
-  const composition = $derived.by(() => {
-    const c = project.composition
-    const t = compositionTemplates.find((x) => x.id === c.templateId)!
-    return computeTemplate(t, project.canvas, c.params[t.id], c.orientation)
-  })
+  type Computed = { inst: TemplateInstance; t: Template; frame: Rect; name: string; output: GuideOutput }
 
-  const guideOutputs = $derived(
-    project.guides.items.map((g) => {
-      const t = guideTemplates.find((x) => x.id === g.templateId)!
-      return { g, name: t.meta.name, output: computeTemplate(t, project.canvas, g.params, g.orientation) }
-    }),
-  )
+  /**
+   * 計算一組版型實例（構圖或視覺引導）在畫布上的結果。
+   * 依清單順序計算，所以實例可以套用在「前面的實例」切出的區域上，並跟著它變動。
+   */
+  function computeAll(items: TemplateInstance[], templates: Template[], earlier: Computed[] = []) {
+    const done: Computed[] = [...earlier]
+    const lookup = (source: string, region: string) =>
+      done.find((c) => c.inst.uid === source)?.output.regions?.find((r) => r.label === region)
+    const out: Computed[] = []
+    for (const inst of items) {
+      const t = templates.find((x) => x.id === inst.templateId)
+      if (!t) continue
+      const frame = resolveFrame(inst.frame, project.canvas, project.blocks.items, lookup)
+      const c = { inst, t, frame, name: t.meta.name, output: computeInstance(t, inst, frame, inst.frame.kind === 'canvas') }
+      done.push(c)
+      out.push(c)
+    }
+    return out
+  }
+
+  const compOutputs = $derived(computeAll(project.compositions.items, compositionTemplates))
+  const guideOutputs = $derived(computeAll(project.guides.items, guideTemplates, compOutputs))
 
   const layers = $derived.by((): GuideLayerView[] => [
-    {
-      id: 'composition',
-      output: composition,
+    ...compOutputs.map(({ inst, output }) => ({
+      id: `comp:${inst.uid}`,
+      output,
       style: theme.guides.composition,
-      visible: project.visibility.composition,
+      visible: project.visibility.composition && inst.visible,
       anchorsVisible: project.visibility.anchors,
-    },
-    ...guideOutputs.map(({ g, output }) => ({
-      id: `guide:${g.uid}`,
+    })),
+    ...guideOutputs.map(({ inst, output }) => ({
+      id: `guide:${inst.uid}`,
       output,
       style: theme.guides.visual,
-      visible: project.visibility.guides && g.visible,
+      visible: project.visibility.guides && inst.visible,
       anchorsVisible: project.visibility.anchors,
     })),
   ])
@@ -97,11 +111,21 @@
   // ── 第三層：區塊 ──────────────────────────────────
   /** 目前顯示中的構圖與引導（吸附與建議只看得到的線） */
   const activeOutputs = $derived([
-    ...(project.visibility.composition
-      ? [{ name: compositionTemplates.find((t) => t.id === project.composition.templateId)!.meta.name, output: composition }]
-      : []),
-    ...(project.visibility.guides ? guideOutputs.filter(({ g }) => g.visible) : []),
+    ...(project.visibility.composition ? compOutputs.filter(({ inst }) => inst.visible) : []),
+    ...(project.visibility.guides ? guideOutputs.filter(({ inst }) => inst.visible) : []),
   ])
+
+  /** 各構圖與引導切出的區域，可作為其他構圖的「套用範圍」 */
+  const regionOptions = $derived(
+    [...compOutputs, ...guideOutputs].flatMap(({ inst, name, output }) =>
+      (output.regions ?? []).map((r) => ({
+        label: `${name}・${r.label}`,
+        rect: toRelativeRect(r, project.canvas),
+        source: inst.uid,
+        region: r.label,
+      })),
+    ),
+  )
 
   const snapLines = $derived(snapLinesFrom(activeOutputs.map((o) => o.output), project.canvas))
   const suggestions = $derived(collectSuggestions(activeOutputs, project.canvas))
@@ -202,26 +226,28 @@
     },
   }
 
-  // 只有在「視覺引導」步驟、且選取的引導有位置參數時，才顯示可拖曳的控制點
+  // 控制點：第一步編輯選取的構圖、第二步編輯選取的視覺引導（有位置參數時才會出現）
   const editing = $derived.by(() => {
-    if (step.id !== 'guides') return null
-    const g = project.guides.items.find((x) => x.uid === ui.selectedGuide)
-    const t = g && guideTemplates.find((x) => x.id === g.templateId)
-    return g && t && g.visible && project.visibility.guides ? { g, t } : null
+    const list =
+      step.id === 'composition' && project.visibility.composition
+        ? { outputs: compOutputs, id: ui.selectedComposition }
+        : step.id === 'guides' && project.visibility.guides
+          ? { outputs: guideOutputs, id: ui.selectedGuide }
+          : null
+    const hit = list?.outputs.find((o) => o.inst.uid === list.id)
+    return hit && hit.inst.visible ? hit : null
   })
 
-  const handles = $derived.by((): Handle[] =>
-    editing ? handlesOf(editing.t, project.canvas, editing.g.params, editing.g.orientation) : [],
-  )
+  const handles = $derived.by((): Handle[] => (editing ? instanceHandles(editing.t, editing.inst, editing.frame) : []))
 
   const snapTargets = $derived.by((): Pt[] => [
-    ...(project.visibility.composition ? composition.anchors : []),
+    ...activeOutputs.filter((o) => o.inst !== editing?.inst).flatMap((o) => o.output.anchors),
     { x: project.canvas.w / 2, y: project.canvas.h / 2 },
   ])
 
   function onHandleMove(key: string, p: Pt) {
     if (!editing) return
-    editing.g.params[key] = pointParamFromCanvas(editing.t, key, p, project.canvas, editing.g.orientation)
+    editing.inst.params[key] = instancePointFromCanvas(editing.t, editing.inst, key, p, editing.frame)
   }
 
   /** 第四、五步都可以編輯物件 */
@@ -339,9 +365,9 @@
     </section>
 
     {#if step.id === 'composition'}
-      <CompositionPanel />
+      <CompositionPanel regions={regionOptions} />
     {:else if step.id === 'guides'}
-      <GuidesPanel />
+      <GuidesPanel regions={regionOptions} />
     {:else if step.id === 'blocks'}
       <BlocksPanel {suggestions} onadopt={adopt} />
     {:else if step.id === 'objects'}

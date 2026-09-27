@@ -7,30 +7,21 @@ import { DEFAULT_BACKGROUND, type Background, type DesignObject } from './object
 import { objectTypeOf } from '../layers/4-objects/types'
 import { TEXT_DEFAULTS } from '../layers/4-objects/types/text/shape'
 import { IDENTITY, type Orientation } from './transform'
+import { CANVAS_FRAME, type FrameRef, type TemplateInstance } from './instances'
 import type { ParamValues } from './params'
 import type { Template } from './registry'
 import { STEPS, type StepDef } from '../config/steps'
 import { compositionTemplates } from '../layers/1-composition/templates'
 import { guideTemplates } from '../layers/2-guides/templates'
 
-/** 第二層可疊加多條視覺引導，每條是一個實例。 */
-export interface GuideItem {
-  uid: string
-  templateId: string
-  params: ParamValues
-  orientation: Orientation
-  visible: boolean
-}
+/** 第二層的視覺引導與第一層的構圖一樣，都是版型實例 */
+export type GuideItem = TemplateInstance
 
 export interface ProjectData {
   canvas: CanvasSpec
-  composition: {
-    templateId: string
-    orientation: Orientation
-    /** 每個版型各自記住參數，切換版型後切回來不會遺失。 */
-    params: Record<string, ParamValues>
-  }
-  guides: { items: GuideItem[] }
+  /** 第一層：可以有多個構圖，各自套用在整張畫布或某個範圍 */
+  compositions: { items: TemplateInstance[] }
+  guides: { items: TemplateInstance[] }
   blocks: { items: Block[] }
   /** 陣列順序 = 疊放順序（後面的在上層） */
   objects: { items: DesignObject[] }
@@ -56,11 +47,7 @@ export function newProject(): ProjectData {
   const preset = CANVAS_PRESETS.find((p) => p.id === '16x9') ?? CANVAS_PRESETS[0]
   return {
     canvas: { presetId: preset.id, w: preset.w, h: preset.h, unit: preset.unit },
-    composition: {
-      templateId: compositionTemplates[0].id,
-      orientation: { ...IDENTITY },
-      params: Object.fromEntries(compositionTemplates.map((t) => [t.id, clone(t.defaults)])),
-    },
+    compositions: { items: [newInstance(compositionTemplates[0])] },
     guides: { items: [] },
     blocks: { items: [] },
     objects: { items: [] },
@@ -96,26 +83,27 @@ export function replaceProject(data: ProjectData) {
     w: size(data.canvas?.w, base.canvas.w),
     h: size(data.canvas?.h, base.canvas.h),
   }
-  project.composition = {
-    templateId: compositionTemplates.some((t) => t.id === data.composition?.templateId)
-      ? data.composition.templateId
-      : base.composition.templateId,
-    orientation: { ...IDENTITY, ...data.composition?.orientation },
-    params: Object.fromEntries(
-      compositionTemplates.map((t) => [t.id, withDefaults(t, data.composition?.params?.[t.id])]),
-    ),
-  }
-  project.guides = {
-    items: (data.guides?.items ?? [])
-      .filter((g) => guideTemplates.some((t) => t.id === g.templateId))
+  const instances = (items: Partial<TemplateInstance>[] | undefined, templates: Template[]): TemplateInstance[] =>
+    (items ?? [])
+      .filter((g) => templates.some((t) => t.id === g.templateId))
       .map((g) => ({
-        uid: g.uid,
-        templateId: g.templateId,
+        uid: g.uid ?? uid(),
+        templateId: g.templateId!,
         visible: g.visible ?? true,
         orientation: { ...IDENTITY, ...g.orientation },
-        params: withDefaults(guideTemplates.find((t) => t.id === g.templateId), g.params),
-      })),
-  }
+        params: withDefaults(templates.find((t) => t.id === g.templateId), g.params),
+        frame: g.frame ?? { ...CANVAS_FRAME },
+      }))
+
+  // 舊版存檔只有單一構圖（composition），轉成實例清單
+  const legacy = (data as unknown as { composition?: { templateId: string; orientation: Orientation; params: Record<string, ParamValues> } }).composition
+  const compItems = data.compositions?.items
+    ? instances(data.compositions.items, compositionTemplates)
+    : legacy
+      ? instances([{ templateId: legacy.templateId, orientation: legacy.orientation, params: legacy.params?.[legacy.templateId] }], compositionTemplates)
+      : []
+  project.compositions = { items: compItems.length ? compItems : base.compositions.items }
+  project.guides = { items: instances(data.guides?.items, guideTemplates) }
   project.blocks = {
     items: (data.blocks?.items ?? []).map((b) => ({ ...defaultBlock(), ...b, role: roleOf(b.role).id })),
   }
@@ -132,6 +120,7 @@ export function replaceProject(data: ProjectData) {
 
 /** 介面狀態（不存檔、不進復原紀錄）。 */
 export const ui = $state({
+  selectedComposition: null as string | null,
   selectedGuide: null as string | null,
   selectedBlock: null as string | null,
   /** 滑鼠指到的建議區塊（在畫布上預覽） */
@@ -148,12 +137,41 @@ export function selectObject(id: string | null, additive = false) {
   else ui.selectedObjects = [...ui.selectedObjects, id]
 }
 
-const uid = () => Math.random().toString(36).slice(2, 10)
+function uid() {
+  return Math.random().toString(36).slice(2, 10)
+}
 
-export const addGuide = discrete((templateId: string) => {
+function newInstance(t: Template, frame: FrameRef = CANVAS_FRAME): TemplateInstance {
+  return { uid: uid(), templateId: t.id, params: clone(t.defaults), orientation: { ...IDENTITY }, visible: true, frame: clone(frame) }
+}
+
+/** 把實例換成另一個版型（參數重設為新版型的預設值，範圍不變） */
+export const setInstanceTemplate = discrete((inst: TemplateInstance, t: Template) => {
+  inst.templateId = t.id
+  inst.params = clone(t.defaults)
+})
+
+// ── 第一層：構圖實例 ────────────────────────────────────
+
+export const addComposition = discrete((templateId: string, frame: FrameRef = CANVAS_FRAME) => {
+  const t = compositionTemplates.find((x) => x.id === templateId)
+  if (!t) return
+  const item = newInstance(t, frame)
+  project.compositions.items.push(item)
+  ui.selectedComposition = item.uid
+})
+
+export const removeComposition = discrete((id: string) => {
+  project.compositions.items = project.compositions.items.filter((g) => g.uid !== id)
+  if (ui.selectedComposition === id) ui.selectedComposition = project.compositions.items.at(-1)?.uid ?? null
+})
+
+// ── 第二層：視覺引導實例 ────────────────────────────────
+
+export const addGuide = discrete((templateId: string, frame: FrameRef = CANVAS_FRAME) => {
   const t = guideTemplates.find((x) => x.id === templateId)
   if (!t) return
-  const item: GuideItem = { uid: uid(), templateId, params: clone(t.defaults), orientation: { ...IDENTITY }, visible: true }
+  const item = newInstance(t, frame)
   project.guides.items.push(item)
   ui.selectedGuide = item.uid
 })

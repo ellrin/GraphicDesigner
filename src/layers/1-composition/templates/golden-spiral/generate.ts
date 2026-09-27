@@ -115,8 +115,9 @@ export default defineGenerator<P>(({ w, h }, p) => {
   // 建議區塊：大正方形放主視覺、剩下的長條放文字、螺旋中心附近放焦點
   const focus = 1 / (PHI * PHI * PHI)
   const regions: Region[] = [
-    toRegion({ x: 0, y: 0, w: 1, h: 1 }, '大正方形', 'subject'),
-    toRegion({ x: 1, y: 0, w: PHI - 1, h: 1 }, '黃金副區', 'text'),
+    // 螺旋切出的每一個正方形（由大到小），都可以作為區塊或其他構圖的套用範圍
+    ...squares.map((sq, i) => toRegion(sq, `正方形 ${i + 1}`, i === 0 ? 'subject' : i === 1 ? 'title' : 'text')),
+    toRegion({ x: 1, y: 0, w: PHI - 1, h: 1 }, '黃金副區（大正方形以外）', 'text'),
     toRegion({ x: eyeC.x - focus / 2, y: eyeC.y - focus / 2, w: focus, h: focus }, '螺旋中心焦點', 'subject'),
   ]
   if (partial) regions.push(toRegion({ x: 0, y: 0, w: PHI, h: 1 }, '黃金矩形', 'image'))

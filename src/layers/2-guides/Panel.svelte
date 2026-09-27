@@ -1,11 +1,15 @@
 <script lang="ts">
   import { addGuide, project, removeGuide, ui } from '../../core/store.svelte'
   import OrientationTools from '../../ui/OrientationTools.svelte'
+  import FrameSelect, { type RegionOption } from '../../ui/FrameSelect.svelte'
+  import { frameLabel } from '../../core/instances'
   import ParamPanel from '../../ui/ParamPanel.svelte'
   import TemplateThumb from '../../ui/TemplateThumb.svelte'
   import theme from '../../config/theme.json'
   import { IDENTITY } from '../../core/transform'
   import { guideTemplates } from './templates'
+
+  let { regions }: { regions: RegionOption[] } = $props()
 
   const items = $derived(project.guides.items)
   const selected = $derived(items.find((g) => g.uid === ui.selectedGuide))
@@ -25,7 +29,9 @@
       {#each items as g (g.uid)}
         <li class:on={g.uid === ui.selectedGuide}>
           <input type="checkbox" bind:checked={g.visible} title="顯示／隱藏" />
-          <button class="name" onclick={() => (ui.selectedGuide = g.uid)}>{nameOf(g.templateId)}</button>
+          <button class="name" onclick={() => (ui.selectedGuide = g.uid)}>
+            {nameOf(g.templateId)}<small>{frameLabel(g.frame, project.blocks.items)}</small>
+          </button>
           <button class="del" onclick={() => removeGuide(g.uid)} title="移除">✕</button>
         </li>
       {/each}
@@ -42,6 +48,10 @@
     {#if hasPoints}
       <p class="tip">可直接在畫布上拖曳白色控制點；靠近構圖錨點時會變紫色並自動吸附。</p>
     {/if}
+  </section>
+  <section>
+    <h3>套用範圍</h3>
+    <FrameSelect frame={selected.frame} regions={regions.filter((r) => r.source !== selected.uid)} onchange={(f) => (selected.frame = f)} />
   </section>
   <section>
     <h3>方向</h3>
@@ -92,6 +102,11 @@
   .items li.on {
     border-color: var(--accent);
     box-shadow: 0 0 0 1px var(--accent);
+  }
+  .name small {
+    color: var(--muted);
+    margin-left: 8px;
+    font-size: 12px;
   }
   .name {
     flex: 1;
