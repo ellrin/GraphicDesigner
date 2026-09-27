@@ -1,0 +1,11 @@
+[
+  { "id": "subject", "label": "主視覺", "color": "#7c5cff" },
+  { "id": "title", "label": "標題", "color": "#e5484d" },
+  { "id": "text", "label": "內文", "color": "#0e9f8e" },
+  { "id": "image", "label": "圖片", "color": "#2f6bff" },
+  { "id": "cta", "label": "行動呼籲", "color": "#f0642a" },
+  { "id": "logo", "label": "Logo", "color": "#c2410c" },
+  { "id": "background", "label": "背景", "color": "#8a8f98" },
+  { "id": "space", "label": "留白", "color": "#b8bcc4" },
+  { "id": "other", "label": "其他", "color": "#5b6270" }
+]

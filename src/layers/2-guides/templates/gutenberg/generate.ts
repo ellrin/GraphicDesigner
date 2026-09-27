@@ -1,4 +1,4 @@
-import { line, pt, text, type Primitive } from '../../../../core/geometry'
+import { line, pt, region, text, type Primitive } from '../../../../core/geometry'
 import { defineGenerator } from '../../../../core/registry'
 
 interface P {
@@ -30,6 +30,12 @@ export default defineGenerator<P>(({ w, h }, p) => {
     anchors: [
       { ...zones[0].c, label: '主要視覺區' },
       { ...zones[3].c, label: '終端視覺區' },
+    ],
+    regions: [
+      region(0, 0, sx, sy, '主要視覺區', 'title'),
+      region(sx, 0, w - sx, sy, '強休息區', 'image'),
+      region(0, sy, sx, h - sy, '弱休息區', 'text'),
+      region(sx, sy, w - sx, h - sy, '終端視覺區', 'cta'),
     ],
   }
 })

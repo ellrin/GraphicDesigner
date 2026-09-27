@@ -1,7 +1,7 @@
 // 復原／重做：專案每次變動（停止操作 300ms 後）存一份快照。
 // 拖曳滑桿或控制點時的連續變動會合併成一步。
 
-import { project, replaceProject, type ProjectData } from './store.svelte'
+import { historyHooks, project, replaceProject, type ProjectData } from './store.svelte'
 
 const LIMIT = 100
 const DEBOUNCE = 300
@@ -40,6 +40,7 @@ function restore(snapshot: string) {
 /** 開始追蹤專案變動。回傳停止追蹤的函式。 */
 export function initHistory(): () => void {
   current = JSON.stringify(project)
+  historyHooks.checkpoint = () => commit(JSON.stringify(project))
   return $effect.root(() => {
     $effect(() => {
       const snapshot = JSON.stringify(project)

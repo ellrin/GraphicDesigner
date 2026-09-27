@@ -12,10 +12,23 @@ export type ParamSpec =
   | { type: 'boolean'; label: string; default: boolean }
   | { type: 'select'; label: string; options: { value: string; label: string }[]; default: string }
   /**
-   * 位置參數（相對畫框 0–1）。會在畫布上顯示可拖曳的控制點，
-   * 並吸附到構圖錨點。min/max 可超出 0–1，例如畫面外的消失點。
+   * 位置參數（相對 0–1）。會在畫布上顯示可拖曳的控制點，並吸附到構圖錨點。
+   * min/max 可超出 0–1，例如畫面外的消失點。
+   *
+   * space：
+   * - 'frame'（預設）：位置跟著圖形一起翻轉、旋轉
+   * - 'canvas'：位置以畫布為準，不受翻轉旋轉影響（例如「靠右擺放」翻轉後仍靠右）
+   * handle：是否在畫布上顯示控制點（預設 true）
    */
-  | { type: 'point'; label: string; default: PointValue; min?: number; max?: number }
+  | {
+      type: 'point'
+      label: string
+      default: PointValue
+      min?: number
+      max?: number
+      space?: 'frame' | 'canvas'
+      handle?: boolean
+    }
 
 export type ParamValue = number | boolean | string | PointValue
 export type ParamValues = Record<string, ParamValue>

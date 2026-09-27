@@ -1,4 +1,4 @@
-import { line, polygon, pt, type Primitive } from '../../../../core/geometry'
+import { line, polygon, pt, region, type Primitive } from '../../../../core/geometry'
 import { defineGenerator } from '../../../../core/registry'
 
 interface P {
@@ -24,6 +24,11 @@ export default defineGenerator<P>(({ w, h }, p) => {
       { ...left, label: '底角' },
       { ...right, label: '底角' },
       { ...centroid, label: '重心' },
+    ],
+    regions: [
+      region(left.x, top.y, right.x - left.x, left.y - top.y, '三角形範圍', 'subject'),
+      // 三角形內最大的內接矩形（高度一半處）
+      region((left.x + top.x) / 2, (top.y + left.y) / 2, (right.x - left.x) / 2, (left.y - top.y) / 2, '三角形核心', 'subject'),
     ],
   }
 })

@@ -4,10 +4,22 @@
   import theme from './config/theme.json'
   import { exportPixelSize } from './core/canvas'
   import { computeTemplate, handlesOf, pointParamFromCanvas, type Handle } from './core/compute'
-  import type { Pt } from './core/geometry'
+  import type { Pt, Rect } from './core/geometry'
+  import { collectSuggestions, roleOf, snapLinesFrom, toCanvasRect, toRelativeRect, type Suggestion } from './core/blocks'
   import { initHistory, redo, undo } from './core/history.svelte'
   import { initAutosave } from './core/persistence.svelte'
-  import { completeStep, flow, project, ui } from './core/store.svelte'
+  import {
+    addBlock,
+    completeStep,
+    duplicateBlock,
+    flow,
+    project,
+    removeBlock,
+    ui,
+    updateBlock,
+  } from './core/store.svelte'
+  import BlocksPanel from './layers/3-blocks/Panel.svelte'
+  import ViewToolbar from './ui/ViewToolbar.svelte'
   import CompositionPanel from './layers/1-composition/Panel.svelte'
   import { compositionTemplates } from './layers/1-composition/templates'
   import GuidesPanel from './layers/2-guides/Panel.svelte'
@@ -39,6 +51,13 @@
     return computeTemplate(t, project.canvas, c.params[t.id], c.orientation)
   })
 
+  const guideOutputs = $derived(
+    project.guides.items.map((g) => {
+      const t = guideTemplates.find((x) => x.id === g.templateId)!
+      return { g, name: t.meta.name, output: computeTemplate(t, project.canvas, g.params, g.orientation) }
+    }),
+  )
+
   const layers = $derived.by((): GuideLayerView[] => [
     {
       id: 'composition',
@@ -47,14 +66,58 @@
       visible: project.visibility.composition,
       anchorsVisible: project.visibility.anchors,
     },
-    ...project.guides.items.map((g) => ({
+    ...guideOutputs.map(({ g, output }) => ({
       id: `guide:${g.uid}`,
-      output: computeTemplate(guideTemplates.find((t) => t.id === g.templateId)!, project.canvas, g.params, g.orientation),
+      output,
       style: theme.guides.visual,
       visible: project.visibility.guides && g.visible,
       anchorsVisible: project.visibility.anchors,
     })),
   ])
+
+  // ── 第三層：區塊 ──────────────────────────────────
+  /** 目前顯示中的構圖與引導（吸附與建議只看得到的線） */
+  const activeOutputs = $derived([
+    ...(project.visibility.composition
+      ? [{ name: compositionTemplates.find((t) => t.id === project.composition.templateId)!.meta.name, output: composition }]
+      : []),
+    ...(project.visibility.guides ? guideOutputs.filter(({ g }) => g.visible) : []),
+  ])
+
+  const snapLines = $derived(snapLinesFrom(activeOutputs.map((o) => o.output), project.canvas))
+  const suggestions = $derived(collectSuggestions(activeOutputs, project.canvas))
+
+  const blockViews = $derived(
+    project.blocks.items.map((b) => ({
+      uid: b.uid,
+      rect: toCanvasRect(b, project.canvas),
+      label: b.name,
+      color: b.color,
+      filled: b.filled,
+      opacity: b.opacity,
+      visible: b.visible,
+    })),
+  )
+
+  // 建議區塊的畫布預覽：預設只顯示滑鼠指到的那一個，勾選「顯示全部」才全部顯示
+  const ghosts = $derived.by(() => {
+    if (step.id !== 'blocks' || !project.visibility.blocks) return []
+    const hovered = ui.hoverSuggestion !== null ? suggestions[ui.hoverSuggestion] : undefined
+    const shown = project.visibility.suggestions ? suggestions : hovered ? [hovered] : []
+    return shown.map((s) => ({ rect: s, label: s.label, color: roleOf(s.role ?? 'other').color, index: suggestions.indexOf(s) }))
+  })
+
+  function adopt(s: Suggestion) {
+    ui.hoverSuggestion = null
+    addBlock(toRelativeRect(s, project.canvas), s.role ?? 'other', s.label)
+  }
+
+  const blockEvents = {
+    onSelect: (id: string | null) => (ui.selectedBlock = id),
+    onChange: (id: string, r: Rect) => updateBlock(id, toRelativeRect(r, project.canvas)),
+    onCreate: (r: Rect) => addBlock(toRelativeRect(r, project.canvas)),
+    onAdopt: (i: number) => adopt(suggestions[ghosts[i].index]),
+  }
 
   // 只有在「視覺引導」步驟、且選取的引導有位置參數時，才顯示可拖曳的控制點
   const editing = $derived.by(() => {
@@ -89,14 +152,40 @@
   function onKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement
     if (target.matches('input[type="text"], input[type="number"], input:not([type]), textarea, select')) return
-    if (!(e.metaKey || e.ctrlKey)) return
+    const mod = e.metaKey || e.ctrlKey
     const key = e.key.toLowerCase()
-    if (key === 'z' && !e.shiftKey) {
+
+    if (mod && key === 'z' && !e.shiftKey) {
       e.preventDefault()
       undo()
-    } else if ((key === 'z' && e.shiftKey) || key === 'y') {
+    } else if (mod && ((key === 'z' && e.shiftKey) || key === 'y')) {
       e.preventDefault()
       redo()
+    } else if (mod && key === ';') {
+      // 像繪圖軟體一樣：一鍵切換所有輔助線
+      e.preventDefault()
+      const v = project.visibility
+      const show = !(v.composition || v.guides || v.anchors)
+      v.composition = v.guides = v.anchors = show
+    } else if (step.id === 'blocks' && ui.selectedBlock) {
+      const b = project.blocks.items.find((x) => x.uid === ui.selectedBlock)
+      if (!b) return
+      if (key === 'delete' || key === 'backspace') {
+        e.preventDefault()
+        removeBlock(b.uid)
+      } else if (mod && key === 'd') {
+        e.preventDefault()
+        duplicateBlock(b.uid)
+      } else if (key.startsWith('arrow')) {
+        // 方向鍵微調：每次 1 單位，按住 Shift 為 10 單位
+        e.preventDefault()
+        const d = e.shiftKey ? 10 : 1
+        const dx = key === 'arrowleft' ? -d : key === 'arrowright' ? d : 0
+        const dy = key === 'arrowup' ? -d : key === 'arrowdown' ? d : 0
+        updateBlock(b.uid, { x: b.x + dx / project.canvas.w, y: b.y + dy / project.canvas.h })
+      } else if (key === 'escape') {
+        ui.selectedBlock = null
+      }
     }
   }
 </script>
@@ -123,6 +212,8 @@
       <CompositionPanel />
     {:else if step.id === 'guides'}
       <GuidesPanel />
+    {:else if step.id === 'blocks'}
+      <BlocksPanel {suggestions} onadopt={adopt} />
     {:else if step.id === 'objects'}
       <section>
         <h3>字型庫</h3>
@@ -149,6 +240,7 @@
   </aside>
 
   <main>
+    <ViewToolbar showSuggestionsToggle={step.id === 'blocks'} />
     <CanvasView
       bind:this={view}
       canvas={project.canvas}
@@ -156,6 +248,13 @@
       {handles}
       {snapTargets}
       onhandlemove={onHandleMove}
+      blocks={blockViews}
+      selectedBlock={ui.selectedBlock}
+      blocksInteractive={step.id === 'blocks'}
+      blocksVisible={project.visibility.blocks}
+      {ghosts}
+      {snapLines}
+      {blockEvents}
     />
   </main>
 </div>

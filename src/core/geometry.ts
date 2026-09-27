@@ -35,9 +35,56 @@ export interface Anchor extends Pt {
   label?: string
 }
 
+export interface Rect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+/**
+ * 建議區域：版型認為「適合放東西」的矩形範圍，第三層會列為建議區塊。
+ * role 對應 config/block-roles.json 的 id。
+ */
+export interface Region extends Rect {
+  label: string
+  role?: string
+}
+
 export interface GuideOutput {
   primitives: Primitive[]
   anchors: Anchor[]
+  /** 選填：此版型建議的區塊 */
+  regions?: Region[]
+}
+
+export const region = (x: number, y: number, w: number, h: number, label: string, role?: string): Region => ({
+  x,
+  y,
+  w,
+  h,
+  label,
+  role,
+})
+
+/**
+ * 由分割線切出的所有連續欄（或列）組合，例如三分法會得到「第 1 欄」「第 1–2 欄」…（不含全版）。
+ * edges 需包含 0 與畫框邊長。
+ */
+export function bandRegions(edges: number[], axis: 'x' | 'y', across: number): Region[] {
+  const n = edges.length - 1
+  const unit = axis === 'x' ? '欄' : '列'
+  const out: Region[] = []
+  for (let i = 0; i < n; i++) {
+    for (let j = i; j < n; j++) {
+      if (i === 0 && j === n - 1) continue
+      const a = edges[i]
+      const b = edges[j + 1]
+      const label = i === j ? `第 ${i + 1} ${unit}` : `第 ${i + 1}–${j + 1} ${unit}`
+      out.push(axis === 'x' ? region(a, 0, b - a, across, label) : region(0, a, across, b - a, label))
+    }
+  }
+  return out
 }
 
 export const PHI = (1 + Math.sqrt(5)) / 2

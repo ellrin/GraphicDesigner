@@ -1,4 +1,4 @@
-import { line, pt, text, type Primitive } from '../../../../core/geometry'
+import { line, pt, region, text, type Primitive } from '../../../../core/geometry'
 import { defineGenerator } from '../../../../core/registry'
 
 interface P {
@@ -18,5 +18,13 @@ export default defineGenerator<P>(({ w, h }, p) => {
     { name: '前景', y: (y2 + h) / 2 },
   ]
   if (p.labels) for (const b of bands) primitives.push(text(pt(w * 0.02, b.y), b.name, 'left'))
-  return { primitives, anchors: bands.map((b) => ({ x: w / 2, y: b.y, label: b.name })) }
+  return {
+    primitives,
+    anchors: bands.map((b) => ({ x: w / 2, y: b.y, label: b.name })),
+    regions: [
+      region(0, 0, w, y1, '背景帶', 'background'),
+      region(0, y1, w, y2 - y1, '中景帶', 'subject'),
+      region(0, y2, w, h - y2, '前景帶', 'image'),
+    ],
+  }
 })

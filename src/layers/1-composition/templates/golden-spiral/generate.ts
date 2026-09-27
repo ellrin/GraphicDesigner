@@ -1,10 +1,12 @@
-import { arcPoints, PHI, polygon, pt, type Anchor, type Primitive, type Pt } from '../../../../core/geometry'
+import { arcPoints, PHI, polygon, pt, region, type Anchor, type Primitive, type Pt, type Region } from '../../../../core/geometry'
 import { defineGenerator } from '../../../../core/registry'
 
 interface P {
   iterations: number
   fit: 'contain' | 'stretch'
-  align: 'start' | 'center' | 'end'
+  size: number
+  /** 以畫布為準的位置（已換算成畫框座標）：黃金矩形在剩餘空間中的比例位置 */
+  position: Pt
   showSquares: boolean
   showSpiral: boolean
 }
@@ -60,25 +62,27 @@ function spiral(iterations: number) {
 }
 
 export default defineGenerator<P>(({ w, h }, p) => {
-  // 直式畫布：在橫式畫框中計算後轉置（x ↔ y）
+  // 直式畫布：黃金矩形改為直立（螺旋座標 x ↔ y 對調）
   const portrait = h > w
-  const L = portrait ? { w: h, h: w } : { w, h }
 
-  let gw = L.w
-  let gh = L.h
+  // 黃金矩形在畫布上的大小與位置
+  let gw = w
+  let gh = h
   if (p.fit === 'contain') {
-    if (L.w / L.h >= PHI) gw = L.h * PHI
-    else gh = L.w / PHI
+    if (portrait) {
+      gh = Math.min(h, w * PHI) * p.size
+      gw = gh / PHI
+    } else {
+      gw = Math.min(w, h * PHI) * p.size
+      gh = gw / PHI
+    }
   }
-  const k = { start: 0, center: 0.5, end: 1 }[p.align]
-  const ox = (L.w - gw) * k
-  const oy = (L.h - gh) * k
+  const ox = (w - gw) * (p.position.x / w)
+  const oy = (h - gh) * (p.position.y / h)
 
-  const toCanvas = (q: Pt): Pt => {
-    const x = ox + (q.x / PHI) * gw
-    const y = oy + q.y * gh
-    return portrait ? pt(y, x) : pt(x, y)
-  }
+  /** 螺旋座標（φ × 1 的矩形）→ 畫布座標 */
+  const toCanvas = (q: Pt): Pt =>
+    portrait ? pt(ox + q.y * gw, oy + (q.x / PHI) * gh) : pt(ox + (q.x / PHI) * gw, oy + q.y * gh)
 
   const { squares, arcs } = spiral(p.iterations)
   const primitives: Primitive[] = []
@@ -86,9 +90,14 @@ export default defineGenerator<P>(({ w, h }, p) => {
   const toPoly = (r: R, weight: 'main' | 'sub') =>
     polygon([pt(r.x, r.y), pt(r.x + r.w, r.y), pt(r.x + r.w, r.y + r.h), pt(r.x, r.y + r.h)].map(toCanvas), { weight })
 
-  if (p.fit === 'contain' && (gw < L.w - 1e-6 || gh < L.h - 1e-6)) {
-    primitives.push(toPoly({ x: 0, y: 0, w: PHI, h: 1 }, 'main'))
+  const toRegion = (r: R, label: string, role: string): Region => {
+    const a = toCanvas(pt(r.x, r.y))
+    const b = toCanvas(pt(r.x + r.w, r.y + r.h))
+    return region(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(a.x - b.x), Math.abs(a.y - b.y), label, role)
   }
+
+  const partial = p.fit === 'contain' && (gw < w - 1e-6 || gh < h - 1e-6)
+  if (partial) primitives.push(toPoly({ x: 0, y: 0, w: PHI, h: 1 }, 'main'))
   if (p.showSquares) for (const s of squares) primitives.push(toPoly(s, 'sub'))
   if (p.showSpiral) {
     primitives.push({ kind: 'polyline', points: arcs.flat().map(toCanvas), weight: 'main' })
@@ -96,10 +105,20 @@ export default defineGenerator<P>(({ w, h }, p) => {
 
   // 螺旋收斂點：取足夠多次迭代後剩餘矩形的中心
   const eye = spiral(40).rest
+  const eyeC = pt(eye.x + eye.w / 2, eye.y + eye.h / 2)
   const anchors: Anchor[] = [
-    { ...toCanvas(pt(eye.x + eye.w / 2, eye.y + eye.h / 2)), label: '螺旋中心' },
+    { ...toCanvas(eyeC), label: '螺旋中心' },
     { ...toCanvas(pt(1, 0)), label: '主分割點' },
     { ...toCanvas(pt(1, 1)), label: '主分割點' },
   ]
-  return { primitives, anchors }
+
+  // 建議區塊：大正方形放主視覺、剩下的長條放文字、螺旋中心附近放焦點
+  const focus = 1 / (PHI * PHI * PHI)
+  const regions: Region[] = [
+    toRegion({ x: 0, y: 0, w: 1, h: 1 }, '大正方形', 'subject'),
+    toRegion({ x: 1, y: 0, w: PHI - 1, h: 1 }, '黃金副區', 'text'),
+    toRegion({ x: eyeC.x - focus / 2, y: eyeC.y - focus / 2, w: focus, h: focus }, '螺旋中心焦點', 'subject'),
+  ]
+  if (partial) regions.push(toRegion({ x: 0, y: 0, w: PHI, h: 1 }, '黃金矩形', 'image'))
+  return { primitives, anchors, regions }
 })

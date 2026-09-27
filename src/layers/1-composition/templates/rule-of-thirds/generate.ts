@@ -1,4 +1,4 @@
-import { circle, line, pt, type Anchor, type Primitive } from '../../../../core/geometry'
+import { bandRegions, circle, line, pt, type Anchor, type Primitive } from '../../../../core/geometry'
 import { defineGenerator } from '../../../../core/registry'
 
 interface P {
@@ -21,5 +21,5 @@ export default defineGenerator<P>(({ w, h }, p) => {
       if (p.markPoints) primitives.push(circle(pt(x, y), Math.min(w, h) * 0.02, { weight: 'sub' }))
     }
   }
-  return { primitives, anchors }
+  return { primitives, anchors, regions: [...bandRegions([0, ...xs, w], 'x', h), ...bandRegions([0, ...ys, h], 'y', w)] }
 })

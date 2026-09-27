@@ -1,4 +1,4 @@
-import { line, pt } from '../../../../core/geometry'
+import { line, pt, region } from '../../../../core/geometry'
 import { defineGenerator } from '../../../../core/registry'
 
 interface P {
@@ -13,11 +13,13 @@ export default defineGenerator<P>(({ w, h }, p) => {
     return {
       primitives: [line(pt(x, 0), pt(x, h))],
       anchors: [{ x, y: h / 2, label: '分割線中點' }, { x: x / 2, y: h / 2 }, { x: (x + w) / 2, y: h / 2 }],
+      regions: [region(0, 0, x, h, '左半', 'image'), region(x, 0, w - x, h, '右半', 'text')],
     }
   }
   const y = h * p.ratio
   return {
     primitives: [line(pt(0, y), pt(w, y))],
     anchors: [{ x: w / 2, y, label: '分割線中點' }, { x: w / 2, y: y / 2 }, { x: w / 2, y: (y + h) / 2 }],
+    regions: [region(0, 0, w, y, '上半', 'image'), region(0, y, w, h - y, '下半', 'text')],
   }
 })

@@ -21,7 +21,14 @@
       <label><input type="checkbox" bind:checked={g.visible} disabled={!v.guides} /> {nameOf(g.templateId)}</label>
     </li>
   {/each}
-  <li class="todo">③ 區塊分佈（開發中）</li>
+  <li>
+    <label><input type="checkbox" bind:checked={v.blocks} /> ③ 區塊（{project.blocks.items.length}）</label>
+  </li>
+  {#each [...project.blocks.items].reverse() as b (b.uid)}
+    <li class="child">
+      <label><input type="checkbox" bind:checked={b.visible} disabled={!v.blocks} /> {b.name}</label>
+    </li>
+  {/each}
   <li class="todo">④ 物件（開發中）</li>
 </ul>
 

@@ -1,4 +1,4 @@
-import { rect, type Anchor, type Primitive } from '../../../../core/geometry'
+import { rect, region, type Anchor, type Primitive, type Region } from '../../../../core/geometry'
 import { defineGenerator } from '../../../../core/registry'
 
 interface P {
@@ -12,6 +12,7 @@ interface P {
 export default defineGenerator<P>(({ w, h }, p) => {
   const primitives: Primitive[] = []
   const anchors: Anchor[] = []
+  const regions: Region[] = []
   const m = Math.min(w, h)
 
   for (let i = 1; i <= p.layers; i++) {
@@ -31,7 +32,8 @@ export default defineGenerator<P>(({ w, h }, p) => {
         { x, y: y + ih },
         { x: x + iw / 2, y: y + ih / 2, label: '內框中心' },
       )
+      regions.push(region(x, y, iw, ih, '內框', 'subject'))
     }
   }
-  return { primitives, anchors }
+  return { primitives, anchors, regions }
 })

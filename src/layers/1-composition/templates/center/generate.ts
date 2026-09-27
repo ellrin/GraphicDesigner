@@ -1,4 +1,4 @@
-import { circle, line, pt, type Primitive } from '../../../../core/geometry'
+import { circle, line, pt, region, type Primitive } from '../../../../core/geometry'
 import { defineGenerator } from '../../../../core/registry'
 
 interface P {
@@ -14,5 +14,10 @@ export default defineGenerator<P>(({ w, h }, p) => {
     primitives.push(line(pt(w / 2, 0), pt(w / 2, h), { weight: 'sub', dashed: true }))
     primitives.push(line(pt(0, h / 2), pt(w, h / 2), { weight: 'sub', dashed: true }))
   }
-  return { primitives, anchors: [{ ...c, label: '中心' }] }
+  const r = (Math.min(w, h) / 2) * p.radius
+  return {
+    primitives,
+    anchors: [{ ...c, label: '中心' }],
+    regions: [region(c.x - r, c.y - r, 2 * r, 2 * r, '中央主體', 'subject')],
+  }
 })

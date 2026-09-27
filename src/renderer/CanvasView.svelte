@@ -18,6 +18,8 @@
   import type { CanvasSpec } from '../core/canvas'
   import type { Handle } from '../core/compute'
   import { drawAnchors, drawPrimitives } from './konva'
+  import { BlockLayer, type BlockLayerEvents, type BlockView, type GhostView } from './blockLayer'
+  import type { SnapLines } from '../core/blocks'
   import theme from '../config/theme.json'
 
   interface Props {
@@ -28,15 +30,36 @@
     /** 控制點拖曳時會吸附的位置 */
     snapTargets?: Pt[]
     onhandlemove?: (key: string, p: Pt) => void
+    blocks?: BlockView[]
+    selectedBlock?: string | null
+    blocksInteractive?: boolean
+    blocksVisible?: boolean
+    ghosts?: GhostView[]
+    snapLines?: SnapLines
+    blockEvents: BlockLayerEvents
   }
-  let { canvas, layers, handles = [], snapTargets = [], onhandlemove }: Props = $props()
+  let {
+    canvas,
+    layers,
+    handles = [],
+    snapTargets = [],
+    onhandlemove,
+    blocks = [],
+    selectedBlock = null,
+    blocksInteractive = false,
+    blocksVisible = true,
+    ghosts = [],
+    snapLines = { xs: [], ys: [] },
+    blockEvents,
+  }: Props = $props()
 
   let host: HTMLDivElement
   let size = $state({ w: 0, h: 0 })
 
   let stage: Konva.Stage
+  let blockLayer: BlockLayer
   const paper = new Konva.Group()
-  const paperBg = new Konva.Rect({ fill: '#fff', shadowColor: '#000', shadowOpacity: 0.18, shadowBlur: 24 })
+  const paperBg = new Konva.Rect({ name: 'paper-bg', fill: '#fff', shadowColor: '#000', shadowOpacity: 0.18, shadowBlur: 24 })
   // 內容裁切在畫布範圍內（例如畫面外的消失點射線）；控制點不裁切
   const content = new Konva.Group()
   const handleGroup = new Konva.Group()
@@ -53,7 +76,15 @@
   onMount(() => {
     stage = new Konva.Stage({ container: host, width: host.clientWidth, height: host.clientHeight })
     const layer = new Konva.Layer()
-    paper.add(paperBg, content, handleGroup)
+    // 事件轉發：blockEvents 是 prop，可能在之後被替換
+    blockLayer = new BlockLayer(stage, paper, {
+      onSelect: (id) => blockEvents.onSelect(id),
+      onChange: (id, r) => blockEvents.onChange(id, r),
+      onCreate: (r) => blockEvents.onCreate(r),
+      onAdopt: (i) => blockEvents.onAdopt(i),
+    })
+    // 疊放順序：紙 → 引導線 → 區塊 → 控制點
+    paper.add(paperBg, content, blockLayer.group, handleGroup)
     layer.add(paper)
     stage.add(layer)
 
@@ -147,14 +178,25 @@
       g.anchors.visible(l.visible && l.anchorsVisible)
     }
 
+    blockLayer.update({
+      blocks,
+      selected: selectedBlock,
+      interactive: blocksInteractive,
+      visible: blocksVisible,
+      ghosts,
+      snap: snapLines,
+      scale: view.s,
+    })
+
     syncHandles()
     stage.batchDraw()
   })
 
-  /** 以指定像素尺寸匯出畫布區域為 PNG data URL（不含控制點）。 */
+  /** 以指定像素尺寸匯出畫布區域為 PNG data URL（不含控制點、選取框、建議預覽）。 */
   export function toPng(pixelWidth: number): string {
     paperBg.shadowEnabled(false)
     handleGroup.visible(false)
+    const restore = blockLayer.hideChrome()
     const url = stage.toDataURL({
       x: view.x,
       y: view.y,
@@ -162,6 +204,7 @@
       height: canvas.h * view.s,
       pixelRatio: pixelWidth / (canvas.w * view.s),
     })
+    restore()
     handleGroup.visible(true)
     paperBg.shadowEnabled(true)
     return url

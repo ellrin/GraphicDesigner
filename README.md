@@ -96,6 +96,13 @@ export default defineGenerator<{ thickness: number }>(({ w, h }, p) => ({
 ```
 
 `point` 參數會自動在畫布上顯示可拖曳的控制點，並吸附到構圖錨點；`generate.ts` 拿到的已經是實際座標。
+加上 `"space": "canvas"` 表示位置以畫布為準（翻轉後仍在同一側），`"handle": false` 則不顯示控制點。
+
+`generate.ts` 除了 `primitives`、`anchors`，還可以回傳 `regions`（建議區塊），第三層會列出讓使用者一鍵採用：
+
+```ts
+regions: [region(x, y, w, h, '主要視覺區', 'title')]  // 最後一個參數對應 config/block-roles.json
+```
 
 規則：
 

@@ -3,7 +3,7 @@
 // 做法：旋轉 90/270 度時，版型在「長寬對調」的畫框中生成，再轉回畫布，
 // 所以圖形永遠剛好貼合畫布，不會轉出界。
 
-import type { Frame, GuideOutput, Primitive, Pt } from './geometry'
+import type { Frame, GuideOutput, Primitive, Pt, Region } from './geometry'
 
 export type Rotation = 0 | 90 | 180 | 270
 
@@ -71,10 +71,18 @@ function mapPrimitive(p: Primitive, gen: Frame, o: Orientation): Primitive {
   }
 }
 
+/** 矩形經過旋轉 90° 倍數與翻轉後仍是矩形：轉換兩個對角再取範圍。 */
+function mapRegion(r: Region, gen: Frame, o: Orientation): Region {
+  const a = mapPoint({ x: r.x, y: r.y }, gen, o)
+  const b = mapPoint({ x: r.x + r.w, y: r.y + r.h }, gen, o)
+  return { ...r, x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) }
+}
+
 export function applyOrientation(out: GuideOutput, gen: Frame, o: Orientation): GuideOutput {
   return {
     primitives: out.primitives.map((p) => mapPrimitive(p, gen, o)),
     anchors: out.anchors.map((a) => ({ ...a, ...mapPoint(a, gen, o) })),
+    regions: out.regions?.map((r) => mapRegion(r, gen, o)),
   }
 }
 
