@@ -10,14 +10,14 @@
 
 <p align="center"><a href="https://ellrin.github.io/GraphicDesigner/"><b>▶ 立即開啟線上版</b></a><br><sub>https://ellrin.github.io/GraphicDesigner/</sub></p>
 
-## 使用方式（不需要安裝任何東西）
+## 使用方式
 
-**線上版**：點上面的連結就能直接使用。也可以用瀏覽器的「安裝」功能變成桌面 App，離線也能開。
+**線上版**：點上面的連結開啟。也可以用瀏覽器的「安裝」功能變成桌面 App，離線也能開。
 
 **離線版**：
 
 1. 在 GitHub 頁面按 **Code → Download ZIP**，解壓縮
-2. 雙擊 **`GraphicDesigner.html`**，就會用瀏覽器開啟（Chrome、Edge、Safari、Firefox 都可以，Mac／Windows 皆同）
+2. 雙擊 **`GraphicDesigner.html`**，用瀏覽器開啟
 
 也可以只下載 [Releases](../../releases) 裡的 `GraphicDesigner.html` 單一檔案。
 
@@ -25,10 +25,10 @@
 
 ```
 GraphicDesigner/
-├─ GraphicDesigner.html   ← 主程式，雙擊開啟
+├─ GraphicDesigner.html   主程式
 ├─ LICENSE                授權（MIT）
 ├─ docs/                  設計規劃、授權說明
-└─ source/                原始碼（開發用，一般使用不需要理會）
+└─ source/                原始碼
 ```
 
 ## 開發
@@ -43,10 +43,9 @@ npm run check    # 型別檢查
 npm run build    # 打包並更新最上層的 GraphicDesigner.html
 ```
 
-`GraphicDesigner.html` 有納入版控，修改程式後記得 `npm run build` 再 commit，下載版才會更新。
 推送 `v` 開頭的標籤（例如 `git tag v1.0.0 && git push --tags`）會自動建立 Release 並附上 `GraphicDesigner.html`。
 
-圖示的原始檔是 `source/public/icon.svg`（打包時會嵌進 HTML）；`icon-*.png` 是給「安裝成 App」用的點陣版本。
+圖示原始檔為 `source/public/icon.svg`，`icon-*.png` 為安裝成 App 時使用的點陣版本。
 
 ## 新增一種物件（第四層）
 
@@ -70,7 +69,7 @@ export default build
 ## 新增一個版型範例
 
 版型範例 = 構圖 + 視覺引導 + 預先標好用途的區塊（只有版型，沒有圖片與文字）。
-在 `source/src/recipes/<構圖 id>/` 新增一個 JSON 檔即可，第一步的「版型範例」會自動列出。
+在 `source/src/recipes/<構圖 id>/` 新增一個 JSON 檔，第一步的「版型範例」會自動列出。
 
 ```json
 {
@@ -99,7 +98,7 @@ export default build
 
 ## 字型
 
-內建中文 19 種、英文 32 種可商用字型（OFL）。字型檔不包含在 repo 中，使用時才從 Google Fonts 載入，詳見 [docs/FONTS.md](docs/FONTS.md)。
+內建中文 19 種、英文 32 種可商用字型（OFL），使用時從 Google Fonts 載入，詳見 [docs/FONTS.md](docs/FONTS.md)。
 
 ## 程式結構
 
@@ -112,10 +111,10 @@ source/src/
 │  ├─ registry.ts            版型自動註冊
 │  ├─ canvas.ts              畫布尺寸與匯出換算
 │  └─ store.svelte.ts        專案狀態與線性流程
-├─ config/                   可調設定（不需改程式）
+├─ config/                   可調設定
 │  ├─ canvas-presets.json    預設畫布尺寸
 │  ├─ theme.json             引導線顏色、線寬、虛線
-│  ├─ ui-themes.json         介面主題清單（橘黑、藍紫黃、綠黑）；各主題的顏色變數在 app.css
+│  ├─ ui-themes.json         介面主題清單（深灰橘、藍紫黃、綠黑）；顏色變數在 app.css
 │  ├─ export.json            匯出 DPI
 │  ├─ fonts/                 字型清單（zh-tc.json、en.json）
 │  └─ steps.ts               流程步驟
@@ -123,14 +122,14 @@ source/src/
 │  └─ 1-composition/
 │     ├─ templates/<id>/     每個構圖一個資料夾
 │     ├─ Panel.svelte        本層的側欄介面
-│     └─ compute.ts
+│     └─ RecipePanel.svelte  版型範例清單
 ├─ renderer/                 Konva 繪製與匯出
 └─ ui/                       共用介面元件（參數面板自動生成等）
 ```
 
 ## 新增一個構圖版型
 
-在 `source/src/layers/1-composition/templates/` 新增一個資料夾，放三個檔案，**不需要修改其他任何檔案**：
+在 `source/src/layers/1-composition/templates/` 新增一個資料夾，放入以下三個檔案：
 
 **`meta.json`**：名稱與說明
 
@@ -181,14 +180,14 @@ regions: [region(x, y, w, h, '主要視覺區', 'title')]  // 最後一個參數
 規則：
 
 - 座標原點在左上，單位與畫布相同。
-- **不用處理旋轉與翻轉**，核心會自動處理（旋轉 90° 時會用長寬對調的畫框呼叫你的函式）。
+- 旋轉與翻轉由核心處理（旋轉 90° 時會以長寬對調的畫框呼叫）。
 - `weight: 'sub'` 表示輔助線（較細、另一個顏色），`dashed: true` 表示細虛線，`arrow: true` 在終點加箭頭。
 - 文字標籤用 `text(位置, '文字')`，會以固定螢幕大小顯示。
-- 所有座標都要由畫框 `w`、`h` 算出來（不要寫死數字），這樣任何畫布尺寸都會自動貼合。
+- 所有座標由畫框 `w`、`h` 算出，任何畫布尺寸都會自動貼合。
 - 錨點是後續圖層（區塊、物件）吸附的位置。
 
 ## 授權
 
-[MIT](LICENSE) © 2026 Ellrin。可自由使用、修改與商用，保留版權聲明即可。
+[MIT](LICENSE) © 2026 Ellrin
 
-`GraphicDesigner.html` 內含的第三方套件（Konva、jsPDF、Svelte 等，皆為 MIT 系列授權）列在 [docs/THIRD_PARTY_LICENSES.md](docs/THIRD_PARTY_LICENSES.md)，同樣的聲明也以註解附在 HTML 檔開頭；打包時自動產生。字型授權見 [docs/FONTS.md](docs/FONTS.md)。
+`GraphicDesigner.html` 內含的第三方套件（Konva、jsPDF、Svelte 等，皆為 MIT 系列授權）列在 [docs/THIRD_PARTY_LICENSES.md](docs/THIRD_PARTY_LICENSES.md)，同樣的聲明也附在 HTML 檔開頭。字型授權見 [docs/FONTS.md](docs/FONTS.md)。
