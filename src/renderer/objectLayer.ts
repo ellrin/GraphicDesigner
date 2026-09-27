@@ -28,7 +28,11 @@ export interface ObjectBox {
   w: number
   h: number
   rotation: number
+  /** 文字從四個角縮放時，字級跟著放大縮小的倍率 */
+  fontScale?: number
 }
+
+const CORNERS = ['top-left', 'top-right', 'bottom-left', 'bottom-right']
 
 export interface ObjectLayerEvents {
   onSelect: (uid: string | null) => void
@@ -64,7 +68,8 @@ export class ObjectLayer {
       anchorDragBoundFunc: (_old, pos) => this.snapAbsolute(pos),
     })
     this.group.add(this.body, this.transformer)
-    this.stage.on('mouseup.objects touchend.objects', (e) => {
+    // 用 click（按下與放開在同一處）判斷點空白處；拖曳縮放後在空白處放開滑鼠不會取消選取
+    this.stage.on('click.objects tap.objects', (e) => {
       if (this.state?.interactive && (e.target === this.stage || e.target.name() === 'paper-bg')) this.events.onSelect(null)
     })
   }
@@ -105,9 +110,16 @@ export class ObjectLayer {
       const dy = snapOffset([r.y, r.y + r.height / 2, r.y + r.height], this.state.snap.ys, this.limit)
       g.position({ x: g.x() + dx, y: g.y() + dy })
     })
+    let anchor: string | null = null
+    g.on('transformstart', () => (anchor = this.transformer.getActiveAnchor()))
     const commit = () => {
       const cur = this.state?.objects.find((x) => x.uid === o.uid)
-      if (cur) this.events.onChange(o.uid, this.boxOf(g, cur))
+      if (!cur) return
+      const box = this.boxOf(g, cur)
+      // 文字：拖四個角 = 連字級一起縮放；拖邊 = 只改文字框
+      if (cur.type === 'text' && anchor && CORNERS.includes(anchor)) box.fontScale = g.scaleY()
+      anchor = null
+      this.events.onChange(o.uid, box)
     }
     g.on('dragend', commit)
     g.on('transformend', commit)

@@ -47,6 +47,9 @@
     background?: Background
     fontVersion?: number
     objectEvents: ObjectLayerEvents
+    /** 輔助線（構圖、引導、區塊）疊在物件上方或下方 */
+    guidesOnTop?: boolean
+    guideOpacity?: number
   }
   let {
     canvas,
@@ -68,6 +71,8 @@
     background = DEFAULT_BACKGROUND,
     fontVersion = 0,
     objectEvents,
+    guidesOnTop = true,
+    guideOpacity = 1,
   }: Props = $props()
 
   /** 圖片載入完成時遞增，觸發重繪 */
@@ -120,7 +125,7 @@
       },
       () => imageTick++,
     )
-    // 疊放順序：紙 → 背景 → 物件 → 引導線 → 區塊 → 控制點（輔助線永遠浮在作品上方）
+    // 初始疊放順序；物件與輔助線的上下關係在 $effect 中依設定調整
     paper.add(paperBg, bgGroup, objectLayer.group, content, blockLayer.group, handleGroup)
     layer.add(paper)
     stage.add(layer)
@@ -214,6 +219,15 @@
       drawAnchors(g.anchors, l.output.anchors, l.style.anchorColor, theme.guides.anchor.radius, view.s)
       g.anchors.visible(l.visible && l.anchorsVisible)
     }
+
+    // 疊放順序：紙 → 背景 →（物件、輔助線依設定上下對調）→ 控制點
+    const order = guidesOnTop
+      ? [objectLayer.group, content, blockLayer.group]
+      : [content, blockLayer.group, objectLayer.group]
+    for (const node of order) node.moveToTop()
+    handleGroup.moveToTop()
+    content.opacity(guideOpacity)
+    blockLayer.group.opacity(guideOpacity)
 
     // 背景
     paperBg.fill(background.color || '#ffffff')

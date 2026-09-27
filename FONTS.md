@@ -45,5 +45,4 @@ Mono：JetBrains Mono、Space Mono
 ## 注意事項
 
 - **離線使用**時無法下載字型，會改用系統字型顯示。
-- **匯出 PPT** 時，所有文字統一使用「微軟正黑體（Microsoft JhengHei）」，確保對方電腦開啟時不缺字型（設定於 `src/config/export.json`）。
 - **新增字型**：在 `src/config/fonts/zh-tc.json` 或 `en.json` 加一筆資料即可。請只加入授權允許商用的字型，並把字型補進本檔的清單。

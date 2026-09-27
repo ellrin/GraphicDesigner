@@ -41,6 +41,10 @@ export interface ProjectData {
     guides: boolean
     blocks: boolean
     objects: boolean
+    /** 輔助線（構圖、引導、錨點、區塊）疊在物件上方；false 時放在物件下方 */
+    guidesOnTop: boolean
+    /** 輔助線的不透明度 0–1 */
+    guideOpacity: number
     /** 第三層：在畫布上同時預覽所有建議區塊（關閉時只預覽滑鼠指到的那一個） */
     suggestions: boolean
   }
@@ -61,7 +65,16 @@ export function newProject(): ProjectData {
     blocks: { items: [] },
     objects: { items: [] },
     background: { ...DEFAULT_BACKGROUND },
-    visibility: { composition: true, anchors: true, guides: true, blocks: true, objects: true, suggestions: false },
+    visibility: {
+      composition: true,
+      anchors: true,
+      guides: true,
+      blocks: true,
+      objects: true,
+      guidesOnTop: true,
+      guideOpacity: 1,
+      suggestions: false,
+    },
   }
 }
 

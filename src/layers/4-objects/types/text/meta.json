@@ -1,1 +1,1 @@
-{ "name": "文字", "category": "text", "order": 5, "size": [0.6, 0.16], "fill": "#25221e", "stroke": "" }
+{ "name": "文字", "category": "text", "order": 5, "size": [0.6, 0.16], "fill": "#25221e", "stroke": "", "keepRatio": true }

@@ -143,11 +143,10 @@ export class BlockLayer {
       })
       this.stage.batchDraw()
     })
-    this.stage.on('mouseup.blocks touchend.blocks', (e) => {
-      if (!this.drawing) {
-        if (this.state.interactive && this.isEmptyTarget(e.target)) this.events.onSelect(null)
-        return
-      }
+    // 只有「在空白處按下」才會開始畫；放開時太小就當作點空白處（取消選取）。
+    // 拖曳縮放區塊後在空白處放開滑鼠，不會誤取消選取。
+    this.stage.on('mouseup.blocks touchend.blocks', () => {
+      if (!this.drawing) return
       const r = this.drawing.rect
       const rect = { x: r.x(), y: r.y(), w: r.width(), h: r.height() }
       r.destroy()

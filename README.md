@@ -61,7 +61,7 @@ src/
 ├─ config/                   可調設定（不需改程式）
 │  ├─ canvas-presets.json    預設畫布尺寸
 │  ├─ theme.json             引導線顏色、線寬、虛線
-│  ├─ export.json            匯出 DPI、PPT 字型
+│  ├─ export.json            匯出 DPI
 │  ├─ fonts/                 字型清單（zh-tc.json、en.json）
 │  └─ steps.ts               流程步驟
 ├─ layers/

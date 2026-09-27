@@ -7,7 +7,8 @@
   import type { Pt, Rect } from './core/geometry'
   import { collectSuggestions, roleOf, snapLinesFrom, toCanvasRect, toRelativeRect, type Suggestion } from './core/blocks'
   import { initHistory, redo, undo } from './core/history.svelte'
-  import { initAutosave } from './core/persistence.svelte'
+  import { downloadProject, initAutosave } from './core/persistence.svelte'
+  import ProjectPanel from './ui/ProjectPanel.svelte'
   import {
     addBlock,
     completeStep,
@@ -38,6 +39,7 @@
   import Stepper from './ui/Stepper.svelte'
 
   let view: CanvasView
+  let projectPanel: ProjectPanel
 
   onMount(() => {
     // 先讀回暫存，再開始記錄復原歷史；圖片另外從 IndexedDB 讀回
@@ -181,6 +183,8 @@
     onChange: (id: string, b: ObjectBox) => {
       const c = project.canvas
       updateObject(id, { x: b.x / c.w, y: b.y / c.h, w: b.w / c.w, h: b.h / c.h, rotation: Math.round(b.rotation * 10) / 10 })
+      const o = project.objects.items.find((x) => x.uid === id)
+      if (o && b.fontScale && b.fontScale !== 1) o.props.fontSize = (o.props.fontSize as number) * b.fontScale
     },
     onEdit: (id: string) => {
       ui.selectedObject = id
@@ -230,6 +234,9 @@
     } else if (mod && ((key === 'z' && e.shiftKey) || key === 'y')) {
       e.preventDefault()
       redo()
+    } else if (mod && key === 's') {
+      e.preventDefault()
+      downloadProject()
     } else if (mod && key === ';') {
       // 像繪圖軟體一樣：一鍵切換所有輔助線
       e.preventDefault()
@@ -278,7 +285,16 @@
   }
 </script>
 
-<svelte:window onkeydown={onKeydown} />
+<svelte:window
+  onkeydown={onKeydown}
+  ondragover={(e) => e.preventDefault()}
+  ondrop={(e) => {
+    // 檔案拖到頁面任何地方：.json 當作專案檔開啟；其他檔案忽略（避免瀏覽器離開頁面）
+    e.preventDefault()
+    const file = e.dataTransfer?.files?.[0]
+    if (file && /\.json$/i.test(file.name)) projectPanel.open(file)
+  }}
+/>
 
 <div class="app">
   <header>
@@ -291,6 +307,8 @@
   </header>
 
   <aside>
+    <ProjectPanel bind:this={projectPanel} />
+
     <section>
       <h3>畫布</h3>
       <CanvasSettings bind:canvas={project.canvas} />
@@ -346,6 +364,8 @@
       background={project.background}
       fontVersion={fontVersion + imageStoreTick}
       {objectEvents}
+      guidesOnTop={project.visibility.guidesOnTop}
+      guideOpacity={project.visibility.guideOpacity}
     />
   </main>
 </div>

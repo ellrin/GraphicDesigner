@@ -9,7 +9,8 @@
   const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 </script>
 
-<div class="bar" role="toolbar" aria-label="檢視">
+<div class="bar" role="toolbar" aria-label="檢視" title="{isMac ? '⌘' : 'Ctrl+'}; 一鍵切換全部輔助線">
+  <span class="label">檢視</span>
   <button class:on={v.composition} onclick={() => (v.composition = !v.composition)} title="構圖線">
     <span class="sw" style:border-color={theme.guides.composition.mainColor}></span>構圖線
   </button>
@@ -26,7 +27,18 @@
   {#if showSuggestionsToggle}
     <button class:on={v.suggestions} onclick={() => (v.suggestions = !v.suggestions)} title="建議區塊">建議</button>
   {/if}
-  <span class="hint">{isMac ? '⌘' : 'Ctrl+'}; 切換全部輔助線</span>
+  <span class="sep"></span>
+  <button
+    class="order on"
+    onclick={() => (v.guidesOnTop = !v.guidesOnTop)}
+    title="切換輔助線在物件的上方或下方"
+  >
+    輔助線在{v.guidesOnTop ? '上層' : '下層'} ⇅
+  </button>
+  <label class="opacity" title="輔助線不透明度">
+    <input type="range" min="0.15" max="1" step="0.05" bind:value={v.guideOpacity} aria-label="輔助線不透明度" />
+    {Math.round(v.guideOpacity * 100)}%
+  </label>
 </div>
 
 <style>
@@ -78,9 +90,29 @@
     border: 1.5px dashed #7c5cff;
     border-radius: 2px;
   }
-  .hint {
+  .sep {
+    width: 1px;
+    height: 18px;
+    background: var(--line);
+    margin: 0 4px;
+  }
+  .order {
+    font-weight: 600;
+  }
+  .opacity {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     font-size: 11px;
     color: var(--muted);
-    padding: 0 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .opacity input {
+    width: 70px;
+  }
+  .label {
+    font-size: 11px;
+    color: var(--muted);
+    padding: 0 4px;
   }
 </style>
