@@ -19,8 +19,9 @@
 
 <script lang="ts">
   // 可收合的面板區塊：點標題展開／收合。
-  import type { Snippet } from 'svelte'
+  import { onDestroy, type Snippet } from 'svelte'
   import Help from './Help.svelte'
+  import { accordionGroup, openIn, register, setOpen } from './accordionState.svelte'
 
   interface Props {
     /** 用來記住開合狀態的識別碼 */
@@ -36,16 +37,30 @@
   }
   let { id, title, defaultOpen = true, reopen, help, children }: Props = $props()
 
+  // 在手風琴組裡：由組決定展開哪一個；否則各自記住開合
+  const group = accordionGroup()
   // svelte-ignore state_referenced_locally
-  let open = $state(saved[id] ?? defaultOpen)
+  const groupName = group?.()
+  // svelte-ignore state_referenced_locally
+  if (groupName) onDestroy(register(groupName, id))
+
+  // svelte-ignore state_referenced_locally
+  let own = $state(saved[id] ?? defaultOpen)
+  const open = $derived(groupName ? openIn(groupName) === id : own)
 
   $effect(() => {
-    if (reopen) open = true
+    if (!reopen) return
+    if (groupName) setOpen(groupName, id)
+    else own = true
   })
 
   function toggle() {
-    open = !open
-    remember(id, open)
+    if (groupName) {
+      setOpen(groupName, open ? null : id)
+      return
+    }
+    own = !own
+    remember(id, own)
   }
 </script>
 

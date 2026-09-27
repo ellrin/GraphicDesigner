@@ -5,6 +5,8 @@
   import ExportPanel from './ExportPanel.svelte'
   import LayerList from './LayerList.svelte'
   import Section from './Section.svelte'
+  import Accordion from './Accordion.svelte'
+  import { setOpen } from './accordionState.svelte'
   import ThemeSwitcher from './ThemeSwitcher.svelte'
   import ViewSettings from './ViewSettings.svelte'
 
@@ -25,6 +27,7 @@
   const mod = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl+'
 
   function openSection(id: string) {
+    setOpen('right', id)
     ontoggle()
     // 展開後捲到該區塊
     requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
@@ -44,6 +47,7 @@
       <span>全域設定</span>
       <button class="toggle" onclick={ontoggle} title="收合右側面板">»</button>
     </div>
+    <Accordion name="right">
     <div id="right-view">
       <Section id="right-view" title="檢視" help="{mod}; 一鍵切換全部輔助線。輔助線可以放在物件上層（方便對位）或下層（接近成品）。">
         <ViewSettings />
@@ -60,6 +64,7 @@
       </Section>
     </div>
     <div id="right-theme"><Section id="right-theme" title="介面主題" defaultOpen={false}><ThemeSwitcher /></Section></div>
+    </Accordion>
   </div>
 {/if}
 

@@ -24,6 +24,7 @@
   import { downloadProject, hasAutosave, initAutosave, openProjectWithMessage, projectMessage } from './core/persistence.svelte'
   import ProjectDialog from './ui/ProjectDialog.svelte'
   import RightPanel from './ui/RightPanel.svelte'
+  import Accordion from './ui/Accordion.svelte'
   import { uiTheme } from './ui/theme.svelte'
   import {
     addBlock,
@@ -523,6 +524,8 @@
       <strong>{step.label}</strong>
     </div>
 
+    {#key step.id}
+    <Accordion name="left:{step.id}">
     {#if step.id === 'composition'}
       <CompositionPanel regions={regionOptions} />
     {:else if step.id === 'guides'}
@@ -534,6 +537,8 @@
     {:else if step.id === 'refine'}
       <RefinePanel anchors={anchorOptions} />
     {/if}
+    </Accordion>
+    {/key}
 
     {#if flow.current < STEPS.length - 1}
       <div class="next-bar">
