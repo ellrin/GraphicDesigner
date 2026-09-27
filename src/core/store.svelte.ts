@@ -34,6 +34,12 @@ export const project = $state({
 /** 線性流程：current = 目前所在步驟，reached = 已解鎖到的最遠步驟。 */
 export const flow = $state({ current: 0, reached: 0 })
 
+// 開發用：網址加 #step=3 可直接跳到第 4 步（只在 npm run dev 有效）
+if (import.meta.env.DEV) {
+  const m = location.hash.match(/step=(\d)/)
+  if (m) flow.current = flow.reached = Math.min(Number(m[1]), STEPS.length - 1)
+}
+
 export function goToStep(i: number) {
   if (i <= flow.reached) flow.current = i
 }

@@ -1,0 +1,7 @@
+{
+  "printDpi": 300,
+  "ppt": {
+    "fontFace": "Microsoft JhengHei",
+    "fontFaceNote": "匯出 PPT 時所有文字統一使用微軟正黑體，確保在 Office 中開啟不缺字型"
+  }
+}

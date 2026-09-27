@@ -10,6 +10,5 @@
       "fineDash": [2, 4]
     },
     "anchor": { "color": "#8b5cf6", "radius": 4 }
-  },
-  "export": { "printDpi": 300 }
+  }
 }

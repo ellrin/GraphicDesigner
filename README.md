@@ -24,6 +24,10 @@ npm run build    # 輸出單一檔案 dist/index.html
 
 `dist/` 有納入版控，修改後記得 `npm run build` 再 commit，離線版才會更新。
 
+## 字型
+
+內建中文 19 種、英文 32 種可商用字型（OFL）。字型檔不包含在 repo 中，使用時才從 Google Fonts 載入，詳見 [FONTS.md](FONTS.md)。
+
 ## 專案結構
 
 ```
@@ -37,7 +41,9 @@ src/
 │  └─ store.svelte.ts        專案狀態與線性流程
 ├─ config/                   可調設定（不需改程式）
 │  ├─ canvas-presets.json    預設畫布尺寸
-│  ├─ theme.json             引導線顏色、線寬、虛線、匯出 DPI
+│  ├─ theme.json             引導線顏色、線寬、虛線
+│  ├─ export.json            匯出 DPI、PPT 字型
+│  ├─ fonts/                 字型清單（zh-tc.json、en.json）
 │  └─ steps.ts               流程步驟
 ├─ layers/
 │  └─ 1-composition/

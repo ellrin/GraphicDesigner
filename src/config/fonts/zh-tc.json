@@ -1,0 +1,21 @@
+[
+  { "family": "Noto Sans TC", "label": "思源黑體", "category": "黑體", "weights": [100, 200, 300, 400, 500, 600, 700, 800, 900], "designer": "Google / Adobe", "license": "OFL" },
+  { "family": "Noto Sans HK", "label": "思源黑體 HK", "category": "黑體", "weights": [100, 200, 300, 400, 500, 600, 700, 800, 900], "designer": "Google / Adobe", "license": "OFL" },
+  { "family": "Chiron Hei HK", "label": "昭源黑體", "category": "黑體", "weights": [200, 300, 400, 500, 600, 700, 800, 900], "designer": "Tamcy", "license": "OFL" },
+  { "family": "Chocolate Classical Sans", "label": "朱古力黑體（傳承字形）", "category": "黑體", "weights": [400], "designer": "Tian Haidong", "license": "OFL" },
+  { "family": "Noto Serif TC", "label": "思源宋體", "category": "明體", "weights": [200, 300, 400, 500, 600, 700, 800, 900], "designer": "Google / Adobe", "license": "OFL" },
+  { "family": "Noto Serif HK", "label": "思源宋體 HK", "category": "明體", "weights": [200, 300, 400, 500, 600, 700, 800, 900], "designer": "Google / Adobe", "license": "OFL" },
+  { "family": "Chiron Sung HK", "label": "昭源宋體", "category": "明體", "weights": [200, 300, 400, 500, 600, 700, 800, 900], "designer": "Tamcy", "license": "OFL" },
+  { "family": "Cactus Classical Serif", "label": "仙人掌明體（傳承字形）", "category": "明體", "weights": [400], "designer": "Tian Haidong", "license": "OFL" },
+  { "family": "LXGW WenKai TC", "label": "霞鶩文楷", "category": "楷體", "weights": [300, 400, 700], "designer": "LXGW", "license": "OFL" },
+  { "family": "UoqMunThenKhung", "label": "UoqMunThenKhung（高對比楷書）", "category": "楷體", "weights": [400], "designer": "Moonlit Owen", "license": "OFL" },
+  { "family": "Chiron GoRound TC", "label": "昭源圓體", "category": "圓體", "weights": [200, 300, 400, 500, 600, 700, 800, 900], "designer": "Tamcy", "license": "OFL" },
+  { "family": "Huninn", "label": "jf 粉圓", "category": "圓體", "weights": [400], "designer": "justfont", "license": "OFL" },
+  { "family": "Iansui", "label": "芫荽", "category": "手寫", "weights": [400], "designer": "But Ko", "license": "OFL" },
+  { "family": "LXGW Marker Gothic", "label": "霞鶩漫黑", "category": "標題", "weights": [400], "designer": "LXGW", "license": "OFL" },
+  { "family": "WDXL Lubrifont TC", "label": "WDXL Lubrifont（緊湊標題）", "category": "標題", "weights": [400], "designer": "NightFurySL2001", "license": "OFL" },
+  { "family": "LXGW WenKai Mono TC", "label": "霞鶩文楷 等寬", "category": "等寬", "weights": [300, 400, 700], "designer": "LXGW", "license": "OFL" },
+  { "family": "Bpmf Huninn", "label": "jf 粉圓（附注音）", "category": "注音", "weights": [400], "designer": "justfont", "license": "OFL" },
+  { "family": "Bpmf Iansui", "label": "芫荽（附注音）", "category": "注音", "weights": [400], "designer": "But Ko", "license": "OFL" },
+  { "family": "Bpmf Zihi Kai Std", "label": "Zihi 楷體（附注音）", "category": "注音", "weights": [400], "designer": "But Ko", "license": "OFL" }
+]

@@ -7,6 +7,7 @@
   import { compositionTemplates } from './layers/1-composition/templates'
   import CanvasView from './renderer/CanvasView.svelte'
   import CanvasSettings from './ui/CanvasSettings.svelte'
+  import FontLibrary from './ui/FontLibrary.svelte'
   import LayerList from './ui/LayerList.svelte'
   import Stepper from './ui/Stepper.svelte'
 
@@ -43,6 +44,12 @@
 
     {#if step.id === 'composition'}
       <CompositionPanel />
+    {:else if step.id === 'objects'}
+      <section>
+        <h3>字型庫</h3>
+        <p class="muted">文字物件開發中，可先瀏覽字型。</p>
+        <FontLibrary />
+      </section>
     {:else}
       <section>
         <h3>{step.label}</h3>
