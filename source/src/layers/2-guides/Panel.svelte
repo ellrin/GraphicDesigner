@@ -19,15 +19,24 @@
   const aspect = $derived(project.canvas.w / project.canvas.h)
   const colors = { main: theme.guides.visual.mainColor, sub: theme.guides.visual.subColor }
   const nameOf = (id: string) => guideTemplates.find((t) => t.id === id)?.meta.name ?? id
+
+  /** 新增引導：先選好類型才加入；還沒有任何引導時直接顯示選單 */
+  let adding = $state(false)
+  const picking = $derived(adding || items.length === 0)
+
+  function add(id: string) {
+    addGuide(id)
+    adding = false
+  }
 </script>
 
-<Section id="guides-1" title="已加入的引導（{items.length}）" help="從下方「新增引導」選擇要加入的視覺引導，可以疊加多種。">
+<Section id="guides-1" title="視覺引導（{items.length}）" help="可以疊加多種視覺引導；這一步也可以跳過。">
   {#if items.length > 0}
     <ul class="items">
       {#each items as g (g.uid)}
-        <li class:on={g.uid === ui.selectedGuide}>
+        <li class:on={!picking && g.uid === ui.selectedGuide}>
           <input type="checkbox" bind:checked={g.visible} title="顯示／隱藏" />
-          <button class="name" onclick={() => (ui.selectedGuide = g.uid)}>
+          <button class="name" onclick={() => ((ui.selectedGuide = g.uid), (adding = false))}>
             {nameOf(g.templateId)}<small>{frameLabel(g.frame, project.blocks.items)}</small>
           </button>
           <button class="del" onclick={() => removeGuide(g.uid)} title="移除">✕</button>
@@ -35,9 +44,26 @@
       {/each}
     </ul>
   {/if}
+  {#if !picking}
+    <button class="add" onclick={() => (adding = true)}>＋ 新增引導</button>
+  {/if}
 </Section>
 
-{#if selected && selectedTemplate}
+{#if picking}
+  <Section id="guides-add" title={items.length ? '選擇要新增的引導' : '選擇視覺引導'}>
+    <div class="grid">
+      {#each guideTemplates as t (t.id)}
+        <button class="card" onclick={() => add(t.id)} title={t.meta.description}>
+          <TemplateThumb template={t} {aspect} orientation={IDENTITY} {colors} />
+          <span>{t.meta.name}</span>
+        </button>
+      {/each}
+    </div>
+    {#if items.length > 0}
+      <button class="add cancel" onclick={() => (adding = false)}>取消</button>
+    {/if}
+  </Section>
+{:else if selected && selectedTemplate}
   <Section id="guides-3" title="套用範圍">
     <FrameSelect frame={selected.frame} regions={regions.filter((r) => r.source !== selected.uid)} onchange={(f) => (selected.frame = f)} />
   </Section>
@@ -59,17 +85,6 @@
     />
   </Section>
 {/if}
-
-<Section id="guides-6" title="新增引導">
-  <div class="grid">
-    {#each guideTemplates as t (t.id)}
-      <button class="card" onclick={() => addGuide(t.id)} title={t.meta.description}>
-        <TemplateThumb template={t} {aspect} orientation={IDENTITY} {colors} />
-        <span>＋ {t.meta.name}</span>
-      </button>
-    {/each}
-  </div>
-</Section>
 
 <style>
   .items {
@@ -109,6 +124,10 @@
     background: none;
     color: var(--muted);
     padding: 2px 6px;
+  }
+  .add {
+    width: 100%;
+    margin-top: 8px;
   }
   .grid {
     display: grid;

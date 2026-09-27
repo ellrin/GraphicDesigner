@@ -7,8 +7,8 @@
   import ParamPanel from '../../ui/ParamPanel.svelte'
   import TemplateThumb from '../../ui/TemplateThumb.svelte'
   import theme from '../../config/theme.json'
+  import { IDENTITY } from '../../core/transform'
   import { compositionTemplates } from './templates'
-  import RecipePanel from './RecipePanel.svelte'
 
   let { regions }: { regions: RegionOption[] } = $props()
 
@@ -19,9 +19,18 @@
   const nameOf = (id: string) => compositionTemplates.find((t) => t.id === id)?.meta.name ?? id
   const colors = { main: theme.guides.composition.mainColor, sub: theme.guides.composition.subColor }
 
+  /** 新增構圖：先選好構圖才加入；還沒有任何構圖時直接顯示選單 */
+  let adding = $state(false)
+  const picking = $derived(adding || items.length === 0)
+
+  function add(id: string) {
+    addComposition(id)
+    adding = false
+  }
+
   // 縮圖依「套用範圍」的比例繪製
   const aspect = $derived.by(() => {
-    if (!selected) return project.canvas.w / project.canvas.h
+    if (!selected || picking) return project.canvas.w / project.canvas.h
     const r = resolveFrame(selected.frame, project.canvas, project.blocks.items)
     return r.w / r.h
   })
@@ -30,30 +39,40 @@
 </script>
 
 <Section id="comp-1" title="構圖（{items.length}）" help="可以疊加多個構圖，並把構圖套用在某個區域上，例如先用黃金分割切出右欄，再在右欄放一個黃金螺旋。">
-  <ul class="items">
-    {#each items as c (c.uid)}
-      <li class:on={c.uid === selected?.uid}>
-        <input type="checkbox" bind:checked={c.visible} title="顯示／隱藏" />
-        <button class="name" onclick={() => (ui.selectedComposition = c.uid)}>
-          {nameOf(c.templateId)}<small>{frameLabel(c.frame, project.blocks.items)}</small>
-        </button>
-        {#if items.length > 1}
+  {#if items.length > 0}
+    <ul class="items">
+      {#each items as c (c.uid)}
+        <li class:on={!picking && c.uid === selected?.uid}>
+          <input type="checkbox" bind:checked={c.visible} title="顯示／隱藏" />
+          <button class="name" onclick={() => ((ui.selectedComposition = c.uid), (adding = false))}>
+            {nameOf(c.templateId)}<small>{frameLabel(c.frame, project.blocks.items)}</small>
+          </button>
           <button class="icon" onclick={() => removeComposition(c.uid)} title="移除">✕</button>
-        {/if}
-      </li>
-    {/each}
-  </ul>
-  <button class="add" onclick={() => addComposition(selected?.templateId ?? compositionTemplates[0].id)}>＋ 再加一個構圖</button>
+        </li>
+      {/each}
+    </ul>
+  {/if}
+  {#if !picking}
+    <button class="add" onclick={() => (adding = true)}>＋ 新增構圖</button>
+  {/if}
 </Section>
 
-<RecipePanel group={selected?.templateId ?? compositionTemplates[0].id} />
-
-{#if selected && template}
-  <Section id="comp-2" title="套用範圍" help="構圖可以套用在整張畫布、某個區塊，或其他構圖切出的區域（會跟著來源構圖連動）。">
-    <FrameSelect frame={selected.frame} regions={otherRegions} onchange={(f) => (selected.frame = f)} />
+{#if picking}
+  <Section id="comp-add" title={items.length ? '選擇要新增的構圖' : '選擇構圖'}>
+    <div class="grid">
+      {#each compositionTemplates as t (t.id)}
+        <button class="card" onclick={() => add(t.id)} title={t.meta.description}>
+          <TemplateThumb template={t} {aspect} orientation={IDENTITY} {colors} />
+          <span>{t.meta.name}</span>
+        </button>
+      {/each}
+    </div>
+    {#if items.length > 0}
+      <button class="cancel" onclick={() => (adding = false)}>取消</button>
+    {/if}
   </Section>
-
-  <Section id="comp-3" title="選擇構圖" help={template.meta.description}>
+{:else if selected && template}
+  <Section id="comp-3" title="構圖類型" help={template.meta.description}>
     <div class="grid">
       {#each compositionTemplates as t (t.id)}
         <button class="card" class:active={t.id === selected.templateId} onclick={() => t.id !== selected.templateId && setInstanceTemplate(selected, t)} title={t.meta.description}>
@@ -62,6 +81,10 @@
         </button>
       {/each}
     </div>
+  </Section>
+
+  <Section id="comp-2" title="套用範圍" help="構圖可以套用在整張畫布、某個區塊，或其他構圖切出的區域（會跟著來源構圖連動）。">
+    <FrameSelect frame={selected.frame} regions={otherRegions} onchange={(f) => (selected.frame = f)} />
   </Section>
 
   <Section id="comp-4" title="方向">
@@ -120,8 +143,12 @@
     color: var(--muted);
     padding: 2px 6px;
   }
-  .add {
+  .add,
+  .cancel {
     width: 100%;
+  }
+  .cancel {
+    margin-top: 8px;
   }
   .grid {
     display: grid;

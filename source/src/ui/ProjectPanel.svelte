@@ -1,10 +1,15 @@
 <script lang="ts">
-  // 專案檔區域：把 .json 專案檔拖進來（或點選）即可繼續上次的編輯；也可以存成 .json。
-  import { downloadProject, openProjectWithMessage as open, projectMessage as message, startNewProject } from '../core/persistence.svelte'
+  // 專案檔：把 .json 專案檔拖進來（或點選）即可繼續上次的編輯；也可以存成 .json。
+  import { downloadProject, openProjectWithMessage, projectMessage as message } from '../core/persistence.svelte'
+
+  let { onopened }: { onopened?: () => void } = $props()
 
   let fileInput: HTMLInputElement
   let dragging = $state(false)
-  let confirmingNew = $state(false)
+
+  async function open(file: File) {
+    if (await openProjectWithMessage(file)) onopened?.()
+  }
 
   function onPick(e: Event) {
     const input = e.currentTarget as HTMLInputElement
@@ -15,6 +20,7 @@
 
   function onDrop(e: DragEvent) {
     e.preventDefault()
+    e.stopPropagation()
     dragging = false
     const file = e.dataTransfer?.files?.[0]
     if (file) open(file)
@@ -22,7 +28,7 @@
 
   function save() {
     downloadProject()
-    Object.assign(message, { kind: 'ok', text: '已下載專案檔，下次拖進上方區域即可繼續編輯' })
+    Object.assign(message, { kind: 'ok', text: '已下載專案檔' })
   }
 </script>
 
@@ -43,18 +49,7 @@
   </button>
   <input bind:this={fileInput} type="file" accept=".json,application/json" hidden onchange={onPick} />
 
-  <div class="actions">
-    <button class="primary" onclick={save}>儲存專案檔（.json）</button>
-    {#if confirmingNew}
-      <span class="confirm">
-        清空目前設計？
-        <button onclick={() => { startNewProject(); confirmingNew = false; message.text = '' }}>確定</button>
-        <button onclick={() => (confirmingNew = false)}>取消</button>
-      </span>
-    {:else}
-      <button onclick={() => (confirmingNew = true)}>新專案</button>
-    {/if}
-  </div>
+  <button class="primary save" onclick={save}>儲存目前專案（.json）</button>
 
   {#if message.text}
     <p class="msg" class:error={message.kind === 'error'} role="status">{message.text}</p>
@@ -62,11 +57,15 @@
 </div>
 
 <style>
+  .project {
+    display: grid;
+    gap: 10px;
+  }
   .drop {
     width: 100%;
     display: grid;
     gap: 4px;
-    padding: 14px 10px;
+    padding: 22px 10px;
     border: 1.5px dashed var(--line-strong);
     border-radius: 8px;
     background: var(--surface);
@@ -81,21 +80,8 @@
     border-color: var(--accent);
     background: var(--accent-soft);
   }
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    margin-top: 8px;
-  }
-  .confirm {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-  }
   .msg {
-    margin: 8px 0 0;
+    margin: 0;
     font-size: 12px;
     color: var(--ok);
   }

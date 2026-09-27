@@ -21,7 +21,8 @@
     type Suggestion,
   } from './core/blocks'
   import { initHistory, redo, undo } from './core/history.svelte'
-  import { downloadProject, initAutosave, openProjectWithMessage } from './core/persistence.svelte'
+  import { downloadProject, hasAutosave, initAutosave, openProjectWithMessage, projectMessage } from './core/persistence.svelte'
+  import ProjectDialog from './ui/ProjectDialog.svelte'
   import RightPanel from './ui/RightPanel.svelte'
   import { uiTheme } from './ui/theme.svelte'
   import {
@@ -58,7 +59,27 @@
 
   let view: CanvasView
 
+  // 專案視窗：第一次使用（沒有暫存）時直接打開，先決定畫布與起點
+  let projectOpen = $state(false)
+  let projectTab = $state<'new' | 'file'>('new')
+  function openProject(tab: 'new' | 'file') {
+    projectTab = tab
+    projectOpen = true
+  }
+
+  // 拖放開啟專案檔的結果：專案視窗沒開時，在畫面下方短暫顯示
+  let toast = $state('')
+  let toastTimer: ReturnType<typeof setTimeout> | undefined
+  $effect(() => {
+    const text = projectMessage.text
+    if (!text || projectOpen) return
+    toast = text
+    clearTimeout(toastTimer)
+    toastTimer = setTimeout(() => (toast = ''), 3000)
+  })
+
   onMount(() => {
+    if (!hasAutosave()) openProject('new')
     // 先讀回暫存，再開始記錄復原歷史；圖片另外從 IndexedDB 讀回
     const stopAutosave = initAutosave()
     const stopHistory = initHistory()
@@ -462,6 +483,9 @@
     </div>
     <Stepper />
     <div class="right">
+      <button class="project-btn" onclick={() => openProject('new')} title="新專案、開啟與儲存專案檔">
+        專案<small>{project.canvas.w} × {project.canvas.h} {project.canvas.unit}</small>
+      </button>
       <ProjectMenu />
     </div>
   </header>
@@ -527,6 +551,7 @@
       guideOpacity={project.visibility.guideOpacity}
       uiThemeId={uiTheme.id}
     />
+    {#if toast}<div class="toast" role="status">{toast}</div>{/if}
   </main>
 
   <!-- 右側：跨步驟的設定（可收合） -->
@@ -534,6 +559,8 @@
     <RightPanel {render} collapsed={rightCollapsed} ontoggle={toggleRight} />
   </aside>
 </div>
+
+<ProjectDialog bind:open={projectOpen} bind:tab={projectTab} />
 
 <style>
   .app {
@@ -583,6 +610,30 @@
     display: flex;
     align-items: center;
     gap: 12px;
+  }
+  .project-btn {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-weight: 700;
+  }
+  .project-btn small {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--muted);
+  }
+  .toast {
+    position: absolute;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%);
+    padding: 8px 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: var(--panel);
+    font-size: 13px;
+    z-index: 2;
   }
   .left {
     grid-area: left;

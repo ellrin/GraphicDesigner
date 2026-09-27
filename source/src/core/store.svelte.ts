@@ -48,7 +48,8 @@ export function newProject(): ProjectData {
   const preset = CANVAS_PRESETS.find((p) => p.id === '16x9') ?? CANVAS_PRESETS[0]
   return {
     canvas: { presetId: preset.id, w: preset.w, h: preset.h, unit: preset.unit },
-    compositions: { items: [newInstance(compositionTemplates[0])] },
+    // 構圖由使用者在第一步自行選擇
+    compositions: { items: [] },
     guides: { items: [] },
     blocks: { items: [] },
     objects: { items: [] },
@@ -103,7 +104,7 @@ export function replaceProject(data: ProjectData) {
     : legacy
       ? instances([{ templateId: legacy.templateId, orientation: legacy.orientation, params: legacy.params?.[legacy.templateId] }], compositionTemplates)
       : []
-  project.compositions = { items: compItems.length ? compItems : base.compositions.items }
+  project.compositions = { items: compItems }
   project.guides = { items: instances(data.guides?.items, guideTemplates) }
   project.blocks = {
     items: (data.blocks?.items ?? []).map((b) => ({ ...defaultBlock(), ...b, role: roleOf(b.role).id })),
@@ -134,8 +135,6 @@ export const ui = $state({
   editBackground: false,
   /** 等待使用者在照片上點一下標記主體：'bg' 或圖片物件 uid */
   pickSubject: null as string | null,
-  /** 版型範例：顯示所有構圖的範例（否則只顯示目前構圖的） */
-  showAllRecipes: false,
 })
 
 /** 點選物件：additive（按住 Shift）時切換加入／移除，否則只選這一個；null = 取消全部。 */
@@ -463,6 +462,7 @@ export const applyRecipe = discrete((recipe: Recipe, withCanvas: boolean = false
   ui.selectedComposition = r.compositions[0].uid
   ui.selectedGuide = null
   ui.selectedBlock = null
+  unlockSteps()
 })
 
 // ── 線性流程 ────────────────────────────────────────────
@@ -488,3 +488,14 @@ export function completeStep() {
 }
 
 export const currentStep = (): StepDef => STEPS[flow.current]
+
+/** 專案已經有後面步驟的內容時（套用範例、開啟專案檔），直接解鎖到那一步，讓內容可以編輯 */
+export function unlockSteps() {
+  const has = [
+    true,
+    project.guides.items.length > 0,
+    project.blocks.items.length > 0,
+    project.objects.items.length > 0 || !!project.background.assetId,
+  ]
+  flow.reached = Math.max(flow.reached, has.lastIndexOf(true))
+}

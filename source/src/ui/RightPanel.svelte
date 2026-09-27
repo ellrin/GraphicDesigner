@@ -1,11 +1,9 @@
 <script lang="ts">
-  // 右側面板：跨步驟的設定（專案檔、畫布、檢視、圖層與排序、匯出、介面主題）。
+  // 右側面板：跨步驟的設定（檢視、圖層與排序、匯出、介面主題）。專案檔與畫布在頂部的「專案」視窗。
   // 可收合成一排圖示，讓畫布變寬。
   import type { Renderer } from '../core/exporter'
-  import CanvasSettings from './CanvasSettings.svelte'
   import ExportPanel from './ExportPanel.svelte'
   import LayerList from './LayerList.svelte'
-  import ProjectPanel from './ProjectPanel.svelte'
   import Section from './Section.svelte'
   import ThemeSwitcher from './ThemeSwitcher.svelte'
   import ViewSettings from './ViewSettings.svelte'
@@ -18,8 +16,6 @@
   let { render, collapsed, ontoggle }: Props = $props()
 
   const RAIL = [
-    { id: 'right-project', icon: '檔', label: '專案檔' },
-    { id: 'right-canvas', icon: '布', label: '畫布' },
     { id: 'right-view', icon: '視', label: '檢視' },
     { id: 'right-layers', icon: '層', label: '圖層與排序' },
     { id: 'right-export', icon: '出', label: '匯出' },
@@ -48,12 +44,6 @@
       <span>全域設定</span>
       <button class="toggle" onclick={ontoggle} title="收合右側面板">»</button>
     </div>
-    <div id="right-project">
-      <Section id="right-project" title="專案檔" help="瀏覽器會自動暫存目前進度；要換電腦、備份或分享，請儲存成專案檔（包含用到的圖片）。把 .json 拖到頁面任何地方也能開啟。">
-        <ProjectPanel />
-      </Section>
-    </div>
-    <div id="right-canvas"><Section id="right-canvas" title="畫布"><CanvasSettings /></Section></div>
     <div id="right-view">
       <Section id="right-view" title="檢視" help="{mod}; 一鍵切換全部輔助線。輔助線可以放在物件上層（方便對位）或下層（接近成品）。">
         <ViewSettings />

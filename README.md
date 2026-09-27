@@ -69,7 +69,7 @@ export default build
 ## 新增一個版型範例
 
 版型範例 = 構圖 + 視覺引導 + 預先標好用途的區塊（只有版型，沒有圖片與文字）。
-在 `source/src/recipes/<構圖 id>/` 新增一個 JSON 檔，第一步的「版型範例」會自動列出。
+在 `source/src/recipes/<構圖 id>/` 新增一個 JSON 檔，「專案 → 新專案 → 從版型範例開始」會自動列出。
 
 ```json
 {

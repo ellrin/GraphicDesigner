@@ -1,6 +1,8 @@
 // 存檔（下載 .json）、讀檔、瀏覽器自動暫存。
 
-import { flow, newProject, project, replaceProject, type ProjectData } from './store.svelte'
+import { applyRecipe, flow, newProject, project, replaceProject, ui, unlockSteps, type ProjectData } from './store.svelte'
+import type { CanvasSpec } from './canvas'
+import type { Recipe } from './recipes'
 import { resetHistory } from './history.svelte'
 import { exportAssets, importAssets } from './assets'
 
@@ -43,6 +45,7 @@ function load(file: SaveFile) {
   replaceProject(file.project)
   flow.reached = Math.max(0, file.flow?.reached ?? 0)
   flow.current = Math.min(Math.max(0, file.flow?.current ?? 0), flow.reached)
+  unlockSteps()
   resetHistory()
 }
 
@@ -70,20 +73,35 @@ export async function openProjectFile(file: File) {
 /** 專案檔操作的結果訊息（顯示在右側「專案檔」區） */
 export const projectMessage = $state({ kind: 'ok' as 'ok' | 'error', text: '' })
 
-/** 開啟專案檔並顯示結果（專案檔區或拖放到頁面任何地方都用這個） */
-export async function openProjectWithMessage(file: File) {
+/** 開啟專案檔並顯示結果（專案視窗或拖放到頁面任何地方都用這個）；成功時回傳 true */
+export async function openProjectWithMessage(file: File): Promise<boolean> {
   try {
     await openProjectFile(file)
     Object.assign(projectMessage, { kind: 'ok', text: `已開啟「${file.name}」` })
+    return true
   } catch (err) {
     Object.assign(projectMessage, { kind: 'error', text: err instanceof Error ? err.message : '無法開啟檔案' })
+    return false
   }
 }
 
-export function startNewProject() {
+/** 建立新專案：指定畫布尺寸，可選擇從版型範例開始（範例包含的步驟會一併解鎖） */
+export function createProject(canvas: CanvasSpec, recipe: Recipe | null) {
   replaceProject(newProject())
+  project.canvas = { ...canvas }
   flow.current = flow.reached = 0
+  Object.assign(ui, { selectedComposition: null, selectedGuide: null, selectedBlock: null, selectedObjects: [] })
+  if (recipe) applyRecipe(recipe)
   resetHistory()
+}
+
+/** 瀏覽器裡是否有上次的自動暫存（沒有 = 第一次使用） */
+export function hasAutosave() {
+  try {
+    return localStorage.getItem(AUTOSAVE_KEY) !== null
+  } catch {
+    return false
+  }
 }
 
 /** 讀回上次的自動暫存（若有），並開始在每次變動後暫存。 */
