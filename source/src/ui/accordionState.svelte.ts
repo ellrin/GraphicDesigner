@@ -1,7 +1,7 @@
 // 手風琴式收合：同一組（左側某一步、右側）的區塊一次只展開一個。
 // 各組展開的是哪一個記在瀏覽器中（介面偏好，不寫進專案檔）。
 
-import { getContext, setContext } from 'svelte'
+import { getContext, setContext, untrack } from 'svelte'
 
 const KEY = 'graphic-designer:accordion'
 
@@ -19,12 +19,15 @@ const chosen = $state<Record<string, string | null>>(read())
 const mounted = $state<Record<string, string[]>>({})
 
 export function setOpen(group: string, id: string | null) {
-  chosen[group] = id
-  try {
-    localStorage.setItem(KEY, JSON.stringify(chosen))
-  } catch {
-    // 略過
-  }
+  // 在 $effect 裡呼叫時不要把 chosen 當成相依（否則收合後又會被重新展開）
+  untrack(() => {
+    chosen[group] = id
+    try {
+      localStorage.setItem(KEY, JSON.stringify(chosen))
+    } catch {
+      // 略過
+    }
+  })
 }
 
 /** 這一組目前展開的區塊：記住的那個不在畫面上時，改展開第一個 */
