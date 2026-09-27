@@ -8,12 +8,20 @@
 ① 空間構圖 → ② 視覺引導 → ③ 區塊分佈 → ④ 插入物件 → ⑤ 微調與匯出
 ```
 
+<p align="center"><a href="https://ellrin.github.io/GraphicDesigner/"><b>▶ 立即開啟線上版</b></a><br><sub>https://ellrin.github.io/GraphicDesigner/</sub></p>
+
 ## 使用方式（不需要安裝任何東西）
+
+**線上版**：點上面的連結就能直接使用。也可以用瀏覽器的「安裝」功能變成桌面 App，離線也能開。
+
+**離線版**：
 
 1. 在 GitHub 頁面按 **Code → Download ZIP**，解壓縮
 2. 雙擊 **`GraphicDesigner.html`**，就會用瀏覽器開啟（Chrome、Edge、Safari、Firefox 都可以，Mac／Windows 皆同）
 
-也可以只下載 [Releases](../../releases) 裡的 `GraphicDesigner.html` 單一檔案，或直接開啟線上版（GitHub Pages 網址，在 repo 的 About 欄位）。線上版可以用瀏覽器的「安裝」功能變成桌面 App，離線也能開。
+也可以只下載 [Releases](../../releases) 裡的 `GraphicDesigner.html` 單一檔案。
+
+作品會自動保存在瀏覽器裡，但線上版與離線版的資料互不相通，換電腦或清除瀏覽器資料也會消失；重要的作品請用「存檔」存成 JSON。
 
 ```
 GraphicDesigner/
