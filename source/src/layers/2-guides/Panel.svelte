@@ -3,7 +3,7 @@
   import { addGuide, project, removeGuide, ui } from '../../core/store.svelte'
   import OrientationTools from '../../ui/OrientationTools.svelte'
   import FrameSelect, { type RegionOption } from '../../ui/FrameSelect.svelte'
-  import { frameLabel } from '../../core/instances'
+  import { CANVAS_FRAME, frameLabel } from '../../core/instances'
   import ParamPanel from '../../ui/ParamPanel.svelte'
   import TemplateThumb from '../../ui/TemplateThumb.svelte'
   import theme from '../../config/theme.json'
@@ -23,6 +23,14 @@
   /** 新增引導：先選好類型才加入；還沒有任何引導時直接顯示選單 */
   let adding = $state(false)
   const picking = $derived(adding || items.length === 0)
+
+  /** 重置：套用範圍、方向與參數回到預設（類型不變） */
+  function reset() {
+    if (!selected || !selectedTemplate) return
+    selected.frame = { ...CANVAS_FRAME }
+    selected.orientation = { ...IDENTITY }
+    selected.params = structuredClone(selectedTemplate.defaults)
+  }
 
   function add(id: string) {
     addGuide(id)
@@ -44,14 +52,11 @@
       {/each}
     </ul>
   {/if}
-  {#if !picking}
-    <button class="add" onclick={() => (adding = true)}>＋ 新增引導</button>
+  {#if items.length > 0}
+    <button class="add" onclick={() => (adding = !adding)}>{adding ? '取消新增' : '＋ 新增引導'}</button>
   {/if}
-</Section>
-
-{#if picking}
-  <Section id="guides-add" title={items.length ? '選擇要新增的引導' : '選擇視覺引導'}>
-    <div class="grid">
+  {#if picking}
+    <div class="grid picker">
       {#each guideTemplates as t (t.id)}
         <button class="card" onclick={() => add(t.id)} title={t.meta.description}>
           <TemplateThumb template={t} {aspect} orientation={IDENTITY} {colors} />
@@ -59,20 +64,23 @@
         </button>
       {/each}
     </div>
-    {#if items.length > 0}
-      <button class="add cancel" onclick={() => (adding = false)}>取消</button>
-    {/if}
-  </Section>
-{:else if selected && selectedTemplate}
-  <Section id="guides-3" title="套用範圍">
-    <FrameSelect frame={selected.frame} regions={regions.filter((r) => r.source !== selected.uid)} onchange={(f) => (selected.frame = f)} />
+  {/if}
+</Section>
+
+{#if !picking && selected && selectedTemplate}
+  <Section id="guides-3" title="調整：{selectedTemplate.meta.name}">
+    <div class="field">
+      <span>套用範圍</span>
+      <FrameSelect frame={selected.frame} regions={regions.filter((r) => r.source !== selected.uid)} onchange={(f) => (selected.frame = f)} />
+    </div>
+    <button class="add" onclick={reset}>重置此引導</button>
   </Section>
   <Section id="guides-4" title="方向">
     <OrientationTools bind:orientation={selected.orientation} />
   </Section>
   <Section
     id="guides-5"
-    title="參數：{selectedTemplate.meta.name}"
+    title="參數"
     help={(selectedTemplate.meta.description ?? '') + (hasPoints ? '　可直接在畫布上拖曳白色控制點；靠近構圖錨點時會變紫色並自動吸附。' : '')}
   >
     <ParamPanel
@@ -127,6 +135,17 @@
   }
   .add {
     width: 100%;
+    margin-top: 8px;
+  }
+  .field {
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+  }
+  .field > span {
+    color: var(--muted);
+  }
+  .picker {
     margin-top: 8px;
   }
   .grid {

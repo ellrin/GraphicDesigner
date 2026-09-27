@@ -1,6 +1,6 @@
 <script lang="ts">
   import Section from '../../ui/Section.svelte'
-  import { frameLabel, resolveFrame } from '../../core/instances'
+  import { CANVAS_FRAME, frameLabel, resolveFrame } from '../../core/instances'
   import { addComposition, project, removeComposition, setInstanceTemplate, ui } from '../../core/store.svelte'
   import FrameSelect, { type RegionOption } from '../../ui/FrameSelect.svelte'
   import OrientationTools from '../../ui/OrientationTools.svelte'
@@ -8,6 +8,7 @@
   import TemplateThumb from '../../ui/TemplateThumb.svelte'
   import theme from '../../config/theme.json'
   import { IDENTITY } from '../../core/transform'
+  import Help from '../../ui/Help.svelte'
   import { compositionTemplates } from './templates'
 
   let { regions }: { regions: RegionOption[] } = $props()
@@ -22,6 +23,14 @@
   /** 新增構圖：先選好構圖才加入；還沒有任何構圖時直接顯示選單 */
   let adding = $state(false)
   const picking = $derived(adding || items.length === 0)
+
+  /** 重置：套用範圍、方向與參數回到預設（類型不變） */
+  function reset() {
+    if (!selected || !template) return
+    selected.frame = { ...CANVAS_FRAME }
+    selected.orientation = { ...IDENTITY }
+    selected.params = structuredClone(template.defaults)
+  }
 
   function add(id: string) {
     addComposition(id)
@@ -52,14 +61,12 @@
       {/each}
     </ul>
   {/if}
-  {#if !picking}
-    <button class="add" onclick={() => (adding = true)}>＋ 新增構圖</button>
-  {/if}
-</Section>
 
-{#if picking}
-  <Section id="comp-add" title={items.length ? '選擇要新增的構圖' : '選擇構圖'}>
-    <div class="grid">
+  {#if items.length > 0}
+    <button class="add" class:open={adding} onclick={() => (adding = !adding)}>{adding ? '取消新增' : '＋ 新增構圖'}</button>
+  {/if}
+  {#if picking}
+    <div class="grid picker">
       {#each compositionTemplates as t (t.id)}
         <button class="card" onclick={() => add(t.id)} title={t.meta.description}>
           <TemplateThumb template={t} {aspect} orientation={IDENTITY} {colors} />
@@ -67,24 +74,24 @@
         </button>
       {/each}
     </div>
-    {#if items.length > 0}
-      <button class="cancel" onclick={() => (adding = false)}>取消</button>
-    {/if}
-  </Section>
-{:else if selected && template}
-  <Section id="comp-3" title="構圖類型" help={template.meta.description}>
-    <div class="grid">
-      {#each compositionTemplates as t (t.id)}
-        <button class="card" class:active={t.id === selected.templateId} onclick={() => t.id !== selected.templateId && setInstanceTemplate(selected, t)} title={t.meta.description}>
-          <TemplateThumb template={t} {aspect} orientation={selected.orientation} {colors} />
-          <span>{t.meta.name}</span>
-        </button>
-      {/each}
-    </div>
-  </Section>
+  {/if}
+</Section>
 
-  <Section id="comp-2" title="套用範圍" help="構圖可以套用在整張畫布、某個區塊，或其他構圖切出的區域（會跟著來源構圖連動）。">
-    <FrameSelect frame={selected.frame} regions={otherRegions} onchange={(f) => (selected.frame = f)} />
+{#if !picking && selected && template}
+  <Section id="comp-2" title="調整：{template.meta.name}" help={template.meta.description}>
+    <div class="field">
+      <span>構圖類型</span>
+      <select value={selected.templateId} onchange={(e) => { const t = compositionTemplates.find((x) => x.id === e.currentTarget.value); if (t) setInstanceTemplate(selected, t) }}>
+        {#each compositionTemplates as t (t.id)}
+          <option value={t.id}>{t.meta.name}</option>
+        {/each}
+      </select>
+    </div>
+    <div class="field">
+      <span>套用範圍 <Help text="構圖可以套用在整張畫布、某個區塊，或其他構圖切出的區域（會跟著來源構圖連動）。" /></span>
+      <FrameSelect frame={selected.frame} regions={otherRegions} onchange={(f) => (selected.frame = f)} />
+    </div>
+    <button class="reset" onclick={reset}>重置此構圖</button>
   </Section>
 
   <Section id="comp-4" title="方向">
@@ -143,12 +150,29 @@
     color: var(--muted);
     padding: 2px 6px;
   }
-  .add,
-  .cancel {
+  .add {
     width: 100%;
   }
-  .cancel {
+  .add.open {
+    color: var(--muted);
+  }
+  .reset {
+    width: 100%;
+  }
+  .picker {
     margin-top: 8px;
+  }
+  .field {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+  .field > span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
   }
   .grid {
     display: grid;
@@ -161,10 +185,6 @@
     padding: 8px;
     font-size: 12px;
     text-align: center;
-  }
-  .card.active {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 1px var(--accent);
   }
   .desc {
     margin: 8px 0 0;
