@@ -1,0 +1,17 @@
+{
+  "name": "GraphicDesigner 構圖設計工作台",
+  "short_name": "GraphicDesigner",
+  "description": "以構圖為起點、分層線性進行的 2D 平面設計工具",
+  "lang": "zh-Hant",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#111114",
+  "theme_color": "#111114",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

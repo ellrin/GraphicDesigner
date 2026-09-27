@@ -1,3 +1,5 @@
+<p align="center"><img src="source/public/icon-192.png" width="96" alt="GraphicDesigner 圖示"></p>
+
 # GraphicDesigner
 
 以「構圖」為起點、分層線性進行的瀏覽器 2D 平面設計工具。
@@ -8,25 +10,38 @@
 
 ## 使用方式（不需要安裝任何東西）
 
-- **線上版**：開啟 GitHub Pages 網址（部署後在 repo 的 About 欄位）
-- **離線版**：下載或 clone 這個 repo，雙擊 `dist/index.html`
+1. 在 GitHub 頁面按 **Code → Download ZIP**，解壓縮
+2. 雙擊 **`GraphicDesigner.html`**，就會用瀏覽器開啟（Chrome、Edge、Safari、Firefox 都可以，Mac／Windows 皆同）
+
+也可以只下載 [Releases](../../releases) 裡的 `GraphicDesigner.html` 單一檔案，或直接開啟線上版（GitHub Pages 網址，在 repo 的 About 欄位）。線上版可以用瀏覽器的「安裝」功能變成桌面 App，離線也能開。
+
+```
+GraphicDesigner/
+├─ GraphicDesigner.html   ← 主程式，雙擊開啟
+├─ docs/                  設計規劃、字型授權說明
+└─ source/                原始碼（開發用，一般使用不需要理會）
+```
 
 ## 開發
 
-需要 [Node.js](https://nodejs.org/)。
+需要 [Node.js](https://nodejs.org/)。以下指令都在 `source/` 資料夾內執行：
 
 ```bash
+cd source
 npm install
 npm run dev      # 開發伺服器（即時更新）
 npm run check    # 型別檢查
-npm run build    # 輸出單一檔案 dist/index.html
+npm run build    # 打包並更新最上層的 GraphicDesigner.html
 ```
 
-`dist/` 有納入版控，修改後記得 `npm run build` 再 commit，離線版才會更新。
+`GraphicDesigner.html` 有納入版控，修改程式後記得 `npm run build` 再 commit，下載版才會更新。
+推送 `v` 開頭的標籤（例如 `git tag v1.0.0 && git push --tags`）會自動建立 Release 並附上 `GraphicDesigner.html`。
+
+圖示的原始檔是 `source/public/icon.svg`（打包時會嵌進 HTML）；`icon-*.png` 是給「安裝成 App」用的點陣版本。
 
 ## 新增一種物件（第四層）
 
-在 `src/layers/4-objects/types/` 新增資料夾：
+在 `source/src/layers/4-objects/types/` 新增資料夾：
 
 - `meta.json`：`{ "name": "菱形", "category": "shape", "order": 70, "size": [0.3, 0.3], "fill": "#2f6bff" }`（size 以畫布短邊為單位）
 - `params.json`：種類專屬參數（格式同構圖版型）
@@ -46,7 +61,7 @@ export default build
 ## 新增一個版型範例
 
 版型範例 = 構圖 + 視覺引導 + 預先標好用途的區塊（只有版型，沒有圖片與文字）。
-在 `src/recipes/<構圖 id>/` 新增一個 JSON 檔即可，第一步的「版型範例」會自動列出。
+在 `source/src/recipes/<構圖 id>/` 新增一個 JSON 檔即可，第一步的「版型範例」會自動列出。
 
 ```json
 {
@@ -75,12 +90,12 @@ export default build
 
 ## 字型
 
-內建中文 19 種、英文 32 種可商用字型（OFL）。字型檔不包含在 repo 中，使用時才從 Google Fonts 載入，詳見 [FONTS.md](FONTS.md)。
+內建中文 19 種、英文 32 種可商用字型（OFL）。字型檔不包含在 repo 中，使用時才從 Google Fonts 載入，詳見 [docs/FONTS.md](docs/FONTS.md)。
 
-## 專案結構
+## 程式結構
 
 ```
-src/
+source/src/
 ├─ core/                     與圖層無關的核心
 │  ├─ geometry.ts            圖元型別（線、折線、圓）與幾何工具
 │  ├─ transform.ts           旋轉 / 翻轉（所有版型共用）
@@ -91,7 +106,7 @@ src/
 ├─ config/                   可調設定（不需改程式）
 │  ├─ canvas-presets.json    預設畫布尺寸
 │  ├─ theme.json             引導線顏色、線寬、虛線
-│  ├─ ui-themes.json         介面主題清單（橘黑、藍紫黃、綠黑）；各主題的顏色變數在 src/app.css
+│  ├─ ui-themes.json         介面主題清單（橘黑、藍紫黃、綠黑）；各主題的顏色變數在 app.css
 │  ├─ export.json            匯出 DPI
 │  ├─ fonts/                 字型清單（zh-tc.json、en.json）
 │  └─ steps.ts               流程步驟
@@ -106,7 +121,7 @@ src/
 
 ## 新增一個構圖版型
 
-在 `src/layers/1-composition/templates/` 新增一個資料夾，放三個檔案，**不需要修改其他任何檔案**：
+在 `source/src/layers/1-composition/templates/` 新增一個資料夾，放三個檔案，**不需要修改其他任何檔案**：
 
 **`meta.json`**：名稱與說明
 
@@ -137,7 +152,7 @@ export default defineGenerator<{ thickness: number }>(({ w, h }, p) => ({
 }))
 ```
 
-**視覺引導**（第二層）的寫法完全相同，放在 `src/layers/2-guides/templates/`。
+**視覺引導**（第二層）的寫法完全相同，放在 `source/src/layers/2-guides/templates/`。
 
 參數型別除了 `number`、`int`、`boolean`、`select`，還有 **`point`**（位置，0–1 相對值）：
 

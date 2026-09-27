@@ -3,11 +3,13 @@ node_modules/
 *.log
 .claude/settings.local.json
 
-# 字型檔不是我們做的，一律不進版控（執行時從 Google Fonts 載入，見 FONTS.md）
+# 打包的中間產物；使用者用的是最上層的 GraphicDesigner.html（有進版控）
+source/dist/
+
+# 字型檔不是我們做的，一律不進版控（執行時從 Google Fonts 載入，見 docs/FONTS.md）
 *.ttf
 *.otf
 *.ttc
 *.woff
 *.woff2
 *.eot
-# dist/ 刻意納入版控：clone 後雙擊 dist/index.html 即可使用
