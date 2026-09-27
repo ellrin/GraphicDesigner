@@ -1,5 +1,6 @@
 <script lang="ts">
   import Section from '../../ui/Section.svelte'
+  import Fold from '../../ui/Fold.svelte'
   import { BLOCK_ROLES, BLOCK_SHAPES, roleOf, type BlockShape, type Suggestion } from '../../core/blocks'
   import {
     addBlock,
@@ -72,14 +73,6 @@
       <input type="text" bind:value={selected.name} />
     </label>
     <label class="row">
-      <span>形狀</span>
-      <select value={selected.shape} onchange={(e) => setBlockShape(selected.uid, e.currentTarget.value as BlockShape)}>
-        {#each BLOCK_SHAPES as s (s.id)}
-          <option value={s.id}>{s.label}</option>
-        {/each}
-      </select>
-    </label>
-    <label class="row">
       <span>用途</span>
       <select value={selected.role} onchange={(e) => setRole(e.currentTarget.value)}>
         {#each BLOCK_ROLES as r (r.id)}
@@ -87,35 +80,48 @@
         {/each}
       </select>
     </label>
-    <div class="row">
-      <span>外觀</span>
-      <span class="inline">
-        <label><input type="checkbox" bind:checked={selected.filled} /> 填色</label>
-        <input type="color" bind:value={selected.color} aria-label="顏色" />
-      </span>
-    </div>
-    {#if selected.filled}
-      <label class="row">
-        <span>不透明度 {Math.round(selected.opacity * 100)}%</span>
-        <input type="range" min="0.05" max="1" step="0.05" bind:value={selected.opacity} />
-      </label>
-    {/if}
-    <div class="dims">
-      {#each [['x', 'X'], ['y', 'Y'], ['w', '寬'], ['h', '高']] as const as [axis, label] (axis)}
-        <label>
-          <span>{label}</span>
-          <input
-            type="number"
-            value={round(selected[axis] * (axis === 'x' || axis === 'w' ? c.w : c.h))}
-            onchange={(e) => setDim(axis, e.currentTarget)}
-          />
+    <div class="folds">
+      <Fold id="blk-look" title="形狀與外觀">
+        <label class="row">
+          <span>形狀</span>
+          <select value={selected.shape} onchange={(e) => setBlockShape(selected.uid, e.currentTarget.value as BlockShape)}>
+            {#each BLOCK_SHAPES as s (s.id)}
+              <option value={s.id}>{s.label}</option>
+            {/each}
+          </select>
         </label>
-      {/each}
-      <small class="unit">單位：{c.unit}</small>
+        <span class="inline">
+          <label><input type="checkbox" bind:checked={selected.filled} /> 填色</label>
+          <input type="color" bind:value={selected.color} aria-label="顏色" />
+        </span>
+        {#if selected.filled}
+          <label class="row">
+            <span>不透明度 {Math.round(selected.opacity * 100)}%</span>
+            <input type="range" min="0.05" max="1" step="0.05" bind:value={selected.opacity} />
+          </label>
+        {/if}
+      </Fold>
+      <Fold id="blk-pos" title="位置與尺寸">
+        <div class="dims">
+          {#each [['x', 'X'], ['y', 'Y'], ['w', '寬'], ['h', '高']] as const as [axis, label] (axis)}
+            <label>
+              <span>{label}</span>
+              <input
+                type="number"
+                value={round(selected[axis] * (axis === 'x' || axis === 'w' ? c.w : c.h))}
+                onchange={(e) => setDim(axis, e.currentTarget)}
+              />
+            </label>
+          {/each}
+          <small class="unit">單位：{c.unit}</small>
+        </div>
+        <div class="tools">
+          <button onclick={() => updateBlock(selected.uid, { x: (1 - selected.w) / 2 })}>水平置中</button>
+          <button onclick={() => updateBlock(selected.uid, { y: (1 - selected.h) / 2 })}>垂直置中</button>
+        </div>
+      </Fold>
     </div>
     <div class="tools">
-      <button onclick={() => updateBlock(selected.uid, { x: (1 - selected.w) / 2 })}>水平置中</button>
-      <button onclick={() => updateBlock(selected.uid, { y: (1 - selected.h) / 2 })}>垂直置中</button>
       <button onclick={() => duplicateBlock(selected.uid)}>複製</button>
       <button onclick={() => removeBlock(selected.uid)}>刪除</button>
     </div>
@@ -124,12 +130,12 @@
 {/if}
 
 <Section id="blocks-3" title="建議區塊" help="依目前的構圖、視覺引導與錨點計算，只是參考。滑鼠移到按鈕上會在畫布預覽，點一下即採用，之後可再調整。">
-  <label class="inline"><input type="checkbox" bind:checked={project.visibility.suggestions} /> 在畫布上顯示全部建議</label>
+  <label class="inline show-all"><input type="checkbox" bind:checked={project.visibility.suggestions} /> 在畫布上顯示全部建議</label>
   {#each sources as src (src)}
-    <div class="group">
-      <h4>{src}</h4>
+    {@const list = suggestions.map((s, i) => [s, i] as const).filter(([s]) => s.source === src)}
+    <Fold title={src} count={list.length}>
       <div class="chips">
-        {#each suggestions.map((s, i) => [s, i] as const).filter(([s]) => s.source === src) as [s, i] (i)}
+        {#each list as [s, i] (i)}
           <button
             onclick={() => onadopt(s)}
             onmouseenter={() => (ui.hoverSuggestion = i)}
@@ -142,7 +148,7 @@
           </button>
         {/each}
       </div>
-    </div>
+    </Fold>
   {/each}
 </Section>
 
@@ -172,6 +178,9 @@
     background: var(--accent-soft);
     border-color: var(--accent);
     color: var(--text);
+  }
+  .show-all {
+    margin-bottom: 8px;
   }
   .dot {
     display: inline-block;
@@ -233,10 +242,8 @@
     flex-wrap: wrap;
     gap: 6px;
   }
-  .group h4 {
-    margin: 10px 0 6px;
-    font-size: 12px;
-    font-weight: 600;
+  .folds {
+    border-bottom: 1px dashed var(--line);
   }
   .chips {
     display: flex;

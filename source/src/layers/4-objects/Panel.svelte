@@ -1,5 +1,6 @@
 <script lang="ts">
   import Section from '../../ui/Section.svelte'
+  import Fold from '../../ui/Fold.svelte'
   import { importImageFile } from '../../core/assets'
   import type { AnchorOption } from '../../core/objects'
   import {
@@ -124,6 +125,7 @@
     {/if}
   </div>
   {#if project.background.assetId}
+    <Fold id="bg-photo" title="背景照片設定">
     <label class="row">
       <span>填滿方式</span>
       <select bind:value={project.background.fit}>
@@ -162,6 +164,7 @@
         {/if}
       </div>
     {/if}
+    </Fold>
   {/if}
   <input
     bind:this={bgInput}

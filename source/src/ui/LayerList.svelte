@@ -12,6 +12,19 @@
   const nameOf = (list: { id: string; meta: { name: string } }[], id: string) => list.find((t) => t.id === id)?.meta.name ?? id
   const stepIndex = (id: string) => STEPS.findIndex((s) => s.id === id)
 
+  // 分組收合：預設只展開目前步驟對應的那一組；手動開合在切換步驟後重設
+  type Group = 'composition' | 'guides' | 'blocks' | 'objects'
+  const stepGroup = $derived<Group>(
+    STEPS[flow.current].id === 'refine' ? 'objects' : (STEPS[flow.current].id as Group),
+  )
+  let manual = $state<Partial<Record<Group, boolean>>>({})
+  $effect(() => {
+    void flow.current
+    manual = {}
+  })
+  const isOpen = (g: Group) => manual[g] ?? stepGroup === g
+  const toggle = (g: Group) => (manual[g] = !isOpen(g))
+
   /** 選取並跳到該圖層所屬的步驟（已解鎖時） */
   function focus(stepId: string, select: () => void) {
     const i = stepIndex(stepId)
@@ -22,62 +35,90 @@
 
 <div class="layers">
   <div class="group">
-    <label class="head"><input type="checkbox" bind:checked={v.composition} /> ① 構圖</label>
-    {#each project.compositions.items as c (c.uid)}
-      <div class="item" class:on={ui.selectedComposition === c.uid}>
-        <input type="checkbox" bind:checked={c.visible} disabled={!v.composition} />
-        <button class="name" onclick={() => focus('composition', () => (ui.selectedComposition = c.uid))}>
-          {nameOf(compositionTemplates, c.templateId)}<small>{frameLabel(c.frame, project.blocks.items)}</small>
-        </button>
-      </div>
-    {/each}
+    <div class="head">
+      <input type="checkbox" bind:checked={v.composition} aria-label="顯示構圖" />
+      <button class="toggle" onclick={() => toggle('composition')} aria-expanded={isOpen('composition')}>
+        <span class="caret" class:open={isOpen('composition')}>▸</span>① 構圖<small>{project.compositions.items.length}</small>
+      </button>
+    </div>
+    {#if isOpen('composition')}
+      {#each project.compositions.items as c (c.uid)}
+        <div class="item" class:on={ui.selectedComposition === c.uid}>
+          <input type="checkbox" bind:checked={c.visible} disabled={!v.composition} />
+          <button class="name" onclick={() => focus('composition', () => (ui.selectedComposition = c.uid))}>
+            {nameOf(compositionTemplates, c.templateId)}<small>{frameLabel(c.frame, project.blocks.items)}</small>
+          </button>
+        </div>
+      {/each}
+    {/if}
   </div>
 
   <div class="group">
-    <label class="head"><input type="checkbox" bind:checked={v.guides} /> ② 視覺引導</label>
-    {#each project.guides.items as g (g.uid)}
-      <div class="item" class:on={ui.selectedGuide === g.uid}>
-        <input type="checkbox" bind:checked={g.visible} disabled={!v.guides} />
-        <button class="name" onclick={() => focus('guides', () => (ui.selectedGuide = g.uid))}>{nameOf(guideTemplates, g.templateId)}</button>
-      </div>
-    {:else}
-      <p class="empty">（尚未加入）</p>
-    {/each}
+    <div class="head">
+      <input type="checkbox" bind:checked={v.guides} aria-label="顯示視覺引導" />
+      <button class="toggle" onclick={() => toggle('guides')} aria-expanded={isOpen('guides')}>
+        <span class="caret" class:open={isOpen('guides')}>▸</span>② 視覺引導<small>{project.guides.items.length}</small>
+      </button>
+    </div>
+    {#if isOpen('guides')}
+      {#each project.guides.items as g (g.uid)}
+        <div class="item" class:on={ui.selectedGuide === g.uid}>
+          <input type="checkbox" bind:checked={g.visible} disabled={!v.guides} />
+          <button class="name" onclick={() => focus('guides', () => (ui.selectedGuide = g.uid))}>{nameOf(guideTemplates, g.templateId)}</button>
+        </div>
+      {:else}
+        <p class="empty">（尚未加入）</p>
+      {/each}
+    {/if}
   </div>
 
   <div class="group">
-    <label class="head"><input type="checkbox" bind:checked={v.blocks} /> ③ 區塊</label>
-    {#each [...project.blocks.items].reverse() as b (b.uid)}
-      <div class="item" class:on={ui.selectedBlock === b.uid}>
-        <input type="checkbox" bind:checked={b.visible} disabled={!v.blocks} />
-        <span class="dot" style:background={b.color}></span>
-        <button class="name" onclick={() => focus('blocks', () => (ui.selectedBlock = b.uid))}>
-          {b.name}<small>{roleOf(b.role).label}</small>
-        </button>
-        <button class="icon" onclick={() => moveBlock(b.uid, 1)} title="上移一層">↑</button>
-        <button class="icon" onclick={() => moveBlock(b.uid, -1)} title="下移一層">↓</button>
-        <button class="icon" onclick={() => removeBlock(b.uid)} title="刪除">✕</button>
-      </div>
-    {:else}
-      <p class="empty">（尚未加入）</p>
-    {/each}
+    <div class="head">
+      <input type="checkbox" bind:checked={v.blocks} aria-label="顯示區塊" />
+      <button class="toggle" onclick={() => toggle('blocks')} aria-expanded={isOpen('blocks')}>
+        <span class="caret" class:open={isOpen('blocks')}>▸</span>③ 區塊<small>{project.blocks.items.length}</small>
+      </button>
+    </div>
+    {#if isOpen('blocks')}
+      {#each [...project.blocks.items].reverse() as b (b.uid)}
+        <div class="item" class:on={ui.selectedBlock === b.uid}>
+          <input type="checkbox" bind:checked={b.visible} disabled={!v.blocks} />
+          <span class="dot" style:background={b.color}></span>
+          <button class="name" onclick={() => focus('blocks', () => (ui.selectedBlock = b.uid))}>
+            {b.name}<small>{roleOf(b.role).label}</small>
+          </button>
+          <button class="icon" onclick={() => moveBlock(b.uid, 1)} title="上移一層">↑</button>
+          <button class="icon" onclick={() => moveBlock(b.uid, -1)} title="下移一層">↓</button>
+          <button class="icon" onclick={() => removeBlock(b.uid)} title="刪除">✕</button>
+        </div>
+      {:else}
+        <p class="empty">（尚未加入）</p>
+      {/each}
+    {/if}
   </div>
 
   <div class="group">
-    <label class="head"><input type="checkbox" bind:checked={v.objects} /> ④ 物件</label>
-    {#each [...project.objects.items].reverse() as o (o.uid)}
-      <div class="item" class:on={ui.selectedObjects.includes(o.uid)}>
-        <input type="checkbox" bind:checked={o.visible} disabled={!v.objects} />
-        <button class="name" onclick={(e) => focus('objects', () => selectObject(o.uid, e.shiftKey))}>
-          {o.name}<small>{objectTypeOf(o.type)?.meta.name}</small>
-        </button>
-        <button class="icon" onclick={() => moveObject(o.uid, 1)} title="上移一層">↑</button>
-        <button class="icon" onclick={() => moveObject(o.uid, -1)} title="下移一層">↓</button>
-        <button class="icon" onclick={() => removeObject(o.uid)} title="刪除">✕</button>
-      </div>
-    {:else}
-      <p class="empty">（尚未加入）</p>
-    {/each}
+    <div class="head">
+      <input type="checkbox" bind:checked={v.objects} aria-label="顯示物件" />
+      <button class="toggle" onclick={() => toggle('objects')} aria-expanded={isOpen('objects')}>
+        <span class="caret" class:open={isOpen('objects')}>▸</span>④ 物件<small>{project.objects.items.length}</small>
+      </button>
+    </div>
+    {#if isOpen('objects')}
+      {#each [...project.objects.items].reverse() as o (o.uid)}
+        <div class="item" class:on={ui.selectedObjects.includes(o.uid)}>
+          <input type="checkbox" bind:checked={o.visible} disabled={!v.objects} />
+          <button class="name" onclick={(e) => focus('objects', () => selectObject(o.uid, e.shiftKey))}>
+            {o.name}<small>{objectTypeOf(o.type)?.meta.name}</small>
+          </button>
+          <button class="icon" onclick={() => moveObject(o.uid, 1)} title="上移一層">↑</button>
+          <button class="icon" onclick={() => moveObject(o.uid, -1)} title="下移一層">↓</button>
+          <button class="icon" onclick={() => removeObject(o.uid)} title="刪除">✕</button>
+        </div>
+      {:else}
+        <p class="empty">（尚未加入）</p>
+      {/each}
+    {/if}
   </div>
 </div>
 
@@ -95,8 +136,37 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-weight: 700;
     margin-bottom: 2px;
+  }
+  .toggle {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    background: none;
+    padding: 0;
+    font-weight: 700;
+    text-align: left;
+  }
+  .toggle:hover:not(:disabled) {
+    background: none;
+    color: var(--accent);
+  }
+  .toggle small {
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 11px;
+    color: var(--faint);
+  }
+  .caret {
+    font-size: 10px;
+    color: var(--muted);
+    transition: transform 0.15s;
+  }
+  .caret.open {
+    transform: rotate(90deg);
+    color: var(--accent);
   }
   .item {
     display: flex;
