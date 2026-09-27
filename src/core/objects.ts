@@ -30,6 +30,13 @@ export interface DesignObject {
   props: ParamValues
 }
 
+/** 可作為放置目標的錨點（0–1 相對座標） */
+export interface AnchorOption {
+  label: string
+  x: number
+  y: number
+}
+
 /** 畫布背景（第四層「插入背景」） */
 export interface Background {
   color: string

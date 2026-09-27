@@ -9,7 +9,8 @@ import { objectTypeOf } from '../layers/4-objects/types'
 
 export interface ObjectLayerState {
   objects: DesignObject[]
-  selected: string | null
+  /** 選取中的物件（可多選） */
+  selected: string[]
   interactive: boolean
   visible: boolean
   snap: SnapLines
@@ -35,7 +36,10 @@ export interface ObjectBox {
 const CORNERS = ['top-left', 'top-right', 'bottom-left', 'bottom-right']
 
 export interface ObjectLayerEvents {
-  onSelect: (uid: string | null) => void
+  /** additive：按住 Shift 點選（加入／移出選取） */
+  onSelect: (uid: string | null, additive: boolean) => void
+  /** 框選 */
+  onSelectMany: (uids: string[], additive: boolean) => void
   onChange: (uid: string, box: ObjectBox) => void
   /** 雙擊（例如編輯文字） */
   onEdit: (uid: string) => void
@@ -68,9 +72,68 @@ export class ObjectLayer {
       anchorDragBoundFunc: (_old, pos) => this.snapAbsolute(pos),
     })
     this.group.add(this.body, this.transformer)
-    // 用 click（按下與放開在同一處）判斷點空白處；拖曳縮放後在空白處放開滑鼠不會取消選取
+    this.bindMarquee()
+  }
+
+  private isEmpty(t: Konva.Node) {
+    return t === this.stage || t.name() === 'paper-bg'
+  }
+
+  /**
+   * 在空白處拖曳 = 框選（碰到框的物件都會被選取）；在空白處單擊 = 取消選取。
+   * 用 click 判斷單擊，所以拖曳縮放後在空白處放開滑鼠不會誤取消選取。
+   */
+  private bindMarquee() {
+    let start: { x: number; y: number } | null = null
+    let marquee: Konva.Rect | null = null
+    let justSelected = false
+
+    this.stage.on('mousedown.objects touchstart.objects', (e) => {
+      if (!this.state?.interactive || !this.isEmpty(e.target)) return
+      start = this.paper.getRelativePointerPosition()
+    })
+    this.stage.on('mousemove.objects touchmove.objects', () => {
+      if (!start) return
+      const p = this.paper.getRelativePointerPosition()!
+      if (!marquee) {
+        if (Math.hypot(p.x - start.x, p.y - start.y) * (this.state?.scale ?? 1) < 4) return
+        marquee = new Konva.Rect({
+          stroke: '#3a6df0',
+          strokeWidth: 1,
+          dash: [4, 3],
+          strokeScaleEnabled: false,
+          fill: 'rgba(58,109,240,0.08)',
+          listening: false,
+        })
+        this.group.add(marquee)
+      }
+      marquee.setAttrs({
+        x: Math.min(start.x, p.x),
+        y: Math.min(start.y, p.y),
+        width: Math.abs(p.x - start.x),
+        height: Math.abs(p.y - start.y),
+      })
+      this.stage.batchDraw()
+    })
+    this.stage.on('mouseup.objects touchend.objects', (e) => {
+      if (marquee) {
+        const box = marquee.getClientRect()
+        const hits = [...this.nodes]
+          .filter(([, g]) => g.visible() && Konva.Util.haveIntersection(box, g.getClientRect()))
+          .map(([uid]) => uid)
+        marquee.destroy()
+        marquee = null
+        justSelected = true
+        this.events.onSelectMany(hits, !!(e.evt as MouseEvent).shiftKey)
+      }
+      start = null
+    })
     this.stage.on('click.objects tap.objects', (e) => {
-      if (this.state?.interactive && (e.target === this.stage || e.target.name() === 'paper-bg')) this.events.onSelect(null)
+      if (justSelected) {
+        justSelected = false
+        return
+      }
+      if (this.state?.interactive && this.isEmpty(e.target)) this.events.onSelect(null, false)
     })
   }
 
@@ -98,13 +161,19 @@ export class ObjectLayer {
 
   private createNode(o: DesignObject): Konva.Group {
     const g = new Konva.Group({ name: 'object' })
-    g.on('mousedown touchstart', () => this.state?.interactive && this.events.onSelect(o.uid))
+    g.on('mousedown touchstart', (e) => {
+      if (!this.state?.interactive) return
+      const shift = !!(e.evt as MouseEvent).shiftKey
+      // 已在多選中的物件：直接拖曳整組，不改變選取
+      if (!shift && this.state.selected.includes(o.uid)) return
+      this.events.onSelect(o.uid, shift)
+    })
     g.on('dblclick dbltap', () => this.state?.interactive && this.events.onEdit(o.uid))
     g.on('mouseenter', () => this.state?.interactive && (this.stage.container().style.cursor = 'move'))
     g.on('mouseleave', () => (this.stage.container().style.cursor = ''))
     g.on('dragmove', () => {
-      // 物件的外框（含旋轉）任一邊或中線靠近吸附線就對齊
-      if (!this.state) return
+      // 物件的外框（含旋轉）任一邊或中線靠近吸附線就對齊（多選拖曳時不吸附，避免整組錯位）
+      if (!this.state || this.state.selected.length > 1) return
       const r = g.getClientRect({ relativeTo: this.paper, skipStroke: true })
       const dx = snapOffset([r.x, r.x + r.width / 2, r.x + r.width], this.state.snap.xs, this.limit)
       const dy = snapOffset([r.y, r.y + r.height / 2, r.y + r.height], this.state.snap.ys, this.limit)
@@ -121,7 +190,17 @@ export class ObjectLayer {
       anchor = null
       this.events.onChange(o.uid, box)
     }
-    g.on('dragend', commit)
+    g.on('dragend', () => {
+      // 多選時拖曳一個會帶著整組移動，所以整組都要回報新位置
+      const s = this.state
+      if (s && s.selected.length > 1 && s.selected.includes(o.uid)) {
+        for (const id of s.selected) {
+          const node = this.nodes.get(id)
+          const cur = s.objects.find((x) => x.uid === id)
+          if (node && cur) this.events.onChange(id, this.boxOf(node, cur))
+        }
+      } else commit()
+    })
     g.on('transformend', commit)
     this.body.add(g)
     this.nodes.set(o.uid, g)
@@ -193,10 +272,14 @@ export class ObjectLayer {
       g.moveToTop()
     }
 
-    const sel = state.interactive && state.selected ? this.nodes.get(state.selected) : undefined
-    const selObj = state.objects.find((o) => o.uid === state.selected)
-    this.transformer.keepRatio(!!(selObj && objectTypeOf(selObj.type)?.meta.keepRatio))
-    this.transformer.nodes(sel && sel.visible() ? [sel] : [])
+    const selNodes = state.interactive
+      ? state.selected.map((id) => this.nodes.get(id)).filter((g): g is Konva.Group => !!g && g.visible())
+      : []
+    const selObjs = state.objects.filter((o) => state.selected.includes(o.uid))
+    // 多選時一律等比例縮放；單選時依物件種類設定
+    const keep = selObjs.length > 1 || (selObjs.length === 1 && !!objectTypeOf(selObjs[0].type)?.meta.keepRatio)
+    this.transformer.keepRatio(keep)
+    this.transformer.nodes(selNodes)
     this.transformer.moveToTop()
   }
 

@@ -11,5 +11,5 @@ export const STEPS: StepDef[] = [
   { id: 'guides', label: '視覺引導', ready: true },
   { id: 'blocks', label: '區塊分佈', ready: true },
   { id: 'objects', label: '插入物件', ready: true },
-  { id: 'refine', label: '微調與匯出', ready: false },
+  { id: 'refine', label: '微調與匯出', ready: true },
 ]

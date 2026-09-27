@@ -10,6 +10,15 @@
     visible: boolean
     anchorsVisible: boolean
   }
+
+  export interface RenderOptions {
+    /** 輸出影像的寬度（像素，不含出血） */
+    pixelWidth: number
+    /** 出血（畫布單位）：背景向外延伸，物件超出畫布的部分也會保留 */
+    bleed?: number
+    mime?: 'image/png' | 'image/jpeg'
+    quality?: number
+  }
 </script>
 
 <script lang="ts">
@@ -41,7 +50,7 @@
     snapLines?: SnapLines
     blockEvents: BlockLayerEvents
     objects?: DesignObject[]
-    selectedObject?: string | null
+    selectedObjects?: string[]
     objectsInteractive?: boolean
     objectsVisible?: boolean
     background?: Background
@@ -65,7 +74,7 @@
     snapLines = { xs: [], ys: [] },
     blockEvents,
     objects = [],
-    selectedObject = null,
+    selectedObjects = [],
     objectsInteractive = false,
     objectsVisible = true,
     background = DEFAULT_BACKGROUND,
@@ -119,7 +128,8 @@
       stage,
       paper,
       {
-        onSelect: (id) => objectEvents.onSelect(id),
+        onSelect: (id, additive) => objectEvents.onSelect(id, additive),
+        onSelectMany: (ids, additive) => objectEvents.onSelectMany(ids, additive),
         onChange: (id, b) => objectEvents.onChange(id, b),
         onEdit: (id) => objectEvents.onEdit(id),
       },
@@ -243,7 +253,7 @@
     void imageTick
     objectLayer.update({
       objects,
-      selected: selectedObject,
+      selected: selectedObjects,
       interactive: objectsInteractive,
       visible: objectsVisible,
       snap: snapLines,
@@ -279,32 +289,42 @@
   })
 
   /**
-   * 以指定像素尺寸匯出畫布區域為 PNG data URL。
+   * 把作品輸出成影像 data URL。
    * 只輸出作品本身（背景與物件）；引導線、錨點、區塊、控制點、選取框都不輸出。
    */
-  export function toPng(pixelWidth: number): string {
-    paperBg.shadowEnabled(false)
-    handleGroup.visible(false)
-    const contentVisible = content.visible()
-    const blocksVisible = blockLayer.group.visible()
-    content.visible(false)
-    blockLayer.group.visible(false)
+  export function renderImage({ pixelWidth, bleed = 0, mime = 'image/png', quality }: RenderOptions): string {
+    const s = view.s
+    const b = Math.max(0, bleed)
+    const hidden = [content, blockLayer.group, handleGroup].map((n) => [n, n.visible()] as const)
+    for (const [n] of hidden) n.visible(false)
     const restoreObjects = objectLayer.hideChrome()
-    const restore = () => {
-      restoreObjects()
-      content.visible(contentVisible)
-      blockLayer.group.visible(blocksVisible)
+    paperBg.shadowEnabled(false)
+
+    // 出血：背景色與背景圖延伸到出血範圍
+    const full = { x: -b, y: -b, width: canvas.w + 2 * b, height: canvas.h + 2 * b }
+    paperBg.setAttrs(full)
+    bgGroup.clip(full)
+    if (bgImage && background.assetId) {
+      const r = fitImage(bgImage.naturalWidth, bgImage.naturalHeight, full.width, full.height, background.fit)
+      bgImageNode.position({ x: r.x - b, y: r.y - b }).size({ width: r.w, height: r.h })
     }
+
     const url = stage.toDataURL({
-      x: view.x,
-      y: view.y,
-      width: canvas.w * view.s,
-      height: canvas.h * view.s,
-      pixelRatio: pixelWidth / (canvas.w * view.s),
+      x: view.x - b * s,
+      y: view.y - b * s,
+      width: full.width * s,
+      height: full.height * s,
+      pixelRatio: pixelWidth / (canvas.w * s),
+      mimeType: mime,
+      quality,
     })
-    restore()
-    handleGroup.visible(true)
+
+    // 還原
+    paperBg.setAttrs({ x: 0, y: 0, width: canvas.w, height: canvas.h })
     paperBg.shadowEnabled(true)
+    restoreObjects()
+    for (const [n, v] of hidden) n.visible(v)
+    imageTick++ // 讓 $effect 重新套用背景圖位置
     return url
   }
 </script>

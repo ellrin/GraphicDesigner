@@ -1,28 +1,26 @@
 <script lang="ts">
-  import { CANVAS_MAX, CANVAS_PRESETS, type CanvasSpec } from '../core/canvas'
+  import { CANVAS_MAX, CANVAS_PRESETS } from '../core/canvas'
+  import { project, resizeCanvas } from '../core/store.svelte'
 
-  let { canvas = $bindable() }: { canvas: CanvasSpec } = $props()
-
+  // 尺寸變更一律經過 resizeCanvas，讓已放置的物件等比例跟著調整、不被拉伸
+  const canvas = $derived(project.canvas)
   const groups = [...new Set(CANVAS_PRESETS.map((p) => p.group))]
 
   function applyPreset(id: string) {
     const p = CANVAS_PRESETS.find((q) => q.id === id)
     if (!p) {
-      canvas.presetId = null
+      project.canvas.presetId = null
       return
     }
-    canvas.presetId = p.id
-    canvas.unit = p.unit
-    canvas.w = p.w
-    canvas.h = p.h
+    resizeCanvas(p.w, p.h, { presetId: p.id, unit: p.unit })
   }
 
   function swap() {
-    ;[canvas.w, canvas.h] = [canvas.h, canvas.w]
+    resizeCanvas(canvas.h, canvas.w)
   }
 
   function manual() {
-    canvas.presetId = null
+    project.canvas.presetId = null
   }
 
   const MAX = CANVAS_MAX
@@ -33,11 +31,8 @@
    */
   function commit(axis: 'w' | 'h', input: HTMLInputElement) {
     const v = Number(input.value)
-    if (input.value.trim() !== '' && Number.isFinite(v) && v >= 1 && v <= MAX) {
-      if (v !== canvas[axis]) {
-        canvas[axis] = v
-        manual()
-      }
+    if (input.value.trim() !== '' && Number.isFinite(v) && v >= 1 && v <= MAX && v !== canvas[axis]) {
+      resizeCanvas(axis === 'w' ? v : canvas.w, axis === 'h' ? v : canvas.h, { presetId: null })
     }
     input.value = String(canvas[axis])
   }
@@ -59,7 +54,7 @@
     <input type="number" min="1" max={MAX} value={canvas.w} onchange={(e) => commit('w', e.currentTarget)} aria-label="寬" />
     <span>×</span>
     <input type="number" min="1" max={MAX} value={canvas.h} onchange={(e) => commit('h', e.currentTarget)} aria-label="高" />
-    <select bind:value={canvas.unit} onchange={manual} aria-label="單位">
+    <select bind:value={project.canvas.unit} onchange={manual} aria-label="單位">
       <option value="mm">mm</option>
       <option value="px">px</option>
     </select>

@@ -2,7 +2,8 @@
   import { onMount } from 'svelte'
   import { STEPS } from './config/steps'
   import theme from './config/theme.json'
-  import { exportPixelSize } from './core/canvas'
+  import exportConfig from './config/export.json'
+  import { exportPng, type Renderer } from './core/exporter'
   import { computeTemplate, handlesOf, pointParamFromCanvas, type Handle } from './core/compute'
   import type { Pt, Rect } from './core/geometry'
   import { collectSuggestions, roleOf, snapLinesFrom, toCanvasRect, toRelativeRect, type Suggestion } from './core/blocks'
@@ -15,6 +16,8 @@
     duplicateBlock,
     duplicateObject,
     flow,
+    selectObject,
+    updateObjects,
     project,
     removeBlock,
     removeObject,
@@ -25,7 +28,9 @@
   import { loadStoredAssets } from './core/assets'
   import { FONT_GROUPS, loadFont } from './core/fonts'
   import BlocksPanel from './layers/3-blocks/Panel.svelte'
-  import ObjectsPanel, { type AnchorOption } from './layers/4-objects/Panel.svelte'
+  import RefinePanel from './layers/5-refine/Panel.svelte'
+  import ObjectsPanel from './layers/4-objects/Panel.svelte'
+  import type { AnchorOption } from './core/objects'
   import type { ObjectBox } from './renderer/objectLayer'
   import ViewToolbar from './ui/ViewToolbar.svelte'
   import CompositionPanel from './layers/1-composition/Panel.svelte'
@@ -179,7 +184,10 @@
   let focusText = $state(0)
 
   const objectEvents = {
-    onSelect: (id: string | null) => (ui.selectedObject = id),
+    onSelect: (id: string | null, additive: boolean) => selectObject(id, additive),
+    onSelectMany: (ids: string[], additive: boolean) => {
+      ui.selectedObjects = additive ? [...new Set([...ui.selectedObjects, ...ids])] : ids
+    },
     onChange: (id: string, b: ObjectBox) => {
       const c = project.canvas
       updateObject(id, { x: b.x / c.w, y: b.y / c.h, w: b.w / c.w, h: b.h / c.h, rotation: Math.round(b.rotation * 10) / 10 })
@@ -187,7 +195,7 @@
       if (o && b.fontScale && b.fontScale !== 1) o.props.fontSize = (o.props.fontSize as number) * b.fontScale
     },
     onEdit: (id: string) => {
-      ui.selectedObject = id
+      ui.selectedObjects = [id]
       if (project.objects.items.find((o) => o.uid === id)?.type === 'text') focusText++
     },
   }
@@ -214,12 +222,22 @@
     editing.g.params[key] = pointParamFromCanvas(editing.t, key, p, project.canvas, editing.g.orientation)
   }
 
-  function exportPng() {
-    const { w } = exportPixelSize(project.canvas)
-    const a = document.createElement('a')
-    a.href = view.toPng(w)
-    a.download = `design-${project.composition.templateId}.png`
-    a.click()
+  /** 第四、五步都可以編輯物件 */
+  const editingObjects = $derived(step.id === 'objects' || step.id === 'refine')
+
+  const render: Renderer = (o) => view.renderImage(o)
+  const exportName = () => `design-${new Date().toISOString().slice(0, 10)}`
+
+  function quickExportPng() {
+    exportPng(render, project.canvas, { dpi: exportConfig.printDpi, scale: 1 }, exportName())
+  }
+
+  /** 方向鍵微調：每次 1 單位（按住 Shift 為 10 單位），回傳 0–1 相對位移 */
+  function nudge(key: string, shift: boolean): [number, number] {
+    const d = shift ? 10 : 1
+    const dx = key === 'arrowleft' ? -d : key === 'arrowright' ? d : 0
+    const dy = key === 'arrowup' ? -d : key === 'arrowdown' ? d : 0
+    return [dx / project.canvas.w, dy / project.canvas.h]
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -243,43 +261,43 @@
       const v = project.visibility
       const show = !(v.composition || v.guides || v.anchors)
       v.composition = v.guides = v.anchors = show
-    } else {
-      // 區塊與物件共用的快捷鍵：刪除、複製、方向鍵微調、取消選取
-      const target =
-        step.id === 'blocks' && ui.selectedBlock
-          ? {
-              item: project.blocks.items.find((x) => x.uid === ui.selectedBlock),
-              remove: removeBlock,
-              duplicate: duplicateBlock,
-              update: updateBlock,
-              deselect: () => (ui.selectedBlock = null),
-            }
-          : step.id === 'objects' && ui.selectedObject
-            ? {
-                item: project.objects.items.find((x) => x.uid === ui.selectedObject),
-                remove: removeObject,
-                duplicate: duplicateObject,
-                update: updateObject,
-                deselect: () => (ui.selectedObject = null),
-              }
-            : null
-      const item = target?.item
-      if (!target || !item) return
+    } else if (editingObjects && mod && key === 'a') {
+      e.preventDefault()
+      ui.selectedObjects = project.objects.items.filter((o) => o.visible).map((o) => o.uid)
+    } else if (editingObjects && ui.selectedObjects.length) {
+      // 物件（可多選）：刪除、複製、方向鍵微調、取消選取
+      const ids = ui.selectedObjects
       if (key === 'delete' || key === 'backspace') {
         e.preventDefault()
-        target.remove(item.uid)
+        removeObject(ids)
       } else if (mod && key === 'd') {
         e.preventDefault()
-        target.duplicate(item.uid)
+        duplicateObject(ids)
       } else if (key.startsWith('arrow')) {
-        // 方向鍵微調：每次 1 單位，按住 Shift 為 10 單位
         e.preventDefault()
-        const d = e.shiftKey ? 10 : 1
-        const dx = key === 'arrowleft' ? -d : key === 'arrowright' ? d : 0
-        const dy = key === 'arrowup' ? -d : key === 'arrowdown' ? d : 0
-        target.update(item.uid, { x: item.x + dx / project.canvas.w, y: item.y + dy / project.canvas.h })
+        const [dx, dy] = nudge(key, e.shiftKey)
+        const patches = new Map(
+          project.objects.items.filter((o) => ids.includes(o.uid)).map((o) => [o.uid, { x: o.x + dx, y: o.y + dy }]),
+        )
+        updateObjects(patches)
       } else if (key === 'escape') {
-        target.deselect()
+        ui.selectedObjects = []
+      }
+    } else if (step.id === 'blocks' && ui.selectedBlock) {
+      const b = project.blocks.items.find((x) => x.uid === ui.selectedBlock)
+      if (!b) return
+      if (key === 'delete' || key === 'backspace') {
+        e.preventDefault()
+        removeBlock(b.uid)
+      } else if (mod && key === 'd') {
+        e.preventDefault()
+        duplicateBlock(b.uid)
+      } else if (key.startsWith('arrow')) {
+        e.preventDefault()
+        const [dx, dy] = nudge(key, e.shiftKey)
+        updateBlock(b.uid, { x: b.x + dx, y: b.y + dy })
+      } else if (key === 'escape') {
+        ui.selectedBlock = null
       }
     }
   }
@@ -302,7 +320,7 @@
     <Stepper />
     <div class="right">
       <ProjectMenu />
-      <button class="primary" onclick={exportPng}>匯出 PNG</button>
+      <button class="primary" onclick={quickExportPng}>匯出 PNG</button>
     </div>
   </header>
 
@@ -311,7 +329,7 @@
 
     <section>
       <h3>畫布</h3>
-      <CanvasSettings bind:canvas={project.canvas} />
+      <CanvasSettings />
     </section>
 
     {#if step.id === 'composition'}
@@ -322,11 +340,8 @@
       <BlocksPanel {suggestions} onadopt={adopt} />
     {:else if step.id === 'objects'}
       <ObjectsPanel anchors={anchorOptions} {focusText} />
-    {:else}
-      <section>
-        <h3>{step.label}</h3>
-        <p class="muted">這一步還在開發中（見 PLAN.md 的里程碑）。</p>
-      </section>
+    {:else if step.id === 'refine'}
+      <RefinePanel anchors={anchorOptions} {render} />
     {/if}
 
     <section>
@@ -355,11 +370,11 @@
       blocksInteractive={step.id === 'blocks'}
       blocksVisible={project.visibility.blocks}
       {ghosts}
-      snapLines={step.id === 'objects' ? objectSnapLines : snapLines}
+      snapLines={editingObjects ? objectSnapLines : snapLines}
       {blockEvents}
       objects={project.objects.items}
-      selectedObject={ui.selectedObject}
-      objectsInteractive={step.id === 'objects'}
+      selectedObjects={ui.selectedObjects}
+      objectsInteractive={editingObjects}
       objectsVisible={project.visibility.objects}
       background={project.background}
       fontVersion={fontVersion + imageStoreTick}
@@ -414,10 +429,6 @@
   .next {
     width: 100%;
     margin-top: 16px;
-  }
-  .muted {
-    color: var(--muted);
-    font-size: 13px;
   }
   @media (max-width: 720px) {
     .app {

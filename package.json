@@ -11,6 +11,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
+    "jspdf": "^4.2.1",
     "konva": "^10.7.0"
   },
   "devDependencies": {

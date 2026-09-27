@@ -136,8 +136,17 @@ export const ui = $state({
   selectedBlock: null as string | null,
   /** 滑鼠指到的建議區塊（在畫布上預覽） */
   hoverSuggestion: null as number | null,
-  selectedObject: null as string | null,
+  /** 選取中的物件（可多選）；最後一個為主要選取 */
+  selectedObjects: [] as string[],
 })
+
+/** 點選物件：additive（按住 Shift）時切換加入／移除，否則只選這一個；null = 取消全部。 */
+export function selectObject(id: string | null, additive = false) {
+  if (id === null) ui.selectedObjects = []
+  else if (!additive) ui.selectedObjects = [id]
+  else if (ui.selectedObjects.includes(id)) ui.selectedObjects = ui.selectedObjects.filter((x) => x !== id)
+  else ui.selectedObjects = [...ui.selectedObjects, id]
+}
 
 const uid = () => Math.random().toString(36).slice(2, 10)
 
@@ -268,7 +277,7 @@ export const addObject = discrete((type: string, placement: Placement = {}, prop
     props: { ...objectDefaultProps(type), ...props },
   }
   project.objects.items.push(o)
-  ui.selectedObject = o.uid
+  ui.selectedObjects = [o.uid]
   return o.uid
 })
 
@@ -277,17 +286,29 @@ export function updateObject(id: string, patch: Partial<DesignObject>) {
   if (o) Object.assign(o, patch)
 }
 
-export const removeObject = discrete((id: string) => {
-  project.objects.items = project.objects.items.filter((o) => o.uid !== id)
-  if (ui.selectedObject === id) ui.selectedObject = null
+/** 一次更新多個物件（對齊、分佈），合併成同一步復原。 */
+export const updateObjects = discrete((patches: Map<string, Partial<DesignObject>>) => {
+  for (const [id, patch] of patches) updateObject(id, patch)
 })
 
-export const duplicateObject = discrete((id: string) => {
-  const o = project.objects.items.find((x) => x.uid === id)
-  if (!o) return
-  const copy = { ...clone(o), uid: uid(), name: `${o.name} 副本`, x: o.x + 0.02, y: o.y + 0.02 }
-  project.objects.items.push(copy)
-  ui.selectedObject = copy.uid
+const idList = (ids: string | string[]) => (Array.isArray(ids) ? ids : [ids])
+
+export const removeObject = discrete((ids: string | string[]) => {
+  const set = new Set(idList(ids))
+  project.objects.items = project.objects.items.filter((o) => !set.has(o.uid))
+  ui.selectedObjects = ui.selectedObjects.filter((x) => !set.has(x))
+})
+
+export const duplicateObject = discrete((ids: string | string[]) => {
+  const copies: string[] = []
+  for (const id of idList(ids)) {
+    const o = project.objects.items.find((x) => x.uid === id)
+    if (!o) continue
+    const copy = { ...clone(o), uid: uid(), name: `${o.name} 副本`, x: o.x + 0.02, y: o.y + 0.02 }
+    project.objects.items.push(copy)
+    copies.push(copy.uid)
+  }
+  if (copies.length) ui.selectedObjects = copies
 })
 
 /** 疊放順序：+1 上移、-1 下移、'top' 移到最上、'bottom' 移到最下。 */
@@ -304,6 +325,30 @@ export const moveObject = discrete((id: string, dir: 1 | -1 | 'top' | 'bottom') 
   const j = i + dir
   if (j < 0 || j >= items.length) return
   ;[items[i], items[j]] = [items[j], items[i]]
+})
+
+// ── 畫布尺寸 ────────────────────────────────────────────
+
+/**
+ * 改變畫布尺寸。物件以 0–1 相對座標儲存，直接改尺寸會被拉伸變形，所以這裡同時調整物件：
+ * 物件中心維持在畫面上的相對位置，大小依「長寬中較小的縮放比」等比例縮放，字級與框線一起縮放。
+ * 區塊是版面分割，照畫布比例延伸即可，不調整。
+ */
+export const resizeCanvas = discrete((w: number, h: number, patch: Partial<CanvasSpec> = {}) => {
+  const old = project.canvas
+  const f = Math.min(w / old.w, h / old.h)
+  const oldShort = Math.min(old.w, old.h)
+  const newShort = Math.min(w, h)
+  for (const o of project.objects.items) {
+    const cx = o.x + o.w / 2
+    const cy = o.y + o.h / 2
+    const nw = (o.w * old.w * f) / w
+    const nh = (o.h * old.h * f) / h
+    Object.assign(o, { x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh })
+    o.strokeWidth = (o.strokeWidth * oldShort * f) / newShort
+    if (typeof o.props.fontSize === 'number') o.props.fontSize = (o.props.fontSize * old.h * f) / h
+  }
+  project.canvas = { ...old, ...patch, w, h }
 })
 
 // ── 線性流程 ────────────────────────────────────────────
