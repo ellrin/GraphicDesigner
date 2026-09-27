@@ -51,7 +51,7 @@ export function newProject(): ProjectData {
     guides: { items: [] },
     blocks: { items: [] },
     objects: { items: [] },
-    background: { ...DEFAULT_BACKGROUND },
+    background: structuredClone(DEFAULT_BACKGROUND),
     visibility: {
       composition: true,
       anchors: true,
@@ -112,7 +112,7 @@ export function replaceProject(data: ProjectData) {
       .filter((o) => objectTypeOf(o.type))
       .map((o) => ({ ...o, props: { ...objectDefaultProps(o.type), ...o.props } })),
   }
-  project.background = { ...DEFAULT_BACKGROUND, ...data.background }
+  project.background = { ...structuredClone(DEFAULT_BACKGROUND), ...data.background }
   project.visibility = { ...base.visibility, ...data.visibility }
 }
 
@@ -129,6 +129,10 @@ export const ui = $state({
   hoverSuggestion: null as number | null,
   /** 選取中的物件（可多選）；最後一個為主要選取 */
   selectedObjects: [] as string[],
+  /** 顯示背景照片的主體標記 ⊕（可拖曳對齊錨點） */
+  editBackground: false,
+  /** 等待使用者在照片上點一下標記主體：'bg' 或圖片物件 uid */
+  pickSubject: null as string | null,
 })
 
 /** 點選物件：additive（按住 Shift）時切換加入／移除，否則只選這一個；null = 取消全部。 */

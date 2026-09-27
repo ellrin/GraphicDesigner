@@ -40,7 +40,9 @@
     updateBlock,
     updateObject,
   } from './core/store.svelte'
-  import { loadStoredAssets } from './core/assets'
+  import { getImage, loadStoredAssets } from './core/assets'
+  import { canvasBox, markSubject, objectBox, subjectOnCanvas, targetFromCanvas, type ImageSize } from './core/framing'
+  import type { ImageFit, ImageFraming } from './core/objects'
   import { FONT_GROUPS, loadFont } from './core/fonts'
   import BlocksPanel from './layers/3-blocks/Panel.svelte'
   import RefinePanel from './layers/5-refine/Panel.svelte'
@@ -272,7 +274,38 @@
     return hit && hit.inst.visible ? hit : null
   })
 
-  const handles = $derived.by((): Handle[] => (editing ? instanceHandles(editing.t, editing.inst, editing.frame) : []))
+  // ── 圖片主體標記 ⊕（第四、五步）──────────────────────
+  /** 用到的圖片原始尺寸（主體標記的位置需要） */
+  let imageSizes = $state<Record<string, ImageSize>>({})
+  $effect(() => {
+    const ids = [project.background.assetId, ...project.objects.items.map((o) => o.props.assetId as string | undefined)]
+    void imageStoreTick
+    for (const id of ids) {
+      if (!id || imageSizes[id]) continue
+      getImage(id)?.then((img) => (imageSizes[id] = { w: img.naturalWidth, h: img.naturalHeight })).catch(() => {})
+    }
+  })
+
+  /** 目前可調整主體的照片：單選的圖片物件，或開啟「調整背景主體」時的背景 */
+  const framingTarget = $derived.by(() => {
+    if (!(step.id === 'objects' || step.id === 'refine')) return null
+    const c = project.canvas
+    if (ui.editBackground && project.background.assetId) {
+      const size = imageSizes[project.background.assetId]
+      return size ? { key: 'bg', box: canvasBox(c), size, fit: project.background.fit, framing: project.background } : null
+    }
+    const o = ui.selectedObjects.length === 1 ? project.objects.items.find((x) => x.uid === ui.selectedObjects[0]) : undefined
+    const size = o?.type === 'image' ? imageSizes[o.props.assetId as string] : undefined
+    if (!o || !size) return null
+    return { key: `img:${o.uid}`, box: objectBox(o, c), size, fit: o.props.fit as ImageFit, framing: o.props as unknown as ImageFraming, obj: o }
+  })
+
+  const handles = $derived.by((): Handle[] => {
+    if (editing) return instanceHandles(editing.t, editing.inst, editing.frame)
+    const f = framingTarget
+    if (!f || f.fit === 'stretch') return []
+    return [{ key: f.key, label: '主體', pos: subjectOnCanvas(f.size, f.box, f.fit, f.framing) }]
+  })
 
   const snapTargets = $derived.by((): Pt[] => [
     ...activeOutputs.filter((o) => o.inst !== editing?.inst).flatMap((o) => o.output.anchors),
@@ -280,8 +313,36 @@
   ])
 
   function onHandleMove(key: string, p: Pt) {
-    if (!editing) return
-    editing.inst.params[key] = instancePointFromCanvas(editing.t, editing.inst, key, p, editing.frame)
+    if (editing) {
+      editing.inst.params[key] = instancePointFromCanvas(editing.t, editing.inst, key, p, editing.frame)
+      return
+    }
+    // 拖曳主體標記：照片跟著移動，讓主體落在標記位置（會吸附到錨點）
+    const f = framingTarget
+    if (!f || f.key !== key) return
+    const target = targetFromCanvas(f.box, p)
+    if (f.obj) f.obj.props.target = target
+    else project.background.target = target
+  }
+
+  /** 「點照片標記主體」模式：點一下的位置就是主體，照片不動 */
+  function onPick(p: Pt) {
+    const id = ui.pickSubject
+    ui.pickSubject = null
+    const c = project.canvas
+    if (id === 'bg') {
+      const size = project.background.assetId ? imageSizes[project.background.assetId] : undefined
+      if (!size) return
+      Object.assign(project.background, markSubject(size, canvasBox(c), project.background.fit, project.background, p))
+      ui.editBackground = true
+      return
+    }
+    const o = project.objects.items.find((x) => x.uid === id)
+    const size = o?.type === 'image' ? imageSizes[o.props.assetId as string] : undefined
+    if (!o || !size) return
+    const m = markSubject(size, objectBox(o, c), o.props.fit as ImageFit, o.props as unknown as ImageFraming, p)
+    o.props.focus = m.focus
+    o.props.target = m.target
   }
 
   /** 第四、五步都可以編輯物件 */
@@ -448,11 +509,13 @@
       {blockEvents}
       objects={project.objects.items}
       selectedObjects={ui.selectedObjects}
-      objectsInteractive={editingObjects}
+      objectsInteractive={editingObjects && !ui.pickSubject}
       objectsVisible={project.visibility.objects}
       background={project.background}
       fontVersion={fontVersion + imageStoreTick}
       {objectEvents}
+      picking={!!ui.pickSubject}
+      onpick={onPick}
       guidesOnTop={project.visibility.guidesOnTop}
       guideOpacity={project.visibility.guideOpacity}
       uiThemeId={uiTheme.id}

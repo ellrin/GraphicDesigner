@@ -64,6 +64,9 @@
     guideOpacity?: number
     /** 介面主題 id；改變時重繪以套用選取框顏色 */
     uiThemeId?: string
+    /** 「點一下選位置」模式（例如標記照片主體） */
+    picking?: boolean
+    onpick?: (p: Pt) => void
   }
   let {
     canvas,
@@ -90,6 +93,8 @@
     guidesOnTop = true,
     guideOpacity = 1,
     uiThemeId = '',
+    picking = false,
+    onpick,
   }: Props = $props()
 
   /** 圖片載入完成時遞增，觸發重繪 */
@@ -149,6 +154,12 @@
     layer.add(paper)
     stage.add(layer)
 
+    stage.on('click.pick tap.pick', () => {
+      if (!picking) return
+      const p = paper.getRelativePointerPosition()
+      if (p) onpick?.(p)
+    })
+
     const ro = new ResizeObserver(() => {
       size = { w: host.clientWidth, h: host.clientHeight }
     })
@@ -199,7 +210,13 @@
           node!.fill(r.snapped ? HS.snapColor : HS.color)
           onhandlemove?.(h.key, r.p)
         })
-        node.on('dragend', () => node!.fill(HS.color))
+        node.on('dragend', () => {
+          node!.fill(HS.color)
+          // 放開後回到實際位置（例如照片已移到邊界、主體到不了拖曳的位置）
+          const cur = handles.find((x) => x.key === h.key)
+          if (cur) node!.position(cur.pos)
+          stage.batchDraw()
+        })
         handleGroup.add(node)
         handleNodes.set(h.key, node)
       }
@@ -253,7 +270,7 @@
     bgGroup.clip({ x: 0, y: 0, width: canvas.w, height: canvas.h })
     bgGroup.opacity(background.opacity)
     if (bgImage && background.assetId) {
-      const r = fitImage(bgImage.naturalWidth, bgImage.naturalHeight, canvas.w, canvas.h, background.fit)
+      const r = fitImage(bgImage.naturalWidth, bgImage.naturalHeight, canvas.w, canvas.h, background.fit, background)
       bgImageNode.setAttrs({ image: bgImage, x: r.x, y: r.y, width: r.w, height: r.h, visible: true })
     } else {
       bgImageNode.visible(false)
@@ -261,6 +278,7 @@
 
     void imageTick
     void uiThemeId
+    stage.container().style.cursor = picking ? 'crosshair' : ''
     objectLayer.update({
       objects,
       masks: new Map(blocks.map((b) => [b.uid, { shape: b.shape, rect: b.rect, points: b.points }])),
@@ -318,7 +336,7 @@
     paperBg.setAttrs(full)
     bgGroup.clip(full)
     if (bgImage && background.assetId) {
-      const r = fitImage(bgImage.naturalWidth, bgImage.naturalHeight, full.width, full.height, background.fit)
+      const r = fitImage(bgImage.naturalWidth, bgImage.naturalHeight, full.width, full.height, background.fit, background)
       bgImageNode.position({ x: r.x - b, y: r.y - b }).size({ width: r.w, height: r.h })
     }
 

@@ -9,6 +9,7 @@
   import FontSelect from '../../ui/FontSelect.svelte'
   import ParamPanel from '../../ui/ParamPanel.svelte'
   import { objectTypeOf } from './types'
+  import { objectBox, targetFromCanvas } from '../../core/framing'
   import { BLOCK_SHAPES } from '../../core/blocks'
 
   interface Props {
@@ -72,6 +73,14 @@
       rotation: 0,
       ...(selected.type === 'image' ? { mask: b.uid } : {}),
     })
+  }
+
+  /** 讓照片主體落在錨點上（照片在框內平移） */
+  function alignSubject(i: number) {
+    const a = anchors[i]
+    if (!selected || !a) return
+    const c = project.canvas
+    selected.props.target = targetFromCanvas(objectBox(selected, c), { x: a.x * c.w, y: a.y * c.h })
   }
 
   function moveToAnchor(i: number) {
@@ -140,6 +149,25 @@
     {/if}
 
     {#if selected.type === 'image'}
+      <div class="framing">
+        <p class="hint">畫布上的 ⊕ 是照片的主體：拖曳 ⊕ 會移動照片，靠近錨點會吸附，讓主體對準構圖。照片移到邊緣就無法再移動，這時先調大「放大」。</p>
+        <div class="tools">
+          <button class:on={ui.pickSubject === selected.uid} onclick={() => (ui.pickSubject = ui.pickSubject === selected.uid ? null : selected.uid)}>
+            {ui.pickSubject === selected.uid ? '請在照片上點主體…（再按一次取消）' : '⊕ 點照片標記主體'}
+          </button>
+        </div>
+        {#if anchors.length}
+          <label class="row">
+            <span>把主體對準錨點</span>
+            <select value="" onchange={(e) => { alignSubject(Number(e.currentTarget.value)); e.currentTarget.value = '' }}>
+              <option value="" disabled>選擇錨點…</option>
+              {#each anchors as a, i (i)}
+                <option value={i}>{a.label}</option>
+              {/each}
+            </select>
+          </label>
+        {/if}
+      </div>
       <button onclick={() => replaceInput?.click()}>更換圖片…</button>
       <input
         bind:this={replaceInput}
@@ -323,5 +351,21 @@
     color: var(--accent);
     cursor: pointer;
     margin: 4px 0;
+  }
+  .framing {
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius);
+  }
+  .hint {
+    margin: 0;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .tools button.on {
+    border-color: var(--accent);
+    color: var(--accent);
   }
 </style>

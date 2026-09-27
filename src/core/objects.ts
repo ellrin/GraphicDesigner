@@ -39,8 +39,22 @@ export interface AnchorOption {
   y: number
 }
 
+/**
+ * 圖片的構圖控制（圖片物件與背景共用）：
+ * - focus：照片裡「主體」的位置（相對照片 0–1）
+ * - target：主體要放在框內的哪裡（相對框 0–1）；拖曳主體標記到錨點，就是改這個值
+ * - zoom：在填滿的基礎上再放大（1 = 剛好填滿）
+ */
+export interface ImageFraming {
+  zoom: number
+  focus: { x: number; y: number }
+  target: { x: number; y: number }
+}
+
+export const DEFAULT_FRAMING: ImageFraming = { zoom: 1, focus: { x: 0.5, y: 0.5 }, target: { x: 0.5, y: 0.5 } }
+
 /** 畫布背景（第四層「插入背景」） */
-export interface Background {
+export interface Background extends ImageFraming {
   color: string
   /** 背景圖片（assets 中的 id） */
   assetId: string | null
@@ -50,17 +64,48 @@ export interface Background {
 
 export type ImageFit = 'cover' | 'contain' | 'stretch'
 
-export const DEFAULT_BACKGROUND: Background = { color: '#ffffff', assetId: null, fit: 'cover', opacity: 1 }
+export const DEFAULT_BACKGROUND: Background = {
+  color: '#ffffff',
+  assetId: null,
+  fit: 'cover',
+  opacity: 1,
+  ...structuredClone(DEFAULT_FRAMING),
+}
 
 export const objectRect = (o: Rect, c: Frame): Rect => ({ x: o.x * c.w, y: o.y * c.h, w: o.w * c.w, h: o.h * c.h })
 
-/** 圖片在方框內的擺放：回傳圖片應繪製的矩形（相對方框左上角）。cover 時會超出方框，需裁切。 */
-export function fitImage(imgW: number, imgH: number, boxW: number, boxH: number, fit: ImageFit): Rect {
+/**
+ * 圖片在方框內的擺放：回傳圖片應繪製的矩形（相對方框左上角）。cover 時會超出方框，需裁切。
+ * 有 framing 時，讓照片的主體（focus）落在框內的 target 位置；cover 模式會限制在照片仍填滿框的範圍內。
+ */
+export function fitImage(imgW: number, imgH: number, boxW: number, boxH: number, fit: ImageFit, framing?: Partial<ImageFraming>): Rect {
   if (fit === 'stretch' || imgW <= 0 || imgH <= 0) return { x: 0, y: 0, w: boxW, h: boxH }
-  const s = fit === 'cover' ? Math.max(boxW / imgW, boxH / imgH) : Math.min(boxW / imgW, boxH / imgH)
+  const zoom = Math.max(0.1, framing?.zoom ?? 1)
+  const base = fit === 'cover' ? Math.max(boxW / imgW, boxH / imgH) : Math.min(boxW / imgW, boxH / imgH)
+  const s = base * zoom
   const w = imgW * s
   const h = imgH * s
-  return { x: (boxW - w) / 2, y: (boxH - h) / 2, w, h }
+  const focus = framing?.focus ?? { x: 0.5, y: 0.5 }
+  const target = framing?.target ?? { x: 0.5, y: 0.5 }
+  let x = target.x * boxW - focus.x * w
+  let y = target.y * boxH - focus.y * h
+  if (fit === 'cover') {
+    x = Math.min(0, Math.max(boxW - w, x))
+    y = Math.min(0, Math.max(boxH - h, y))
+  }
+  return { x, y, w, h }
+}
+
+/** 框內某一點（相對框 0–1）目前對應到照片上的哪一點（相對照片 0–1） */
+export function imagePointAt(imgW: number, imgH: number, boxW: number, boxH: number, fit: ImageFit, framing: ImageFraming, at: { x: number; y: number }) {
+  const r = fitImage(imgW, imgH, boxW, boxH, fit, framing)
+  return { x: (at.x * boxW - r.x) / r.w, y: (at.y * boxH - r.y) / r.h }
+}
+
+/** 主體標記目前在框內的位置（被 cover 限制時，實際位置可能與 target 不同） */
+export function subjectInBox(imgW: number, imgH: number, boxW: number, boxH: number, fit: ImageFit, framing: ImageFraming) {
+  const r = fitImage(imgW, imgH, boxW, boxH, fit, framing)
+  return { x: (r.x + framing.focus.x * r.w) / boxW, y: (r.y + framing.focus.y * r.h) / boxH }
 }
 
 // ── 字級單位 ──────────────────────────────────────────

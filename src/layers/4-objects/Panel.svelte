@@ -133,6 +133,29 @@
       <span>不透明度 {Math.round(project.background.opacity * 100)}%</span>
       <input type="range" min="0" max="1" step="0.05" bind:value={project.background.opacity} />
     </label>
+    {#if project.background.fit !== 'stretch'}
+      <label class="row">
+        <span>放大 {project.background.zoom.toFixed(2)}×</span>
+        <input type="range" min="1" max="4" step="0.01" bind:value={project.background.zoom} />
+      </label>
+      <div class="bg-subject">
+        <label class="inline"><input type="checkbox" bind:checked={ui.editBackground} /> 在畫布上顯示背景主體 ⊕（拖曳可移動照片、吸附錨點；照片到邊緣時先調大「放大」）</label>
+        <button class:on={ui.pickSubject === 'bg'} onclick={() => (ui.pickSubject = ui.pickSubject === 'bg' ? null : 'bg')}>
+          {ui.pickSubject === 'bg' ? '請在照片上點主體…（再按一次取消）' : '⊕ 點背景照片標記主體'}
+        </button>
+        {#if anchors.length}
+          <label class="row">
+            <span>把背景主體對準錨點</span>
+            <select value="" onchange={(e) => { const a = anchors[Number(e.currentTarget.value)]; if (a) project.background.target = { x: a.x, y: a.y }; ui.editBackground = true; e.currentTarget.value = '' }}>
+              <option value="" disabled>選擇錨點…</option>
+              {#each anchors as a, i (i)}
+                <option value={i}>{a.label}</option>
+              {/each}
+            </select>
+          </label>
+        {/if}
+      </div>
+    {/if}
   {/if}
   <input
     bind:this={bgInput}
@@ -219,5 +242,14 @@
   .error {
     color: var(--danger);
     font-size: 12px;
+  }
+  .bg-subject {
+    display: grid;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .bg-subject button.on {
+    border-color: var(--accent);
+    color: var(--accent);
   }
 </style>
