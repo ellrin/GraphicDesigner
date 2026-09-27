@@ -13,7 +13,7 @@ function read(): Record<string, string | null> {
   }
 }
 
-/** 各組使用者選擇展開的區塊；null = 全部收合，沒有紀錄 = 展開第一個 */
+/** 各組使用者選擇展開的區塊；沒有紀錄或 null = 全部收合 */
 const chosen = $state<Record<string, string | null>>(read())
 /** 各組目前畫面上有哪些區塊（依出現順序） */
 const mounted = $state<Record<string, string[]>>({})
@@ -30,12 +30,20 @@ export function setOpen(group: string, id: string | null) {
   })
 }
 
-/** 這一組目前展開的區塊：記住的那個不在畫面上時，改展開第一個 */
+/** 這一組目前展開的區塊（預設全部收合） */
 export function openIn(group: string): string | null {
-  const ids = mounted[group] ?? []
   const c = chosen[group]
-  if (c === null) return null
-  return c !== undefined && ids.includes(c) ? c : (ids[0] ?? null)
+  return c && (mounted[group] ?? []).includes(c) ? c : null
+}
+
+/** 所有組回到全部收合 */
+export function resetAccordion() {
+  for (const k of Object.keys(chosen)) delete chosen[k]
+  try {
+    localStorage.removeItem(KEY)
+  } catch {
+    // 略過
+  }
 }
 
 export function register(group: string, id: string) {

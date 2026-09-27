@@ -95,6 +95,11 @@ export function createProject(canvas: CanvasSpec, recipe: Recipe | null) {
   resetHistory()
 }
 
+/** 重設：清除所有內容並回到第一步，畫布尺寸保留 */
+export function resetProject() {
+  createProject({ ...project.canvas }, null)
+}
+
 /** 瀏覽器裡是否有上次的自動暫存（沒有 = 第一次使用） */
 export function hasAutosave() {
   try {

@@ -25,6 +25,7 @@
   import ProjectDialog from './ui/ProjectDialog.svelte'
   import RightPanel from './ui/RightPanel.svelte'
   import Accordion from './ui/Accordion.svelte'
+  import ResetButton from './ui/ResetButton.svelte'
   import { uiTheme } from './ui/theme.svelte'
   import {
     addBlock,
@@ -513,6 +514,7 @@
       <button class="project-btn" onclick={() => openProject('new')} title="新專案、開啟與儲存專案檔">
         專案<small>{project.canvas.w} × {project.canvas.h} {project.canvas.unit}</small>
       </button>
+      <ResetButton />
       <ProjectMenu />
     </div>
   </header>
