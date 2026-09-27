@@ -1,0 +1,12 @@
+{
+  "fit": {
+    "type": "select",
+    "label": "填滿方式",
+    "options": [
+      { "value": "cover", "label": "填滿（裁切超出部分）" },
+      { "value": "contain", "label": "完整顯示" },
+      { "value": "stretch", "label": "拉伸" }
+    ],
+    "default": "cover"
+  }
+}

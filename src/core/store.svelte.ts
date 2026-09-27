@@ -2,7 +2,10 @@
 
 import { CANVAS_MAX, CANVAS_PRESETS, type CanvasSpec } from './canvas'
 import { roleOf, type Block } from './blocks'
-import type { Rect } from './geometry'
+import type { Pt, Rect } from './geometry'
+import { DEFAULT_BACKGROUND, type Background, type DesignObject } from './objects'
+import { objectTypeOf } from '../layers/4-objects/types'
+import { TEXT_DEFAULTS } from '../layers/4-objects/types/text/shape'
 import { IDENTITY, type Orientation } from './transform'
 import type { ParamValues } from './params'
 import type { Template } from './registry'
@@ -29,11 +32,15 @@ export interface ProjectData {
   }
   guides: { items: GuideItem[] }
   blocks: { items: Block[] }
+  /** 陣列順序 = 疊放順序（後面的在上層） */
+  objects: { items: DesignObject[] }
+  background: Background
   visibility: {
     composition: boolean
     anchors: boolean
     guides: boolean
     blocks: boolean
+    objects: boolean
     /** 第三層：在畫布上同時預覽所有建議區塊（關閉時只預覽滑鼠指到的那一個） */
     suggestions: boolean
   }
@@ -52,7 +59,9 @@ export function newProject(): ProjectData {
     },
     guides: { items: [] },
     blocks: { items: [] },
-    visibility: { composition: true, anchors: true, guides: true, blocks: true, suggestions: false },
+    objects: { items: [] },
+    background: { ...DEFAULT_BACKGROUND },
+    visibility: { composition: true, anchors: true, guides: true, blocks: true, objects: true, suggestions: false },
   }
 }
 
@@ -97,6 +106,12 @@ export function replaceProject(data: ProjectData) {
   project.blocks = {
     items: (data.blocks?.items ?? []).map((b) => ({ ...defaultBlock(), ...b, role: roleOf(b.role).id })),
   }
+  project.objects = {
+    items: (data.objects?.items ?? [])
+      .filter((o) => objectTypeOf(o.type))
+      .map((o) => ({ ...o, props: { ...objectDefaultProps(o.type), ...o.props } })),
+  }
+  project.background = { ...DEFAULT_BACKGROUND, ...data.background }
   project.visibility = { ...base.visibility, ...data.visibility }
 }
 
@@ -108,6 +123,7 @@ export const ui = $state({
   selectedBlock: null as string | null,
   /** 滑鼠指到的建議區塊（在畫布上預覽） */
   hoverSuggestion: null as number | null,
+  selectedObject: null as string | null,
 })
 
 const uid = () => Math.random().toString(36).slice(2, 10)
@@ -182,6 +198,98 @@ export const moveBlock = discrete((id: string, dir: 1 | -1) => {
   const i = items.findIndex((b) => b.uid === id)
   const j = i + dir
   if (i < 0 || j < 0 || j >= items.length) return
+  ;[items[i], items[j]] = [items[j], items[i]]
+})
+
+// ── 第四層：物件的操作 ──────────────────────────────────
+
+function objectDefaultProps(type: string): ParamValues {
+  const t = objectTypeOf(type)
+  return { ...(type === 'text' ? TEXT_DEFAULTS : {}), ...clone(t?.defaults ?? {}) }
+}
+
+/**
+ * 新增物件的放置方式：
+ * - rect：放進指定範圍（例如區塊），物件框等於該範圍
+ * - center：以該點為中心（例如錨點），使用預設尺寸
+ * - 都沒有：放在畫布中央
+ * 座標皆為 0–1 相對值。
+ */
+export interface Placement {
+  rect?: Rect
+  center?: Pt
+}
+
+export const addObject = discrete((type: string, placement: Placement = {}, props: ParamValues = {}, name: string = ''): string | null => {
+  const t = objectTypeOf(type)
+  if (!t) return null
+  const c = project.canvas
+  const short = Math.min(c.w, c.h)
+  // 預設尺寸以畫布短邊為單位，換算成 0–1 相對值
+  let w = (t.meta.size[0] * short) / c.w
+  let h = (t.meta.size[1] * short) / c.h
+  let x: number
+  let y: number
+  if (placement.rect) {
+    ;({ x, y, w, h } = placement.rect)
+  } else {
+    const ctr = placement.center ?? { x: 0.5, y: 0.5 }
+    x = ctr.x - w / 2
+    y = ctr.y - h / 2
+  }
+  const n = project.objects.items.filter((o) => o.type === type).length + 1
+  const o: DesignObject = {
+    uid: uid(),
+    type,
+    name: name || `${t.meta.name} ${n}`,
+    x,
+    y,
+    w,
+    h,
+    rotation: 0,
+    fill: t.meta.fill ?? '#2f6bff',
+    stroke: t.meta.stroke ?? '',
+    strokeWidth: t.meta.strokeWidth ?? 0.004,
+    opacity: 1,
+    visible: true,
+    props: { ...objectDefaultProps(type), ...props },
+  }
+  project.objects.items.push(o)
+  ui.selectedObject = o.uid
+  return o.uid
+})
+
+export function updateObject(id: string, patch: Partial<DesignObject>) {
+  const o = project.objects.items.find((x) => x.uid === id)
+  if (o) Object.assign(o, patch)
+}
+
+export const removeObject = discrete((id: string) => {
+  project.objects.items = project.objects.items.filter((o) => o.uid !== id)
+  if (ui.selectedObject === id) ui.selectedObject = null
+})
+
+export const duplicateObject = discrete((id: string) => {
+  const o = project.objects.items.find((x) => x.uid === id)
+  if (!o) return
+  const copy = { ...clone(o), uid: uid(), name: `${o.name} 副本`, x: o.x + 0.02, y: o.y + 0.02 }
+  project.objects.items.push(copy)
+  ui.selectedObject = copy.uid
+})
+
+/** 疊放順序：+1 上移、-1 下移、'top' 移到最上、'bottom' 移到最下。 */
+export const moveObject = discrete((id: string, dir: 1 | -1 | 'top' | 'bottom') => {
+  const items = project.objects.items
+  const i = items.findIndex((o) => o.uid === id)
+  if (i < 0) return
+  if (dir === 'top' || dir === 'bottom') {
+    const [o] = items.splice(i, 1)
+    if (dir === 'top') items.push(o)
+    else items.unshift(o)
+    return
+  }
+  const j = i + dir
+  if (j < 0 || j >= items.length) return
   ;[items[i], items[j]] = [items[j], items[i]]
 })
 

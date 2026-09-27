@@ -2,6 +2,7 @@
 
 import { flow, newProject, project, replaceProject, type ProjectData } from './store.svelte'
 import { resetHistory } from './history.svelte'
+import { exportAssets, importAssets } from './assets'
 
 const APP = 'GraphicDesigner'
 const VERSION = 1
@@ -13,19 +14,32 @@ interface SaveFile {
   savedAt: string
   flow: { current: number; reached: number }
   project: ProjectData
+  /** 專案用到的圖片（data URL）。只有下載的存檔會包含；自動暫存的圖片另存在 IndexedDB。 */
+  assets?: Record<string, string>
 }
 
-function toFile(): SaveFile {
+/** 專案中引用到的所有圖片 id（物件與背景）。 */
+function referencedAssets(p: ProjectData): Set<string> {
+  const ids = new Set<string>()
+  if (p.background.assetId) ids.add(p.background.assetId)
+  for (const o of p.objects.items) if (typeof o.props.assetId === 'string') ids.add(o.props.assetId)
+  return ids
+}
+
+function toFile(withAssets: boolean): SaveFile {
+  const snapshot = $state.snapshot(project) as ProjectData
   return {
     app: APP,
     version: VERSION,
     savedAt: new Date().toISOString(),
     flow: { current: flow.current, reached: flow.reached },
-    project: $state.snapshot(project) as ProjectData,
+    project: snapshot,
+    ...(withAssets ? { assets: exportAssets(referencedAssets(snapshot)) } : {}),
   }
 }
 
 function load(file: SaveFile) {
+  importAssets(file.assets)
   replaceProject(file.project)
   flow.reached = Math.max(0, file.flow?.reached ?? 0)
   flow.current = Math.min(Math.max(0, file.flow?.current ?? 0), flow.reached)
@@ -40,7 +54,7 @@ function parse(text: string): SaveFile {
 }
 
 export function downloadProject() {
-  const blob = new Blob([JSON.stringify(toFile(), null, 2)], { type: 'application/json' })
+  const blob = new Blob([JSON.stringify(toFile(true))], { type: 'application/json' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
   const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '')
@@ -77,7 +91,7 @@ export function initAutosave(): () => void {
       clearTimeout(timer)
       timer = setTimeout(() => {
         try {
-          localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(toFile()))
+          localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(toFile(false)))
         } catch {
           // 無痕模式或空間不足：略過
         }

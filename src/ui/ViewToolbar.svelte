@@ -22,6 +22,7 @@
   <button class:on={v.blocks} onclick={() => (v.blocks = !v.blocks)} title="區塊">
     <span class="bk"></span>區塊
   </button>
+  <button class:on={v.objects} onclick={() => (v.objects = !v.objects)} title="物件">物件</button>
   {#if showSuggestionsToggle}
     <button class:on={v.suggestions} onclick={() => (v.suggestions = !v.suggestions)} title="建議區塊">建議</button>
   {/if}

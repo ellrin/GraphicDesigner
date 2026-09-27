@@ -1,0 +1,4 @@
+{
+  "points": { "type": "int", "label": "角數", "min": 3, "max": 16, "default": 5 },
+  "inner": { "type": "number", "label": "內凹程度（內半徑）", "min": 0.1, "max": 0.95, "step": 0.01, "default": 0.45 }
+}

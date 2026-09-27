@@ -29,7 +29,14 @@
       <label><input type="checkbox" bind:checked={b.visible} disabled={!v.blocks} /> {b.name}</label>
     </li>
   {/each}
-  <li class="todo">④ 物件（開發中）</li>
+  <li>
+    <label><input type="checkbox" bind:checked={v.objects} /> ④ 物件（{project.objects.items.length}）</label>
+  </li>
+  {#each [...project.objects.items].reverse() as o (o.uid)}
+    <li class="child">
+      <label><input type="checkbox" bind:checked={o.visible} disabled={!v.objects} /> {o.name}</label>
+    </li>
+  {/each}
 </ul>
 
 <style>
@@ -43,10 +50,5 @@
   }
   .child {
     padding-left: 20px;
-  }
-  .todo {
-    color: var(--muted);
-    opacity: 0.6;
-    padding-left: 22px;
   }
 </style>

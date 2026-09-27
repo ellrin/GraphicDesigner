@@ -24,6 +24,25 @@ npm run build    # 輸出單一檔案 dist/index.html
 
 `dist/` 有納入版控，修改後記得 `npm run build` 再 commit，離線版才會更新。
 
+## 新增一種物件（第四層）
+
+在 `src/layers/4-objects/types/` 新增資料夾：
+
+- `meta.json`：`{ "name": "菱形", "category": "shape", "order": 70, "size": [0.3, 0.3], "fill": "#2f6bff" }`（size 以畫布短邊為單位）
+- `params.json`：種類專屬參數（格式同構圖版型）
+- `shape.ts`：回傳 Konva 形狀陣列，座標原點在物件中心，範圍 `(-w/2, -h/2)` 到 `(w/2, h/2)`
+
+```ts
+import Konva from 'konva'
+import type { ShapeBuilder } from '../index'
+import { paint } from '../style'
+
+const build: ShapeBuilder = (ctx) => [
+  new Konva.Line({ points: [0, -ctx.h / 2, ctx.w / 2, 0, 0, ctx.h / 2, -ctx.w / 2, 0], closed: true, ...paint(ctx) }),
+]
+export default build
+```
+
 ## 字型
 
 內建中文 19 種、英文 32 種可商用字型（OFL）。字型檔不包含在 repo 中，使用時才從 Google Fonts 載入，詳見 [FONTS.md](FONTS.md)。

@@ -1,0 +1,3 @@
+{
+  "sides": { "type": "int", "label": "邊數", "min": 3, "max": 12, "default": 6 }
+}

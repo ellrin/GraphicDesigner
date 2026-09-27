@@ -1,0 +1,4 @@
+{
+  "dashed": { "type": "boolean", "label": "虛線", "default": false },
+  "round": { "type": "boolean", "label": "圓頭", "default": false }
+}

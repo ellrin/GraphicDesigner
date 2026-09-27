@@ -20,6 +20,9 @@
   import { drawAnchors, drawPrimitives } from './konva'
   import { BlockLayer, type BlockLayerEvents, type BlockView, type GhostView } from './blockLayer'
   import type { SnapLines } from '../core/blocks'
+  import { ObjectLayer, type ObjectLayerEvents } from './objectLayer'
+  import { DEFAULT_BACKGROUND, fitImage, type Background, type DesignObject } from '../core/objects'
+  import { getImage } from '../core/assets'
   import theme from '../config/theme.json'
 
   interface Props {
@@ -37,6 +40,13 @@
     ghosts?: GhostView[]
     snapLines?: SnapLines
     blockEvents: BlockLayerEvents
+    objects?: DesignObject[]
+    selectedObject?: string | null
+    objectsInteractive?: boolean
+    objectsVisible?: boolean
+    background?: Background
+    fontVersion?: number
+    objectEvents: ObjectLayerEvents
   }
   let {
     canvas,
@@ -51,15 +61,32 @@
     ghosts = [],
     snapLines = { xs: [], ys: [] },
     blockEvents,
+    objects = [],
+    selectedObject = null,
+    objectsInteractive = false,
+    objectsVisible = true,
+    background = DEFAULT_BACKGROUND,
+    fontVersion = 0,
+    objectEvents,
   }: Props = $props()
+
+  /** 圖片載入完成時遞增，觸發重繪 */
+  let imageTick = $state(0)
+  let bgImage = $state<HTMLImageElement | null>(null)
+  let bgImageId: string | null = null
 
   let host: HTMLDivElement
   let size = $state({ w: 0, h: 0 })
 
   let stage: Konva.Stage
   let blockLayer: BlockLayer
+  let objectLayer: ObjectLayer
   const paper = new Konva.Group()
   const paperBg = new Konva.Rect({ name: 'paper-bg', fill: '#fff', shadowColor: '#000', shadowOpacity: 0.18, shadowBlur: 24 })
+  // 背景圖片：裁切在畫布內，且不接收滑鼠事件（點背景 = 點空白處）
+  const bgGroup = new Konva.Group({ listening: false })
+  const bgImageNode = new Konva.Image({ image: undefined, listening: false })
+  bgGroup.add(bgImageNode)
   // 內容裁切在畫布範圍內（例如畫面外的消失點射線）；控制點不裁切
   const content = new Konva.Group()
   const handleGroup = new Konva.Group()
@@ -83,8 +110,18 @@
       onCreate: (r) => blockEvents.onCreate(r),
       onAdopt: (i) => blockEvents.onAdopt(i),
     })
-    // 疊放順序：紙 → 引導線 → 區塊 → 控制點
-    paper.add(paperBg, content, blockLayer.group, handleGroup)
+    objectLayer = new ObjectLayer(
+      stage,
+      paper,
+      {
+        onSelect: (id) => objectEvents.onSelect(id),
+        onChange: (id, b) => objectEvents.onChange(id, b),
+        onEdit: (id) => objectEvents.onEdit(id),
+      },
+      () => imageTick++,
+    )
+    // 疊放順序：紙 → 背景 → 物件 → 引導線 → 區塊 → 控制點（輔助線永遠浮在作品上方）
+    paper.add(paperBg, bgGroup, objectLayer.group, content, blockLayer.group, handleGroup)
     layer.add(paper)
     stage.add(layer)
 
@@ -178,6 +215,29 @@
       g.anchors.visible(l.visible && l.anchorsVisible)
     }
 
+    // 背景
+    paperBg.fill(background.color || '#ffffff')
+    bgGroup.clip({ x: 0, y: 0, width: canvas.w, height: canvas.h })
+    bgGroup.opacity(background.opacity)
+    if (bgImage && background.assetId) {
+      const r = fitImage(bgImage.naturalWidth, bgImage.naturalHeight, canvas.w, canvas.h, background.fit)
+      bgImageNode.setAttrs({ image: bgImage, x: r.x, y: r.y, width: r.w, height: r.h, visible: true })
+    } else {
+      bgImageNode.visible(false)
+    }
+
+    void imageTick
+    objectLayer.update({
+      objects,
+      selected: selectedObject,
+      interactive: objectsInteractive,
+      visible: objectsVisible,
+      snap: snapLines,
+      canvas,
+      scale: view.s,
+      fontVersion,
+    })
+
     blockLayer.update({
       blocks,
       selected: selectedBlock,
@@ -192,11 +252,35 @@
     stage.batchDraw()
   })
 
-  /** 以指定像素尺寸匯出畫布區域為 PNG data URL（不含控制點、選取框、建議預覽）。 */
+  // 背景圖片換掉時重新載入
+  $effect(() => {
+    const id = background.assetId
+    void fontVersion // 圖片庫讀回（啟動時）也會遞增，屆時再試一次
+    if (id === bgImageId) return
+    bgImage = null
+    const p = id ? getImage(id) : undefined
+    // 圖片庫還沒讀回時先不記下 id，下次再試
+    bgImageId = !id || p ? id : null
+    p?.then((img) => bgImageId === id && (bgImage = img)).catch(() => {})
+  })
+
+  /**
+   * 以指定像素尺寸匯出畫布區域為 PNG data URL。
+   * 只輸出作品本身（背景與物件）；引導線、錨點、區塊、控制點、選取框都不輸出。
+   */
   export function toPng(pixelWidth: number): string {
     paperBg.shadowEnabled(false)
     handleGroup.visible(false)
-    const restore = blockLayer.hideChrome()
+    const contentVisible = content.visible()
+    const blocksVisible = blockLayer.group.visible()
+    content.visible(false)
+    blockLayer.group.visible(false)
+    const restoreObjects = objectLayer.hideChrome()
+    const restore = () => {
+      restoreObjects()
+      content.visible(contentVisible)
+      blockLayer.group.visible(blocksVisible)
+    }
     const url = stage.toDataURL({
       x: view.x,
       y: view.y,

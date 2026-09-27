@@ -12,13 +12,20 @@
     addBlock,
     completeStep,
     duplicateBlock,
+    duplicateObject,
     flow,
     project,
     removeBlock,
+    removeObject,
     ui,
     updateBlock,
+    updateObject,
   } from './core/store.svelte'
+  import { loadStoredAssets } from './core/assets'
+  import { FONT_GROUPS, loadFont } from './core/fonts'
   import BlocksPanel from './layers/3-blocks/Panel.svelte'
+  import ObjectsPanel, { type AnchorOption } from './layers/4-objects/Panel.svelte'
+  import type { ObjectBox } from './renderer/objectLayer'
   import ViewToolbar from './ui/ViewToolbar.svelte'
   import CompositionPanel from './layers/1-composition/Panel.svelte'
   import { compositionTemplates } from './layers/1-composition/templates'
@@ -26,7 +33,6 @@
   import { guideTemplates } from './layers/2-guides/templates'
   import CanvasView, { type GuideLayerView } from './renderer/CanvasView.svelte'
   import CanvasSettings from './ui/CanvasSettings.svelte'
-  import FontLibrary from './ui/FontLibrary.svelte'
   import LayerList from './ui/LayerList.svelte'
   import ProjectMenu from './ui/ProjectMenu.svelte'
   import Stepper from './ui/Stepper.svelte'
@@ -34,14 +40,18 @@
   let view: CanvasView
 
   onMount(() => {
-    // 先讀回暫存，再開始記錄復原歷史
+    // 先讀回暫存，再開始記錄復原歷史；圖片另外從 IndexedDB 讀回
     const stopAutosave = initAutosave()
     const stopHistory = initHistory()
+    loadStoredAssets().then(() => imageStoreTick++)
     return () => {
       stopAutosave()
       stopHistory()
     }
   })
+
+  /** 圖片庫讀回後遞增，讓畫布重新嘗試載入圖片 */
+  let imageStoreTick = $state(0)
 
   const step = $derived(STEPS[flow.current])
 
@@ -119,6 +129,65 @@
     onAdopt: (i: number) => adopt(suggestions[ghosts[i].index]),
   }
 
+  // ── 第四層：物件 ──────────────────────────────────
+  /** 物件可吸附：構圖、引導的線與錨點，再加上各區塊的邊與中線 */
+  const objectSnapLines = $derived.by(() => {
+    const xs = [...snapLines.xs]
+    const ys = [...snapLines.ys]
+    for (const b of project.blocks.items) {
+      if (!b.visible) continue
+      const r = toCanvasRect(b, project.canvas)
+      xs.push(r.x, r.x + r.w / 2, r.x + r.w)
+      ys.push(r.y, r.y + r.h / 2, r.y + r.h)
+    }
+    return { xs, ys }
+  })
+
+  /** 可作為放置目標的錨點（依來源命名、去除重複） */
+  const anchorOptions = $derived.by((): AnchorOption[] => {
+    const out: AnchorOption[] = []
+    for (const { name, output } of activeOutputs) {
+      output.anchors.forEach((a, i) => {
+        const x = a.x / project.canvas.w
+        const y = a.y / project.canvas.h
+        if (out.some((o) => Math.abs(o.x - x) < 1e-3 && Math.abs(o.y - y) < 1e-3)) return
+        out.push({ label: `${name}・${a.label ?? `錨點 ${i + 1}`}`, x, y })
+      })
+    }
+    return out
+  })
+
+  // 文字用到的字型：載入完成後重繪畫布
+  let fontVersion = $state(0)
+  const requestedFonts = new Set<string>()
+  $effect(() => {
+    for (const o of project.objects.items) {
+      if (o.type !== 'text') continue
+      const family = String(o.props.fontFamily)
+      if (requestedFonts.has(family)) continue
+      const def = FONT_GROUPS.flatMap((g) => g.fonts).find((f) => f.family === family)
+      if (!def) continue
+      requestedFonts.add(family)
+      loadFont(def)
+        .then(() => fontVersion++)
+        .catch(() => requestedFonts.delete(family))
+    }
+  })
+
+  let focusText = $state(0)
+
+  const objectEvents = {
+    onSelect: (id: string | null) => (ui.selectedObject = id),
+    onChange: (id: string, b: ObjectBox) => {
+      const c = project.canvas
+      updateObject(id, { x: b.x / c.w, y: b.y / c.h, w: b.w / c.w, h: b.h / c.h, rotation: Math.round(b.rotation * 10) / 10 })
+    },
+    onEdit: (id: string) => {
+      ui.selectedObject = id
+      if (project.objects.items.find((o) => o.uid === id)?.type === 'text') focusText++
+    },
+  }
+
   // 只有在「視覺引導」步驟、且選取的引導有位置參數時，才顯示可拖曳的控制點
   const editing = $derived.by(() => {
     if (step.id !== 'guides') return null
@@ -167,24 +236,43 @@
       const v = project.visibility
       const show = !(v.composition || v.guides || v.anchors)
       v.composition = v.guides = v.anchors = show
-    } else if (step.id === 'blocks' && ui.selectedBlock) {
-      const b = project.blocks.items.find((x) => x.uid === ui.selectedBlock)
-      if (!b) return
+    } else {
+      // 區塊與物件共用的快捷鍵：刪除、複製、方向鍵微調、取消選取
+      const target =
+        step.id === 'blocks' && ui.selectedBlock
+          ? {
+              item: project.blocks.items.find((x) => x.uid === ui.selectedBlock),
+              remove: removeBlock,
+              duplicate: duplicateBlock,
+              update: updateBlock,
+              deselect: () => (ui.selectedBlock = null),
+            }
+          : step.id === 'objects' && ui.selectedObject
+            ? {
+                item: project.objects.items.find((x) => x.uid === ui.selectedObject),
+                remove: removeObject,
+                duplicate: duplicateObject,
+                update: updateObject,
+                deselect: () => (ui.selectedObject = null),
+              }
+            : null
+      const item = target?.item
+      if (!target || !item) return
       if (key === 'delete' || key === 'backspace') {
         e.preventDefault()
-        removeBlock(b.uid)
+        target.remove(item.uid)
       } else if (mod && key === 'd') {
         e.preventDefault()
-        duplicateBlock(b.uid)
+        target.duplicate(item.uid)
       } else if (key.startsWith('arrow')) {
         // 方向鍵微調：每次 1 單位，按住 Shift 為 10 單位
         e.preventDefault()
         const d = e.shiftKey ? 10 : 1
         const dx = key === 'arrowleft' ? -d : key === 'arrowright' ? d : 0
         const dy = key === 'arrowup' ? -d : key === 'arrowdown' ? d : 0
-        updateBlock(b.uid, { x: b.x + dx / project.canvas.w, y: b.y + dy / project.canvas.h })
+        target.update(item.uid, { x: item.x + dx / project.canvas.w, y: item.y + dy / project.canvas.h })
       } else if (key === 'escape') {
-        ui.selectedBlock = null
+        target.deselect()
       }
     }
   }
@@ -215,11 +303,7 @@
     {:else if step.id === 'blocks'}
       <BlocksPanel {suggestions} onadopt={adopt} />
     {:else if step.id === 'objects'}
-      <section>
-        <h3>字型庫</h3>
-        <p class="muted">文字物件開發中，可先瀏覽字型。</p>
-        <FontLibrary />
-      </section>
+      <ObjectsPanel anchors={anchorOptions} {focusText} />
     {:else}
       <section>
         <h3>{step.label}</h3>
@@ -253,8 +337,15 @@
       blocksInteractive={step.id === 'blocks'}
       blocksVisible={project.visibility.blocks}
       {ghosts}
-      {snapLines}
+      snapLines={step.id === 'objects' ? objectSnapLines : snapLines}
       {blockEvents}
+      objects={project.objects.items}
+      selectedObject={ui.selectedObject}
+      objectsInteractive={step.id === 'objects'}
+      objectsVisible={project.visibility.objects}
+      background={project.background}
+      fontVersion={fontVersion + imageStoreTick}
+      {objectEvents}
     />
   </main>
 </div>
