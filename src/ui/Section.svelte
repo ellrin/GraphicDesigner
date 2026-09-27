@@ -20,6 +20,7 @@
 <script lang="ts">
   // 可收合的面板區塊：點標題展開／收合。
   import type { Snippet } from 'svelte'
+  import Help from './Help.svelte'
 
   interface Props {
     /** 用來記住開合狀態的識別碼 */
@@ -29,9 +30,11 @@
     defaultOpen?: boolean
     /** 這個值改變（且不為空）時自動展開，例如選取了新的物件 */
     reopen?: unknown
+    /** 說明文字：顯示成標題旁的問號，滑鼠移上去才看得到 */
+    help?: string
     children: Snippet
   }
-  let { id, title, defaultOpen = true, reopen, children }: Props = $props()
+  let { id, title, defaultOpen = true, reopen, help, children }: Props = $props()
 
   // svelte-ignore state_referenced_locally
   let open = $state(saved[id] ?? defaultOpen)
@@ -48,10 +51,9 @@
 
 <section class="sec" class:closed={!open}>
   <h3>
-    <button class="head" onclick={toggle} aria-expanded={open}>
-      <span class="title">{title}</span>
-      <span class="chev" aria-hidden="true">{open ? '−' : '+'}</span>
-    </button>
+    <button class="head" onclick={toggle} aria-expanded={open}>{title}</button>
+    {#if help}<Help text={help} />{/if}
+    <button class="chev" onclick={toggle} aria-label={open ? '收合' : '展開'} tabindex="-1">{open ? '−' : '+'}</button>
   </h3>
   {#if open}
     {@render children()}
@@ -59,11 +61,12 @@
 </section>
 
 <style>
+  h3 {
+    align-items: center;
+  }
   .head {
-    flex: 1;
     display: flex;
     align-items: baseline;
-    justify-content: space-between;
     gap: 8px;
     border: none;
     background: none;
@@ -77,11 +80,19 @@
     color: var(--accent);
   }
   .chev {
+    margin-left: auto;
+    border: none;
+    background: none;
+    padding: 0 2px;
     font-family: var(--mono);
     font-size: 14px;
     color: var(--muted);
-    width: 16px;
+    width: 20px;
     text-align: center;
+  }
+  .chev:hover:not(:disabled) {
+    background: none;
+    color: var(--accent);
   }
   .closed :global(h3) {
     margin-bottom: 0;

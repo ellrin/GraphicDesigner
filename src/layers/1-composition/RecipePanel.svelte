@@ -5,6 +5,7 @@
   import { RECIPES, type Recipe } from '../../core/recipes'
   import { applyRecipe, project, ui } from '../../core/store.svelte'
   import RecipeThumb from '../../ui/RecipeThumb.svelte'
+  import Help from '../../ui/Help.svelte'
   import { compositionTemplates } from './templates'
 
   let { group }: { group: string } = $props()
@@ -31,12 +32,11 @@
   let pendingCanvas = false
 </script>
 
-<Section id="recipes-1" title="版型範例（{list.length}）">
-  <p class="tip">一鍵套用構圖與已標好用途的區塊，之後可以照流程自由調整。</p>
+<Section id="recipes-1" title="版型範例（{list.length}）" help="一鍵套用構圖與已標好用途的區塊（依書中範例整理，只有版型），之後可以照流程自由調整。">
   <label class="inline"><input type="checkbox" bind:checked={ui.showAllRecipes} /> 顯示所有構圖的範例</label>
 
   {#if list.length === 0}
-    <p class="tip">「{groupName(group)}」還沒有範例，勾選上方可瀏覽其他構圖的範例。</p>
+    <p class="tip">「{groupName(group)}」還沒有範例。</p>
   {:else}
     <div class="grid">
       {#each list as r (r.id)}
@@ -51,8 +51,10 @@
 
   {#if picked}
     <div class="detail">
-      <strong>{picked.name}</strong>
-      {#if picked.description}<p>{picked.description}</p>{/if}
+      <div class="title-row">
+        <strong>{picked.name}</strong>
+        {#if picked.description}<Help text={picked.description} />{/if}
+      </div>
       <p class="roles">區塊：{picked.blocks.map((b) => b.name).join('、')}</p>
       {#if confirming}
         <p class="warn">會取代目前的構圖、視覺引導與區塊（已放的物件與背景會保留，也可以復原）。</p>
@@ -116,6 +118,11 @@
     background: var(--surface);
     display: grid;
     gap: 6px;
+  }
+  .title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .detail p {
     margin: 0;

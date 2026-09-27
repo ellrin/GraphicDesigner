@@ -37,28 +37,26 @@
 
 </script>
 
-<Section id="refine-1" title="選取">
-  <p class="tip">
-    {#if selected.length === 0}
-      點選物件；按住 Shift 可多選，或在空白處拖曳框選。⌘A 全選。
-    {:else}
-      已選取 {selected.length} 個物件
-    {/if}
-  </p>
+<Section id="refine-1" title="選取" help="點選物件；按住 Shift 可多選，或在空白處拖曳框選。⌘A 全選。">
+  {#if selected.length}
+    <p class="tip">已選取 {selected.length} 個物件</p>
+  {/if}
   <div class="tools">
     <button onclick={() => (ui.selectedObjects = project.objects.items.filter((o) => o.visible).map((o) => o.uid))}>全選</button>
     <button onclick={() => (ui.selectedObjects = [])} disabled={!selected.length}>取消選取</button>
   </div>
 </Section>
 
-<Section id="refine-2" title="對齊">
+<Section
+  id="refine-2"
+  title="對齊與分佈"
+  help="選取多個物件時可選擇對齊「選取範圍」或「畫布」；只選一個物件時會對齊畫布。等距分佈需要選取 3 個以上的物件。"
+>
   {#if multi}
     <div class="seg" role="radiogroup" aria-label="對齊基準">
       <button class:on={alignTo === 'selection'} onclick={() => (alignTo = 'selection')}>對齊選取範圍</button>
       <button class:on={alignTo === 'canvas'} onclick={() => (alignTo = 'canvas')}>對齊畫布</button>
     </div>
-  {:else if selected.length === 1}
-    <p class="muted">單一物件會對齊到畫布。</p>
   {/if}
   <div class="grid6">
     {#each EDGES as e (e.edge)}
@@ -68,14 +66,10 @@
     {/each}
   </div>
 
-  <h3>等距分佈</h3>
-  <div class="tools">
+  <div class="tools distribute">
     <button onclick={() => doDistribute('x')} disabled={selected.length < 3}>水平等距</button>
     <button onclick={() => doDistribute('y')} disabled={selected.length < 3}>垂直等距</button>
   </div>
-  {#if selected.length > 0 && selected.length < 3}
-    <p class="muted">等距分佈需要選取 3 個以上的物件。</p>
-  {/if}
 
   {#if multi}
     <label class="row">
@@ -94,11 +88,6 @@
     margin: 0 0 8px;
     font-size: 12px;
     color: var(--accent);
-  }
-  .muted {
-    margin: 6px 0;
-    font-size: 12px;
-    color: var(--muted);
   }
   .tools {
     display: flex;
@@ -148,6 +137,9 @@
     display: grid;
     gap: 4px;
     font-size: 13px;
+    margin-top: 8px;
+  }
+  .distribute {
     margin-top: 8px;
   }
 </style>

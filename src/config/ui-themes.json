@@ -1,5 +1,5 @@
 [
-  { "id": "orange", "name": "橘黑", "swatches": ["#080706", "#ff6b35", "#ffb020"] },
+  { "id": "orange", "name": "深灰橘", "swatches": ["#27272a", "#ff6b35", "#ffb020"] },
   { "id": "night", "name": "藍紫黃", "swatches": ["#0c0b24", "#8b2cff", "#f3e600"] },
   { "id": "terminal", "name": "綠黑", "swatches": ["#040705", "#2ef08a", "#c6ff3d"] }
 ]

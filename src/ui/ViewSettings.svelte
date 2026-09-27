@@ -4,7 +4,6 @@
   import theme from '../config/theme.json'
 
   const v = $derived(project.visibility)
-  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 
   const rows = $derived([
     { key: 'composition', label: '構圖線', swatch: theme.guides.composition.mainColor, kind: 'line' },
@@ -26,7 +25,6 @@
       {r.label}
     </label>
   {/each}
-  <p class="hint">{isMac ? '⌘' : 'Ctrl+'}; 一鍵切換全部輔助線</p>
 
   <div class="seg" role="radiogroup" aria-label="輔助線位置">
     <button class:on={v.guidesOnTop} onclick={() => (v.guidesOnTop = true)}>輔助線在物件上層</button>
@@ -68,11 +66,6 @@
   }
   .none {
     width: 16px;
-  }
-  .hint {
-    margin: 2px 0 6px;
-    font-size: 11px;
-    color: var(--muted);
   }
   .seg {
     display: flex;

@@ -12,6 +12,7 @@
     type Placement,
   } from '../../core/store.svelte'
   import ObjectEditor from './ObjectEditor.svelte'
+  import Help from '../../ui/Help.svelte'
   import { objectTypeOf, objectTypes } from './types'
 
   interface Props {
@@ -141,7 +142,10 @@
         <input type="range" min="1" max="4" step="0.01" bind:value={project.background.zoom} />
       </label>
       <div class="bg-subject">
-        <label class="inline"><input type="checkbox" bind:checked={ui.editBackground} /> 在畫布上顯示背景主體 ⊕（拖曳可移動照片、吸附錨點；照片到邊緣時先調大「放大」）</label>
+        <div class="inline">
+          <label class="inline"><input type="checkbox" bind:checked={ui.editBackground} /> 顯示背景主體 ⊕</label>
+          <Help text="在畫布上顯示背景照片的主體 ⊕：拖曳可移動照片並吸附錨點；照片移到邊緣時先調大「放大」。" />
+        </div>
         <button class:on={ui.pickSubject === 'bg'} onclick={() => (ui.pickSubject = ui.pickSubject === 'bg' ? null : 'bg')}>
           {ui.pickSubject === 'bg' ? '請在照片上點主體…（再按一次取消）' : '⊕ 點背景照片標記主體'}
         </button>

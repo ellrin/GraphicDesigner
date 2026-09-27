@@ -10,6 +10,7 @@
   import FontSelect from '../../ui/FontSelect.svelte'
   import ParamPanel from '../../ui/ParamPanel.svelte'
   import { objectTypeOf } from './types'
+  import Help from '../../ui/Help.svelte'
   import { objectBox, targetFromCanvas } from '../../core/framing'
   import { BLOCK_SHAPES } from '../../core/blocks'
 
@@ -114,7 +115,7 @@
 
     {#if selected.type === 'text'}
       <label class="row">
-        <span>文字內容（在畫布上雙擊文字也可編輯）</span>
+        <span class="with-help">文字內容 <Help text="在畫布上雙擊文字也可以直接跳到這裡編輯。" /></span>
         <textarea bind:this={textArea} rows="3" value={String(selected.props.text ?? '')} oninput={(e) => setProp('text', e.currentTarget.value)}></textarea>
       </label>
       <div class="row">
@@ -151,7 +152,10 @@
 
     {#if selected.type === 'image'}
       <div class="framing">
-        <p class="hint">畫布上的 ⊕ 是照片的主體：拖曳 ⊕ 會移動照片，靠近錨點會吸附，讓主體對準構圖。照片移到邊緣就無法再移動，這時先調大「放大」。</p>
+        <div class="framing-title">
+          照片主體 ⊕
+          <Help text="畫布上的 ⊕ 是照片的主體：拖曳 ⊕ 會移動照片，靠近錨點會吸附，讓主體對準構圖。照片移到邊緣就無法再移動，這時先調大「放大」。" />
+        </div>
         <div class="tools">
           <button class:on={ui.pickSubject === selected.uid} onclick={() => (ui.pickSubject = ui.pickSubject === selected.uid ? null : selected.uid)}>
             {ui.pickSubject === selected.uid ? '請在照片上點主體…（再按一次取消）' : '⊕ 點照片標記主體'}
@@ -254,7 +258,7 @@
     {/if}
     {#if anchors.length}
       <label class="row">
-        <span>移到錨點（物件中心對齊）</span>
+        <span class="with-help">移到錨點 <Help text="物件的中心會對齊到選擇的錨點。" /></span>
         <select value="" onchange={(e) => { moveToAnchor(Number(e.currentTarget.value)); e.currentTarget.value = '' }}>
           <option value="" disabled>選擇錨點…</option>
           {#each anchors as a, i (i)}
@@ -361,10 +365,16 @@
     border: 1px dashed var(--line-strong);
     border-radius: var(--radius);
   }
-  .hint {
-    margin: 0;
-    font-size: 12px;
-    color: var(--muted);
+  .with-help {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .framing-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
   }
   .tools button.on {
     border-color: var(--accent);

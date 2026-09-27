@@ -21,10 +21,8 @@
   const nameOf = (id: string) => guideTemplates.find((t) => t.id === id)?.meta.name ?? id
 </script>
 
-<Section id="guides-1" title="已加入的引導（{items.length}）">
-  {#if items.length === 0}
-    <p class="desc">從下方選擇要加入的視覺引導，可以疊加多種。</p>
-  {:else}
+<Section id="guides-1" title="已加入的引導（{items.length}）" help="從下方「新增引導」選擇要加入的視覺引導，可以疊加多種。">
+  {#if items.length > 0}
     <ul class="items">
       {#each items as g (g.uid)}
         <li class:on={g.uid === ui.selectedGuide}>
@@ -40,21 +38,17 @@
 </Section>
 
 {#if selected && selectedTemplate}
-  <Section id="guides-2" title={selectedTemplate.meta.name}>
-    {#if selectedTemplate.meta.description}
-      <p class="desc">{selectedTemplate.meta.description}</p>
-    {/if}
-    {#if hasPoints}
-      <p class="tip">可直接在畫布上拖曳白色控制點；靠近構圖錨點時會變紫色並自動吸附。</p>
-    {/if}
-  </Section>
   <Section id="guides-3" title="套用範圍">
     <FrameSelect frame={selected.frame} regions={regions.filter((r) => r.source !== selected.uid)} onchange={(f) => (selected.frame = f)} />
   </Section>
   <Section id="guides-4" title="方向">
     <OrientationTools bind:orientation={selected.orientation} />
   </Section>
-  <Section id="guides-5" title="參數">
+  <Section
+    id="guides-5"
+    title="參數：{selectedTemplate.meta.name}"
+    help={(selectedTemplate.meta.description ?? '') + (hasPoints ? '　可直接在畫布上拖曳白色控制點；靠近構圖錨點時會變紫色並自動吸附。' : '')}
+  >
     <ParamPanel
       schema={selectedTemplate.params}
       bind:values={selected.params}
@@ -127,14 +121,5 @@
     padding: 8px;
     font-size: 12px;
     text-align: center;
-  }
-  .desc,
-  .tip {
-    margin: 0 0 8px;
-    font-size: 12px;
-    color: var(--muted);
-  }
-  .tip {
-    color: var(--accent);
   }
 </style>

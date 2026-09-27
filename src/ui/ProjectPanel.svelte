@@ -59,7 +59,6 @@
   {#if message.text}
     <p class="msg" class:error={message.kind === 'error'} role="status">{message.text}</p>
   {/if}
-  <p class="note">瀏覽器會自動暫存目前進度；要換電腦、備份或分享，請儲存成專案檔。專案檔包含用到的圖片。</p>
 </div>
 
 <style>
@@ -102,10 +101,5 @@
   }
   .msg.error {
     color: var(--danger);
-  }
-  .note {
-    margin: 8px 0 0;
-    font-size: 11px;
-    color: var(--muted);
   }
 </style>

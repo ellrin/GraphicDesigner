@@ -29,8 +29,7 @@
   const otherRegions = $derived(regions.filter((r) => r.source !== selected?.uid))
 </script>
 
-<Section id="comp-1" title="構圖（{items.length}）">
-  <p class="tip">可以疊加多個構圖，並把構圖套用在某個區域上，例如先用黃金分割切出右欄，再在右欄放一個黃金螺旋。</p>
+<Section id="comp-1" title="構圖（{items.length}）" help="可以疊加多個構圖，並把構圖套用在某個區域上，例如先用黃金分割切出右欄，再在右欄放一個黃金螺旋。">
   <ul class="items">
     {#each items as c (c.uid)}
       <li class:on={c.uid === selected?.uid}>
@@ -50,11 +49,11 @@
 <RecipePanel group={selected?.templateId ?? compositionTemplates[0].id} />
 
 {#if selected && template}
-  <Section id="comp-2" title="套用範圍">
+  <Section id="comp-2" title="套用範圍" help="構圖可以套用在整張畫布、某個區塊，或其他構圖切出的區域（會跟著來源構圖連動）。">
     <FrameSelect frame={selected.frame} regions={otherRegions} onchange={(f) => (selected.frame = f)} />
   </Section>
 
-  <Section id="comp-3" title="選擇構圖">
+  <Section id="comp-3" title="選擇構圖" help={template.meta.description}>
     <div class="grid">
       {#each compositionTemplates as t (t.id)}
         <button class="card" class:active={t.id === selected.templateId} onclick={() => t.id !== selected.templateId && setInstanceTemplate(selected, t)} title={t.meta.description}>
@@ -63,9 +62,6 @@
         </button>
       {/each}
     </div>
-    {#if template.meta.description}
-      <p class="desc">{template.meta.description}</p>
-    {/if}
   </Section>
 
   <Section id="comp-4" title="方向">
@@ -81,11 +77,6 @@
 {/if}
 
 <style>
-  .tip {
-    margin: 0 0 10px;
-    font-size: 12px;
-    color: var(--muted);
-  }
   .items {
     list-style: none;
     margin: 0 0 8px;

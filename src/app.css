@@ -4,24 +4,24 @@
  * 所有顏色都是這裡的變數；新增主題 = 新增一個 [data-theme] 區塊並登記到 ui-themes.json。
  */
 
-/* ── 主題一：橘黑（預設） ── */
+/* ── 主題一：深灰橘（預設） ── */
 :root,
 :root[data-theme='orange'] {
-  --bg: #080706; /* 畫布四周 */
-  --panel: #100e0c; /* 側欄、頂欄 */
-  --surface: #1a1714; /* 卡片、輸入框 */
-  --surface-hover: #241f1b;
-  --line: #2a2520; /* 細分隔線 */
-  --line-strong: #40372f;
-  --text: #f2ede8;
-  --muted: #a09488;
-  --faint: #665c53;
+  --bg: #1d1d20; /* 畫布四周 */
+  --panel: #27272a; /* 側欄、頂欄 */
+  --surface: #313135; /* 卡片、輸入框 */
+  --surface-hover: #3b3b40;
+  --line: #3a3a3f; /* 細分隔線 */
+  --line-strong: #505056;
+  --text: #f0f0f1;
+  --muted: #a6a6ad;
+  --faint: #74747b;
   --accent: #ff6b35; /* 霓虹橘：主要按鈕、選取 */
   --accent-ink: #0a0706; /* 強調色上的文字 */
   --accent-soft: rgba(255, 107, 53, 0.15);
   --accent-glow: 0 0 0 1px rgba(255, 107, 53, 0.65), 0 0 18px rgba(255, 107, 53, 0.4);
   --highlight: #ffb020; /* 琥珀：目前步驟、編號 */
-  --canvas-dot: rgba(255, 107, 53, 0.07);
+  --canvas-dot: rgba(255, 255, 255, 0.06);
   --selection: #ff6b35; /* 畫布上的選取框（畫在白紙上，需清楚可見） */
 }
 

@@ -44,26 +44,28 @@
   }
 </script>
 
-<Section id="blocks-1" title="區塊">
+<Section
+  id="blocks-1"
+  title="繪製區塊"
+  help={ui.blockTool === 'polygon'
+    ? '在畫布上逐點點擊畫出多邊形，點回第一點、雙擊或按 Enter 完成，Esc 取消。頂點會吸附到錨點與線的交點。'
+    : `在畫布空白處拖曳即可畫出${ui.blockTool === 'ellipse' ? '橢圓（圓形）' : '矩形'}區塊；拖曳、縮放時會吸附到構圖線、錨點與畫布中線。區塊清單與上下順序在右側「圖層與排序」。`}
+>
   <div class="seg" role="radiogroup" aria-label="繪製形狀">
     {#each BLOCK_SHAPES as s (s.id)}
       <button class:on={ui.blockTool === s.id} onclick={() => (ui.blockTool = s.id)}>{s.label}</button>
     {/each}
   </div>
-  <p class="tip">
-    {#if ui.blockTool === 'polygon'}
-      在畫布上<strong>逐點點擊</strong>畫出多邊形，點回第一點、雙擊或按 Enter 完成，Esc 取消。頂點會吸附到錨點與線的交點。
-    {:else}
-      在畫布空白處<strong>拖曳</strong>即可畫出{ui.blockTool === 'ellipse' ? '橢圓（圓形）' : '矩形'}區塊；拖曳、縮放時會吸附到構圖線、錨點與畫布中線。
-    {/if}
-  </p>
   <button class="add" onclick={() => addBlock(null, 'subject', '', { shape: ui.blockTool === 'ellipse' ? 'ellipse' : 'rect' })}>＋ 新增區塊</button>
-
-  <p class="tip muted">區塊清單、上下順序與顯示開關在右側「圖層與排序」。</p>
 </Section>
 
 {#if selected}
-  <Section id="blocks-2" title="選取的區塊">
+  <Section
+    id="blocks-2"
+    title="選取的區塊"
+    reopen={selected.uid}
+    help={selected.shape === 'polygon' ? '拖曳畫布上的白色頂點可調整多邊形形狀。' : undefined}
+  >
   <div class="editor">
     <label class="row">
       <span>名稱</span>
@@ -77,9 +79,6 @@
         {/each}
       </select>
     </label>
-    {#if selected.shape === 'polygon'}
-      <p class="tip muted">拖曳白色頂點可調整多邊形形狀。</p>
-    {/if}
     <label class="row">
       <span>用途</span>
       <select value={selected.role} onchange={(e) => setRole(e.currentTarget.value)}>
@@ -124,10 +123,7 @@
 </Section>
 {/if}
 
-<Section id="blocks-3" title="建議區塊">
-  <p class="tip muted">
-    依目前的構圖、視覺引導與錨點計算，只是參考。滑鼠移到按鈕上會在畫布預覽，點一下即採用，之後可再調整。
-  </p>
+<Section id="blocks-3" title="建議區塊" help="依目前的構圖、視覺引導與錨點計算，只是參考。滑鼠移到按鈕上會在畫布預覽，點一下即採用，之後可再調整。">
   <label class="inline"><input type="checkbox" bind:checked={project.visibility.suggestions} /> 在畫布上顯示全部建議</label>
   {#each sources as src (src)}
     <div class="group">
@@ -151,15 +147,6 @@
 </Section>
 
 <style>
-  .tip {
-    margin: 0 0 10px;
-    font-size: 12px;
-    color: var(--accent);
-  }
-  .tip.muted {
-    color: var(--muted);
-    margin-top: 6px;
-  }
   .add {
     width: 100%;
   }

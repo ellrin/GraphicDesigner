@@ -26,6 +26,8 @@
     { id: 'right-theme', icon: '色', label: '介面主題' },
   ]
 
+  const mod = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl+'
+
   function openSection(id: string) {
     ontoggle()
     // 展開後捲到該區塊
@@ -46,11 +48,27 @@
       <span>全域設定</span>
       <button class="toggle" onclick={ontoggle} title="收合右側面板">»</button>
     </div>
-    <div id="right-project"><Section id="right-project" title="專案檔"><ProjectPanel /></Section></div>
+    <div id="right-project">
+      <Section id="right-project" title="專案檔" help="瀏覽器會自動暫存目前進度；要換電腦、備份或分享，請儲存成專案檔（包含用到的圖片）。把 .json 拖到頁面任何地方也能開啟。">
+        <ProjectPanel />
+      </Section>
+    </div>
     <div id="right-canvas"><Section id="right-canvas" title="畫布"><CanvasSettings /></Section></div>
-    <div id="right-view"><Section id="right-view" title="檢視"><ViewSettings /></Section></div>
-    <div id="right-layers"><Section id="right-layers" title="圖層與排序"><LayerList /></Section></div>
-    <div id="right-export"><Section id="right-export" title="匯出"><ExportPanel {render} /></Section></div>
+    <div id="right-view">
+      <Section id="right-view" title="檢視" help="{mod}; 一鍵切換全部輔助線。輔助線可以放在物件上層（方便對位）或下層（接近成品）。">
+        <ViewSettings />
+      </Section>
+    </div>
+    <div id="right-layers">
+      <Section id="right-layers" title="圖層與排序" help="清單上方＝最上層。點名稱會選取並切到該步驟；↑↓ 調整上下順序。">
+        <LayerList />
+      </Section>
+    </div>
+    <div id="right-export">
+      <Section id="right-export" title="匯出" help="只輸出作品本身（背景與物件），不含輔助線與區塊。印刷品建議 300 dpi 並加 3mm 出血。">
+        <ExportPanel {render} />
+      </Section>
+    </div>
     <div id="right-theme"><Section id="right-theme" title="介面主題" defaultOpen={false}><ThemeSwitcher /></Section></div>
   </div>
 {/if}

@@ -79,7 +79,6 @@
       <p class="empty">（尚未加入）</p>
     {/each}
   </div>
-  <p class="hint">清單上方＝最上層。點名稱會選取並切到該步驟。</p>
 </div>
 
 <style>
@@ -147,10 +146,5 @@
     padding-left: 20px;
     font-size: 12px;
     color: var(--faint);
-  }
-  .hint {
-    margin: 0;
-    font-size: 11px;
-    color: var(--muted);
   }
 </style>

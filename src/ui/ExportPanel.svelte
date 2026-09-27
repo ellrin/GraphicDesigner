@@ -19,7 +19,6 @@
 </script>
 
 <div class="export">
-  <p class="muted">只輸出作品本身（背景與物件），不含輔助線與區塊。</p>
 
   {#if isMm}
     <label class="row">
@@ -66,11 +65,6 @@
   .export {
     display: grid;
     gap: 8px;
-  }
-  .muted {
-    margin: 0;
-    font-size: 12px;
-    color: var(--muted);
   }
   .row {
     display: grid;
