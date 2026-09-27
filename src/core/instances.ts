@@ -78,7 +78,7 @@ export function translateOutput(out: GuideOutput, dx: number, dy: number): Guide
   return {
     primitives: out.primitives.map((p) => translatePrimitive(p, dx, dy)),
     anchors: out.anchors.map((a) => ({ ...a, x: a.x + dx, y: a.y + dy })),
-    regions: out.regions?.map((r) => ({ ...r, x: r.x + dx, y: r.y + dy })),
+    regions: out.regions?.map((r) => ({ ...r, x: r.x + dx, y: r.y + dy, points: r.points?.map((q) => move(q, dx, dy)) })),
   }
 }
 

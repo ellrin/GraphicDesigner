@@ -27,7 +27,7 @@
   import type { CanvasSpec } from '../core/canvas'
   import type { Handle } from '../core/compute'
   import { drawAnchors, drawPrimitives } from './konva'
-  import { BlockLayer, type BlockLayerEvents, type BlockView, type GhostView } from './blockLayer'
+  import { BlockLayer, type BlockLayerEvents, type BlockTool, type BlockView, type GhostView } from './blockLayer'
   import type { SnapLines } from '../core/blocks'
   import { ObjectLayer, type ObjectLayerEvents } from './objectLayer'
   import { DEFAULT_BACKGROUND, fitImage, type Background, type DesignObject } from '../core/objects'
@@ -48,6 +48,9 @@
     blocksVisible?: boolean
     ghosts?: GhostView[]
     snapLines?: SnapLines
+    /** 區塊頂點吸附的點（錨點、交點） */
+    snapPoints?: Pt[]
+    blockTool?: BlockTool
     blockEvents: BlockLayerEvents
     objects?: DesignObject[]
     selectedObjects?: string[]
@@ -74,6 +77,8 @@
     blocksVisible = true,
     ghosts = [],
     snapLines = { xs: [], ys: [] },
+    snapPoints = [],
+    blockTool = 'rect',
     blockEvents,
     objects = [],
     selectedObjects = [],
@@ -124,7 +129,8 @@
     blockLayer = new BlockLayer(stage, paper, {
       onSelect: (id) => blockEvents.onSelect(id),
       onChange: (id, r) => blockEvents.onChange(id, r),
-      onCreate: (r) => blockEvents.onCreate(r),
+      onPoints: (id, pts) => blockEvents.onPoints(id, pts),
+      onCreate: (r, geo) => blockEvents.onCreate(r, geo),
       onAdopt: (i) => blockEvents.onAdopt(i),
     })
     objectLayer = new ObjectLayer(
@@ -257,6 +263,7 @@
     void uiThemeId
     objectLayer.update({
       objects,
+      masks: new Map(blocks.map((b) => [b.uid, { shape: b.shape, rect: b.rect, points: b.points }])),
       selected: selectedObjects,
       interactive: objectsInteractive,
       visible: objectsVisible,
@@ -273,6 +280,8 @@
       visible: blocksVisible,
       ghosts,
       snap: snapLines,
+      snapPoints,
+      tool: blockTool,
       scale: view.s,
     })
 

@@ -8,7 +8,18 @@
   import { computeInstance, instanceHandles, instancePointFromCanvas, resolveFrame, type TemplateInstance } from './core/instances'
   import type { Template } from './core/registry'
   import type { GuideOutput, Pt, Rect } from './core/geometry'
-  import { collectSuggestions, roleOf, snapLinesFrom, toCanvasRect, toRelativeRect, type Suggestion } from './core/blocks'
+  import {
+    collectSuggestions,
+    roleOf,
+    snapLinesFrom,
+    snapPointsFrom,
+    toCanvasPoints,
+    toCanvasRect,
+    toRelativePoints,
+    toRelativeRect,
+    type BlockShape,
+    type Suggestion,
+  } from './core/blocks'
   import { initHistory, redo, undo } from './core/history.svelte'
   import { downloadProject, initAutosave } from './core/persistence.svelte'
   import ProjectPanel from './ui/ProjectPanel.svelte'
@@ -130,10 +141,18 @@
   const snapLines = $derived(snapLinesFrom(activeOutputs.map((o) => o.output), project.canvas))
   const suggestions = $derived(collectSuggestions(activeOutputs, project.canvas))
 
+  /** 區塊頂點可吸附：錨點、線的交點、其他多邊形區塊的頂點 */
+  const snapPoints = $derived([
+    ...snapPointsFrom(activeOutputs.map((o) => o.output)),
+    ...project.blocks.items.flatMap((b) => (b.points ? toCanvasPoints(b.points, project.canvas) : [])),
+  ])
+
   const blockViews = $derived(
     project.blocks.items.map((b) => ({
       uid: b.uid,
       rect: toCanvasRect(b, project.canvas),
+      shape: b.shape,
+      points: b.points ? toCanvasPoints(b.points, project.canvas) : undefined,
       label: b.name,
       color: b.color,
       filled: b.filled,
@@ -147,18 +166,33 @@
     if (step.id !== 'blocks' || !project.visibility.blocks) return []
     const hovered = ui.hoverSuggestion !== null ? suggestions[ui.hoverSuggestion] : undefined
     const shown = project.visibility.suggestions ? suggestions : hovered ? [hovered] : []
-    return shown.map((s) => ({ rect: s, label: s.label, color: roleOf(s.role ?? 'other').color, index: suggestions.indexOf(s) }))
+    return shown.map((s) => ({
+      rect: s,
+      shape: s.shape,
+      points: s.points,
+      label: s.label,
+      color: roleOf(s.role ?? 'other').color,
+      index: suggestions.indexOf(s),
+    }))
   })
 
   function adopt(s: Suggestion) {
     ui.hoverSuggestion = null
-    addBlock(toRelativeRect(s, project.canvas), s.role ?? 'other', s.label)
+    addBlock(toRelativeRect(s, project.canvas), s.role ?? 'other', s.label, {
+      shape: s.shape,
+      points: s.points ? toRelativePoints(s.points, project.canvas) : undefined,
+    })
   }
 
   const blockEvents = {
     onSelect: (id: string | null) => (ui.selectedBlock = id),
     onChange: (id: string, r: Rect) => updateBlock(id, toRelativeRect(r, project.canvas)),
-    onCreate: (r: Rect) => addBlock(toRelativeRect(r, project.canvas)),
+    onCreate: (r: Rect, geo: { shape: BlockShape; points?: Pt[] }) =>
+      addBlock(toRelativeRect(r, project.canvas), 'subject', '', {
+        shape: geo.shape,
+        points: geo.points ? toRelativePoints(geo.points, project.canvas) : undefined,
+      }),
+    onPoints: (id: string, pts: Pt[]) => updateBlock(id, { points: toRelativePoints(pts, project.canvas) }),
     onAdopt: (i: number) => adopt(suggestions[ghosts[i].index]),
   }
 
@@ -408,6 +442,8 @@
       blocksInteractive={step.id === 'blocks'}
       blocksVisible={project.visibility.blocks}
       {ghosts}
+      {snapPoints}
+      blockTool={ui.blockTool}
       snapLines={editingObjects ? objectSnapLines : snapLines}
       {blockEvents}
       objects={project.objects.items}

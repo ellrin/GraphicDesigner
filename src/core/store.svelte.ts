@@ -1,7 +1,7 @@
 // 專案狀態（單一來源）。存檔、自動暫存、復原／重做都是對 project 做快照。
 
 import { CANVAS_MAX, CANVAS_PRESETS, type CanvasSpec } from './canvas'
-import { roleOf, type Block } from './blocks'
+import { boundsOfPoints, remapPoints, roleOf, type Block, type BlockShape } from './blocks'
 import type { Pt, Rect } from './geometry'
 import { DEFAULT_BACKGROUND, type Background, type DesignObject } from './objects'
 import { objectTypeOf } from '../layers/4-objects/types'
@@ -123,6 +123,8 @@ export const ui = $state({
   selectedComposition: null as string | null,
   selectedGuide: null as string | null,
   selectedBlock: null as string | null,
+  /** 第三層在空白處拖曳時畫出的形狀 */
+  blockTool: 'rect' as 'rect' | 'ellipse' | 'polygon',
   /** 滑鼠指到的建議區塊（在畫布上預覽） */
   hoverSuggestion: null as number | null,
   /** 選取中的物件（可多選）；最後一個為主要選取 */
@@ -201,23 +203,84 @@ function discrete<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) =
 // ── 第三層：區塊的操作 ──────────────────────────────────
 
 function defaultBlock(): Block {
-  return { uid: uid(), name: '', role: 'subject', x: 0.35, y: 0.35, w: 0.3, h: 0.3, filled: false, color: '', opacity: 0.25, visible: true }
+  return {
+    uid: uid(),
+    name: '',
+    role: 'subject',
+    shape: 'rect',
+    x: 0.35,
+    y: 0.35,
+    w: 0.3,
+    h: 0.3,
+    filled: false,
+    color: '',
+    opacity: 0.25,
+    visible: true,
+  }
 }
 
-/** 新增區塊（rect 為 0–1 相對座標）。回傳新區塊的 uid。 */
-export const addBlock = discrete((rect: Rect | null = null, role: string = 'subject', name: string = ''): string => {
-  const r = roleOf(role)
-  const n = project.blocks.items.filter((b) => b.role === r.id).length + 1
-  const b: Block = { ...defaultBlock(), ...(rect ?? {}), role: r.id, color: r.color, name: name || `${r.label} ${n}` }
-  project.blocks.items.push(b)
-  ui.selectedBlock = b.uid
-  return b.uid
-})
+/** 區塊形狀（0–1 相對座標）：多邊形給 points，橢圓給 shape: 'ellipse' */
+export interface BlockGeometry {
+  shape?: BlockShape
+  points?: Pt[]
+}
 
+/** 新增區塊（rect 為 0–1 相對座標；多邊形時以 points 為準）。回傳新區塊的 uid。 */
+export const addBlock = discrete(
+  (rect: Rect | null = null, role: string = 'subject', name: string = '', geo: BlockGeometry = {}): string => {
+    const r = roleOf(role)
+    const n = project.blocks.items.filter((b) => b.role === r.id).length + 1
+    const points = geo.points && geo.points.length >= 3 ? clone(geo.points) : undefined
+    const box = points ? boundsOfPoints(points) : (rect ?? {})
+    const b: Block = {
+      ...defaultBlock(),
+      ...box,
+      shape: points ? 'polygon' : (geo.shape ?? 'rect'),
+      points,
+      role: r.id,
+      color: r.color,
+      name: name || `${r.label} ${n}`,
+    }
+    project.blocks.items.push(b)
+    ui.selectedBlock = b.uid
+    return b.uid
+  },
+)
+
+/**
+ * 更新區塊。外框（x／y／w／h）改變時，多邊形頂點會跟著等比例移動與縮放；
+ * 直接給新的頂點時，外框依頂點重新計算。
+ */
 export function updateBlock(id: string, patch: Partial<Block>) {
   const b = project.blocks.items.find((x) => x.uid === id)
-  if (b) Object.assign(b, patch)
+  if (!b) return
+  if (patch.points) {
+    Object.assign(b, patch, boundsOfPoints(patch.points))
+    return
+  }
+  const boxChanged = ['x', 'y', 'w', 'h'].some((k) => k in patch)
+  if (boxChanged && b.shape === 'polygon' && b.points) {
+    const from = { x: b.x, y: b.y, w: b.w, h: b.h }
+    const to = { x: patch.x ?? b.x, y: patch.y ?? b.y, w: patch.w ?? b.w, h: patch.h ?? b.h }
+    b.points = remapPoints(b.points, from, to)
+  }
+  Object.assign(b, patch)
 }
+
+/** 改變區塊形狀：矩形／橢圓互換；轉成多邊形時以外框四個角為頂點 */
+export const setBlockShape = discrete((id: string, shape: BlockShape) => {
+  const b = project.blocks.items.find((x) => x.uid === id)
+  if (!b || b.shape === shape) return
+  if (shape === 'polygon' && !b.points) {
+    b.points = [
+      { x: b.x, y: b.y },
+      { x: b.x + b.w, y: b.y },
+      { x: b.x + b.w, y: b.y + b.h },
+      { x: b.x, y: b.y + b.h },
+    ]
+  }
+  b.shape = shape
+})
 
 export const removeBlock = discrete((id: string) => {
   project.blocks.items = project.blocks.items.filter((b) => b.uid !== id)
@@ -258,6 +321,8 @@ function objectDefaultProps(type: string): ParamValues {
 export interface Placement {
   rect?: Rect
   center?: Pt
+  /** 放進的區塊 uid：圖片會自動用區塊形狀裁切 */
+  block?: string
 }
 
 export const addObject = discrete((type: string, placement: Placement = {}, props: ParamValues = {}, name: string = ''): string | null => {
@@ -293,6 +358,7 @@ export const addObject = discrete((type: string, placement: Placement = {}, prop
     opacity: 1,
     visible: true,
     props: { ...objectDefaultProps(type), ...props },
+    mask: type === 'image' && placement.block ? placement.block : null,
   }
   project.objects.items.push(o)
   ui.selectedObjects = [o.uid]

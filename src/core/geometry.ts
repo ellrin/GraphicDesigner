@@ -49,7 +49,28 @@ export interface Rect {
 export interface Region extends Rect {
   label: string
   role?: string
+  /** 非矩形區域：多邊形頂點（x／y／w／h 為其外框） */
+  points?: Pt[]
+  /** 橢圓區域（內接於外框） */
+  shape?: 'ellipse'
 }
+
+/** 多邊形的外框 */
+export function boundsOfPoints(points: Pt[]): Rect {
+  const xs = points.map((p) => p.x)
+  const ys = points.map((p) => p.y)
+  const x = Math.min(...xs)
+  const y = Math.min(...ys)
+  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y }
+}
+
+/** 多邊形區域 */
+export const polygonRegion = (points: Pt[], label: string, role?: string): Region => ({
+  ...boundsOfPoints(points),
+  points,
+  label,
+  role,
+})
 
 export interface GuideOutput {
   primitives: Primitive[]

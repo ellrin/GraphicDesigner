@@ -28,6 +28,8 @@ export interface DesignObject {
   visible: boolean
   /** 種類專屬的屬性（邊數、圓角、文字內容、字型、圖片…） */
   props: ParamValues
+  /** 用某個區塊的形狀裁切（區塊 uid）；例如照片放進三角形、圓形區塊 */
+  mask?: string | null
 }
 
 /** 可作為放置目標的錨點（0–1 相對座標） */

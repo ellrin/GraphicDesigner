@@ -18,6 +18,13 @@ export default defineGenerator<P>(({ w, h }, p) => {
   return {
     primitives,
     anchors: [{ ...c, label: '中心' }],
-    regions: [region(c.x - r, c.y - r, 2 * r, 2 * r, '中央主體', 'subject')],
+    regions: [
+      { ...region(c.x - r, c.y - r, 2 * r, 2 * r, '中央圓形', 'title'), shape: 'ellipse' },
+      region(c.x - r, c.y - r, 2 * r, 2 * r, '中央方框', 'subject'),
+      region(0, 0, w / 2, h / 2, '左上', 'image'),
+      region(w / 2, 0, w / 2, h / 2, '右上', 'image'),
+      region(0, h / 2, w / 2, h / 2, '左下', 'image'),
+      region(w / 2, h / 2, w / 2, h / 2, '右下', 'image'),
+    ],
   }
 })

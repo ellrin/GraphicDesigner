@@ -4,12 +4,21 @@
 import Konva from 'konva'
 import { paintTransformer, selectionColor } from './selection'
 import { getImage } from '../core/assets'
-import { snapOffset, type SnapLines } from '../core/blocks'
+import { snapOffset, traceShape, type BlockShape, type SnapLines } from '../core/blocks'
 import type { DesignObject } from '../core/objects'
 import { objectTypeOf } from '../layers/4-objects/types'
 
+/** 裁切遮罩：區塊形狀（畫布座標） */
+export interface MaskShape {
+  shape: BlockShape
+  rect: { x: number; y: number; w: number; h: number }
+  points?: { x: number; y: number }[]
+}
+
 export interface ObjectLayerState {
   objects: DesignObject[]
+  /** 區塊 uid → 形狀，給設定了 mask 的物件使用 */
+  masks: Map<string, MaskShape>
   /** 選取中的物件（可多選） */
   selected: string[]
   interactive: boolean
@@ -53,6 +62,8 @@ export class ObjectLayer {
   private body = new Konva.Group()
   private transformer: Konva.Transformer
   private nodes = new Map<string, Konva.Group>()
+  /** 每個物件外面包一層不受變形影響的群組，用來套用區塊形狀的裁切 */
+  private holders = new Map<string, Konva.Group>()
   private images = new Map<string, HTMLImageElement>()
   private state: ObjectLayerState | null = null
 
@@ -201,7 +212,10 @@ export class ObjectLayer {
       } else commit()
     })
     g.on('transformend', commit)
-    this.body.add(g)
+    const holder = new Konva.Group()
+    holder.add(g)
+    this.body.add(holder)
+    this.holders.set(o.uid, holder)
     this.nodes.set(o.uid, g)
     return g
   }
@@ -256,9 +270,10 @@ export class ObjectLayer {
     this.group.visible(state.visible)
 
     const ids = new Set(state.objects.map((o) => o.uid))
-    for (const [uid, g] of this.nodes) {
+    for (const [uid] of this.nodes) {
       if (!ids.has(uid)) {
-        g.destroy()
+        this.holders.get(uid)?.destroy()
+        this.holders.delete(uid)
         this.nodes.delete(uid)
       }
     }
@@ -268,7 +283,17 @@ export class ObjectLayer {
       if (!g.isDragging() && !(busy && this.transformer.nodes().includes(g))) this.build(g, o)
       g.draggable(state.interactive)
       g.listening(state.interactive)
-      g.moveToTop()
+      const holder = this.holders.get(o.uid)!
+      const mask = o.mask ? state.masks.get(o.mask) : undefined
+      holder.clipFunc(
+        mask
+          ? (ctx) => {
+              ctx.beginPath()
+              traceShape(ctx, mask.shape, mask.rect, mask.points)
+            }
+          : undefined,
+      )
+      holder.moveToTop()
     }
 
     const selNodes = state.interactive

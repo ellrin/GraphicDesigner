@@ -33,7 +33,7 @@
   function placement(): Placement {
     if (target.startsWith('block:')) {
       const b = blocks.find((x) => x.uid === target.slice(6))
-      if (b) return { rect: { x: b.x, y: b.y, w: b.w, h: b.h } }
+      if (b) return { rect: { x: b.x, y: b.y, w: b.w, h: b.h }, block: b.uid }
     }
     if (target.startsWith('anchor:')) {
       const a = anchors[Number(target.slice(7))]

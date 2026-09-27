@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { BLOCK_ROLES, roleOf, type Suggestion } from '../../core/blocks'
+  import { BLOCK_ROLES, BLOCK_SHAPES, roleOf, type BlockShape, type Suggestion } from '../../core/blocks'
   import {
     addBlock,
     duplicateBlock,
     moveBlock,
     project,
     removeBlock,
+    setBlockShape,
     ui,
     updateBlock,
   } from '../../core/store.svelte'
@@ -44,8 +45,19 @@
 
 <section>
   <h3>區塊</h3>
-  <p class="tip">在畫布空白處<strong>拖曳</strong>即可畫出區塊；拖曳、縮放時會吸附到構圖線、錨點與畫布中線。</p>
-  <button class="add" onclick={() => addBlock()}>＋ 新增區塊</button>
+  <div class="seg" role="radiogroup" aria-label="繪製形狀">
+    {#each BLOCK_SHAPES as s (s.id)}
+      <button class:on={ui.blockTool === s.id} onclick={() => (ui.blockTool = s.id)}>{s.label}</button>
+    {/each}
+  </div>
+  <p class="tip">
+    {#if ui.blockTool === 'polygon'}
+      在畫布上<strong>逐點點擊</strong>畫出多邊形，點回第一點、雙擊或按 Enter 完成，Esc 取消。頂點會吸附到錨點與線的交點。
+    {:else}
+      在畫布空白處<strong>拖曳</strong>即可畫出{ui.blockTool === 'ellipse' ? '橢圓（圓形）' : '矩形'}區塊；拖曳、縮放時會吸附到構圖線、錨點與畫布中線。
+    {/if}
+  </p>
+  <button class="add" onclick={() => addBlock(null, 'subject', '', { shape: ui.blockTool === 'ellipse' ? 'ellipse' : 'rect' })}>＋ 新增區塊</button>
 
   {#if items.length > 0}
     <ul class="items">
@@ -72,6 +84,17 @@
       <span>名稱</span>
       <input type="text" bind:value={selected.name} />
     </label>
+    <label class="row">
+      <span>形狀</span>
+      <select value={selected.shape} onchange={(e) => setBlockShape(selected.uid, e.currentTarget.value as BlockShape)}>
+        {#each BLOCK_SHAPES as s (s.id)}
+          <option value={s.id}>{s.label}</option>
+        {/each}
+      </select>
+    </label>
+    {#if selected.shape === 'polygon'}
+      <p class="tip muted">拖曳白色頂點可調整多邊形形狀。</p>
+    {/if}
     <label class="row">
       <span>用途</span>
       <select value={selected.role} onchange={(e) => setRole(e.currentTarget.value)}>
@@ -154,6 +177,29 @@
   }
   .add {
     width: 100%;
+  }
+  .seg {
+    display: flex;
+    margin-bottom: 8px;
+  }
+  .seg button {
+    flex: 1;
+    font-size: 12px;
+    border-radius: 0;
+  }
+  .seg button + button {
+    border-left: none;
+  }
+  .seg button:first-child {
+    border-radius: var(--radius) 0 0 var(--radius);
+  }
+  .seg button:last-child {
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  .seg button.on {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--text);
   }
   .items {
     list-style: none;

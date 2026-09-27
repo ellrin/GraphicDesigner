@@ -9,6 +9,7 @@
   import FontSelect from '../../ui/FontSelect.svelte'
   import ParamPanel from '../../ui/ParamPanel.svelte'
   import { objectTypeOf } from './types'
+  import { BLOCK_SHAPES } from '../../core/blocks'
 
   interface Props {
     anchors: AnchorOption[]
@@ -59,9 +60,18 @@
 
   const short = $derived(Math.min(c.w, c.h))
 
+  /** 放進區塊：物件框 = 區塊外框；圖片同時用區塊形狀裁切 */
   function moveToBlock(id: string) {
     const b = blocks.find((x) => x.uid === id)
-    if (selected && b) updateObject(selected.uid, { x: b.x, y: b.y, w: b.w, h: b.h, rotation: 0 })
+    if (!selected || !b) return
+    updateObject(selected.uid, {
+      x: b.x,
+      y: b.y,
+      w: b.w,
+      h: b.h,
+      rotation: 0,
+      ...(selected.type === 'image' ? { mask: b.uid } : {}),
+    })
   }
 
   function moveToAnchor(i: number) {
@@ -198,6 +208,17 @@
           <option value="" disabled>選擇區塊…</option>
           {#each blocks as b (b.uid)}
             <option value={b.uid}>{b.name}</option>
+          {/each}
+        </select>
+      </label>
+    {/if}
+    {#if blocks.length}
+      <label class="row">
+        <span>用區塊形狀裁切</span>
+        <select value={selected.mask ?? ''} onchange={(e) => updateObject(selected.uid, { mask: e.currentTarget.value || null })}>
+          <option value="">不裁切</option>
+          {#each blocks as b (b.uid)}
+            <option value={b.uid}>{b.name}（{BLOCK_SHAPES.find((s) => s.id === b.shape)?.label}）</option>
           {/each}
         </select>
       </label>

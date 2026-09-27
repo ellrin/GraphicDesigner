@@ -75,7 +75,14 @@ function mapPrimitive(p: Primitive, gen: Frame, o: Orientation): Primitive {
 function mapRegion(r: Region, gen: Frame, o: Orientation): Region {
   const a = mapPoint({ x: r.x, y: r.y }, gen, o)
   const b = mapPoint({ x: r.x + r.w, y: r.y + r.h }, gen, o)
-  return { ...r, x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) }
+  return {
+    ...r,
+    x: Math.min(a.x, b.x),
+    y: Math.min(a.y, b.y),
+    w: Math.abs(a.x - b.x),
+    h: Math.abs(a.y - b.y),
+    points: r.points?.map((p) => mapPoint(p, gen, o)),
+  }
 }
 
 export function applyOrientation(out: GuideOutput, gen: Frame, o: Orientation): GuideOutput {
