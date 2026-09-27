@@ -59,6 +59,8 @@
     /** 輔助線（構圖、引導、區塊）疊在物件上方或下方 */
     guidesOnTop?: boolean
     guideOpacity?: number
+    /** 介面主題 id；改變時重繪以套用選取框顏色 */
+    uiThemeId?: string
   }
   let {
     canvas,
@@ -82,6 +84,7 @@
     objectEvents,
     guidesOnTop = true,
     guideOpacity = 1,
+    uiThemeId = '',
   }: Props = $props()
 
   /** 圖片載入完成時遞增，觸發重繪 */
@@ -96,7 +99,7 @@
   let blockLayer: BlockLayer
   let objectLayer: ObjectLayer
   const paper = new Konva.Group()
-  const paperBg = new Konva.Rect({ name: 'paper-bg', fill: '#fff', shadowColor: '#000', shadowOpacity: 0.18, shadowBlur: 24 })
+  const paperBg = new Konva.Rect({ name: 'paper-bg', fill: '#fff', shadowColor: '#000', shadowOpacity: 0.55, shadowBlur: 40, shadowOffsetY: 8 })
   // 背景圖片：裁切在畫布內，且不接收滑鼠事件（點背景 = 點空白處）
   const bgGroup = new Konva.Group({ listening: false })
   const bgImageNode = new Konva.Image({ image: undefined, listening: false })
@@ -251,6 +254,7 @@
     }
 
     void imageTick
+    void uiThemeId
     objectLayer.update({
       objects,
       selected: selectedObjects,

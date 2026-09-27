@@ -2,6 +2,7 @@
 // 每個物件是一個以中心為原點的 Konva.Group，形狀由各物件種類的 shape.ts 產生。
 
 import Konva from 'konva'
+import { paintTransformer, selectionColor } from './selection'
 import { getImage } from '../core/assets'
 import { snapOffset, type SnapLines } from '../core/blocks'
 import type { DesignObject } from '../core/objects'
@@ -65,8 +66,6 @@ export class ObjectLayer {
       flipEnabled: false,
       ignoreStroke: true,
       anchorSize: 8,
-      borderStroke: '#3a6df0',
-      anchorStroke: '#3a6df0',
       rotationSnaps: [0, 45, 90, 135, 180, 225, 270, 315],
       rotationSnapTolerance: 4,
       anchorDragBoundFunc: (_old, pos) => this.snapAbsolute(pos),
@@ -98,11 +97,11 @@ export class ObjectLayer {
       if (!marquee) {
         if (Math.hypot(p.x - start.x, p.y - start.y) * (this.state?.scale ?? 1) < 4) return
         marquee = new Konva.Rect({
-          stroke: '#3a6df0',
+          stroke: selectionColor(),
           strokeWidth: 1,
           dash: [4, 3],
           strokeScaleEnabled: false,
-          fill: 'rgba(58,109,240,0.08)',
+          fill: selectionColor(0.08),
           listening: false,
         })
         this.group.add(marquee)
@@ -280,6 +279,7 @@ export class ObjectLayer {
     const keep = selObjs.length > 1 || (selObjs.length === 1 && !!objectTypeOf(selObjs[0].type)?.meta.keepRatio)
     this.transformer.keepRatio(keep)
     this.transformer.nodes(selNodes)
+    paintTransformer(this.transformer)
     this.transformer.moveToTop()
   }
 

@@ -1,16 +1,88 @@
+/*
+ * 介面主題：深色、編輯／雜誌感，配色參考 Cyberpunk，共三套（config/ui-themes.json）。
+ * 霓虹色只用在強調（主要按鈕、選取、目前步驟、編號），內文不發光，維持可讀性。
+ * 所有顏色都是這裡的變數；新增主題 = 新增一個 [data-theme] 區塊並登記到 ui-themes.json。
+ */
+
+/* ── 主題一：橘黑（預設） ── */
+:root,
+:root[data-theme='orange'] {
+  --bg: #080706; /* 畫布四周 */
+  --panel: #100e0c; /* 側欄、頂欄 */
+  --surface: #1a1714; /* 卡片、輸入框 */
+  --surface-hover: #241f1b;
+  --line: #2a2520; /* 細分隔線 */
+  --line-strong: #40372f;
+  --text: #f2ede8;
+  --muted: #a09488;
+  --faint: #665c53;
+  --accent: #ff6b35; /* 霓虹橘：主要按鈕、選取 */
+  --accent-ink: #0a0706; /* 強調色上的文字 */
+  --accent-soft: rgba(255, 107, 53, 0.15);
+  --accent-glow: 0 0 0 1px rgba(255, 107, 53, 0.65), 0 0 18px rgba(255, 107, 53, 0.4);
+  --highlight: #ffb020; /* 琥珀：目前步驟、編號 */
+  --canvas-dot: rgba(255, 107, 53, 0.07);
+  --selection: #ff6b35; /* 畫布上的選取框（畫在白紙上，需清楚可見） */
+}
+
+/* ── 主題二：藍紫黃 ── */
+:root[data-theme='night'] {
+  --bg: #06061a;
+  --panel: #0c0b24;
+  --surface: #15133a;
+  --surface-hover: #1e1b4d;
+  --line: #25225a;
+  --line-strong: #3a3680;
+  --text: #eeecff;
+  --muted: #9b97cc;
+  --faint: #5f5a99;
+  --accent: #f3e600; /* 賽博黃 */
+  --accent-ink: #0b0a24;
+  --accent-soft: rgba(243, 230, 0, 0.13);
+  --accent-glow: 0 0 0 1px rgba(243, 230, 0, 0.7), 0 0 18px rgba(139, 44, 255, 0.55);
+  --highlight: #00c8e8; /* 綠藍 */
+  --canvas-dot: rgba(139, 44, 255, 0.14);
+  --selection: #8b2cff;
+}
+
+/* ── 主題三：綠黑 ── */
+:root[data-theme='terminal'] {
+  --bg: #040705;
+  --panel: #080d0a;
+  --surface: #0f1812;
+  --surface-hover: #16231a;
+  --line: #1a2a20;
+  --line-strong: #2b4535;
+  --text: #e6f5ec;
+  --muted: #86a893;
+  --faint: #4c6857;
+  --accent: #2ef08a; /* 螢光綠 */
+  --accent-ink: #030604;
+  --accent-soft: rgba(46, 240, 138, 0.13);
+  --accent-glow: 0 0 0 1px rgba(46, 240, 138, 0.65), 0 0 18px rgba(46, 240, 138, 0.35);
+  --highlight: #c6ff3d; /* 萊姆 */
+  --canvas-dot: rgba(46, 240, 138, 0.08);
+  --selection: #00a86b;
+}
+
 :root {
-  --bg: #e9e7e3;
-  --panel: #fbfaf8;
+  --ok: #00d6b4;
+  --danger: #ff4d5e;
+  /* 畫布縮圖用的紙張色 */
   --paper: #ffffff;
-  --line: #dedbd5;
-  --text: #25221e;
-  --muted: #7a746b;
-  --accent: #3a6df0;
-  --accent-soft: #e4ebfd;
-  font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+
+  /* 字體 */
+  --font: 'Noto Sans TC', -apple-system, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --radius: 4px;
+
+  color-scheme: dark;
+  font-family: var(--font);
   font-size: 14px;
+  line-height: 1.5;
   color: var(--text);
   background: var(--bg);
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
@@ -19,30 +91,67 @@
 
 body {
   margin: 0;
+  background: var(--bg);
 }
 
-h3 {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  margin: 20px 0 10px;
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
 }
+
+/* ── 區段標題：雜誌式編號 ─────────────────────────── */
+
+h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 26px 0 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+h3::before {
+  counter-increment: section;
+  content: counter(section, decimal-leading-zero);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--highlight);
+  letter-spacing: 0.05em;
+}
+
+/* ── 控制項 ─────────────────────────────────────── */
 
 button,
 select,
-input {
+input,
+textarea {
   font: inherit;
   color: inherit;
 }
 
 button,
 select,
-input[type='number'] {
-  border: 1px solid var(--line);
-  background: #fff;
-  border-radius: 6px;
-  padding: 5px 9px;
+input[type='number'],
+input[type='text'],
+input:not([type]),
+textarea {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    box-shadow 0.15s;
+}
+
+select {
+  padding-right: 8px;
 }
 
 button {
@@ -50,14 +159,37 @@ button {
 }
 
 button:hover:not(:disabled) {
-  border-color: #b9b3a9;
+  background: var(--surface-hover);
+  border-color: var(--muted);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
-  padding: 7px 14px;
+  color: var(--accent-ink);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 8px 16px;
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: var(--accent-glow);
 }
 
 button.link {
@@ -66,5 +198,48 @@ button.link {
   padding: 0;
   color: var(--accent);
   justify-self: start;
-  font-size: 12px;
+  font-size: 13px;
+}
+
+button.link:hover:not(:disabled) {
+  background: none;
+  text-decoration: underline;
+}
+
+input[type='checkbox'],
+input[type='radio'],
+input[type='range'] {
+  accent-color: var(--accent);
+}
+
+input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+}
+
+input[type='color'] {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+
+/* 深色捲軸 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 10px;
+  border: 3px solid var(--panel);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }

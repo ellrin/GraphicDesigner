@@ -10,6 +10,8 @@
   import { initHistory, redo, undo } from './core/history.svelte'
   import { downloadProject, initAutosave } from './core/persistence.svelte'
   import ProjectPanel from './ui/ProjectPanel.svelte'
+  import ThemeSwitcher from './ui/ThemeSwitcher.svelte'
+  import { uiTheme } from './ui/theme.svelte'
   import {
     addBlock,
     completeStep,
@@ -316,9 +318,13 @@
 
 <div class="app">
   <header>
-    <strong class="brand">GraphicDesigner</strong>
+    <div class="brand">
+      <strong>GRAPHIC<span class="slash">/</span>DESIGNER</strong>
+      <small>構圖設計工作台</small>
+    </div>
     <Stepper />
     <div class="right">
+      <ThemeSwitcher />
       <ProjectMenu />
       <button class="primary" onclick={quickExportPng}>匯出 PNG</button>
     </div>
@@ -350,14 +356,20 @@
     </section>
 
     {#if flow.current < STEPS.length - 1}
-      <button class="primary next" onclick={completeStep}>
-        完成「{step.label}」→ 下一步
-      </button>
+      <div class="next-bar">
+        <button class="primary next" onclick={completeStep}>
+          完成「{step.label}」<span>→ {STEPS[flow.current + 1].label}</span>
+        </button>
+      </div>
     {/if}
   </aside>
 
   <main>
     <ViewToolbar showSuggestionsToggle={step.id === 'blocks'} />
+    <div class="caption" aria-hidden="true">
+      <span class="step">{String(flow.current + 1).padStart(2, '0')} / {step.label}</span>
+      <span>{project.canvas.w} × {project.canvas.h} {project.canvas.unit}</span>
+    </div>
     <CanvasView
       bind:this={view}
       canvas={project.canvas}
@@ -381,6 +393,7 @@
       {objectEvents}
       guidesOnTop={project.visibility.guidesOnTop}
       guideOpacity={project.visibility.guideOpacity}
+      uiThemeId={uiTheme.id}
     />
   </main>
 </div>
@@ -390,18 +403,43 @@
     height: 100vh;
     display: grid;
     grid-template-rows: auto 1fr;
-    grid-template-columns: 300px 1fr;
+    grid-template-columns: 340px 1fr;
     grid-template-areas: 'header header' 'aside main';
   }
   header {
     grid-area: header;
     display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 10px 16px;
+    align-items: stretch;
+    gap: 24px;
+    padding: 0 18px;
+    min-height: 60px;
     border-bottom: 1px solid var(--line);
     background: var(--panel);
     flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-right: 24px;
+    border-right: 1px solid var(--line);
+  }
+  .brand strong {
+    font-size: 17px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+  }
+  .brand .slash {
+    color: var(--accent);
+    margin: 0 2px;
+    text-shadow: 0 0 12px var(--accent);
+  }
+  .brand small {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
   }
   .right {
     margin-left: auto;
@@ -410,25 +448,57 @@
     gap: 12px;
     flex-wrap: wrap;
   }
-  .brand {
-    font-size: 15px;
-  }
   aside {
     grid-area: aside;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
     border-right: 1px solid var(--line);
     background: var(--panel);
-    padding: 4px 16px 24px;
+    padding: 0 20px;
+    counter-reset: section;
   }
   main {
     grid-area: main;
     position: relative;
-    background: var(--bg);
     overflow: hidden;
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--canvas-dot) 1px, transparent 1.2px);
+    background-size: 22px 22px;
+  }
+  .caption {
+    position: absolute;
+    left: 18px;
+    bottom: 14px;
+    display: flex;
+    gap: 18px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .caption .step {
+    color: var(--highlight);
+  }
+  .next-bar {
+    position: sticky;
+    bottom: 0;
+    margin: 24px -20px 0;
+    padding: 14px 20px 18px;
+    background: linear-gradient(transparent, var(--panel) 30%);
+    margin-top: auto;
   }
   .next {
     width: 100%;
-    margin-top: 16px;
+    font-size: 15px;
+    padding: 11px 16px;
+  }
+  .next span {
+    font-weight: 500;
+    opacity: 0.75;
+    margin-left: 6px;
   }
   @media (max-width: 720px) {
     .app {

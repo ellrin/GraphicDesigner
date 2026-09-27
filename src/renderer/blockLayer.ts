@@ -2,6 +2,7 @@
 // 以及建議區塊的預覽與採用。座標一律為畫布座標；與 Svelte 無關，只透過 callback 回報。
 
 import Konva from 'konva'
+import { paintTransformer, selectionColor } from './selection'
 import type { Rect } from '../core/geometry'
 import { snapOffset, type SnapLines } from '../core/blocks'
 
@@ -72,8 +73,6 @@ export class BlockLayer {
       keepRatio: false,
       ignoreStroke: true,
       anchorSize: 8,
-      borderStroke: '#3a6df0',
-      anchorStroke: '#3a6df0',
       anchorDragBoundFunc: (_old, pos) => this.snapAbsolute(pos),
     })
     this.group.add(this.ghostGroup, this.blockGroup, this.transformer)
@@ -121,11 +120,11 @@ export class BlockLayer {
         ...p,
         width: 0,
         height: 0,
-        stroke: '#3a6df0',
+        stroke: selectionColor(),
         strokeWidth: 1.5,
         dash: [6, 4],
         strokeScaleEnabled: false,
-        fill: 'rgba(58,109,240,0.08)',
+        fill: selectionColor(0.08),
         listening: false,
       })
       this.blockGroup.add(rect)
@@ -280,6 +279,7 @@ export class BlockLayer {
     // 選取框
     const sel = state.interactive && state.selected ? this.nodes.get(state.selected) : undefined
     this.transformer.nodes(sel && sel.rect.visible() ? [sel.rect] : [])
+    paintTransformer(this.transformer)
     this.transformer.moveToTop()
   }
 

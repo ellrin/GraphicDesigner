@@ -294,7 +294,7 @@
     gap: 6px;
   }
   .error {
-    color: #c62828;
+    color: var(--danger);
     font-size: 12px;
   }
   details summary {

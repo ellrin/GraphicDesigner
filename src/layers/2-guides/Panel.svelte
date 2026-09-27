@@ -87,7 +87,7 @@
     padding: 4px 6px;
     border: 1px solid var(--line);
     border-radius: 6px;
-    background: #fff;
+    background: var(--surface);
   }
   .items li.on {
     border-color: var(--accent);

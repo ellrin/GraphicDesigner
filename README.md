@@ -61,6 +61,7 @@ src/
 ├─ config/                   可調設定（不需改程式）
 │  ├─ canvas-presets.json    預設畫布尺寸
 │  ├─ theme.json             引導線顏色、線寬、虛線
+│  ├─ ui-themes.json         介面主題清單（橘黑、藍紫黃、綠黑）；各主題的顏色變數在 src/app.css
 │  ├─ export.json            匯出 DPI
 │  ├─ fonts/                 字型清單（zh-tc.json、en.json）
 │  └─ steps.ts               流程步驟

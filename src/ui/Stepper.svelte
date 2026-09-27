@@ -8,12 +8,12 @@
     <li>
       <button
         class:current={i === flow.current}
-        class:done={i < flow.reached}
+        class:done={i < flow.reached && i !== flow.current}
         disabled={i > flow.reached}
         onclick={() => goToStep(i)}
       >
-        <span class="num">{i < flow.reached && i !== flow.current ? '✓' : i + 1}</span>
-        {s.label}
+        <span class="num">{String(i + 1).padStart(2, '0')}</span>
+        <span class="label">{s.label}</span>
       </button>
     </li>
   {/each}
@@ -22,42 +22,71 @@
 <style>
   .stepper {
     display: flex;
-    gap: 4px;
     list-style: none;
     margin: 0;
     padding: 0;
-    flex-wrap: wrap;
+    align-self: stretch;
+  }
+  li {
+    display: flex;
   }
   button {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 8px;
     border: none;
+    border-radius: 0;
     background: none;
-    padding: 6px 12px;
-    border-radius: 999px;
-    color: var(--muted);
+    padding: 0 16px;
+    color: var(--faint);
+    font-size: 14px;
   }
-  button:disabled {
-    opacity: 0.45;
-  }
-  button.current {
-    background: var(--accent-soft);
+  button:hover:not(:disabled) {
+    background: none;
     color: var(--text);
-    font-weight: 600;
+  }
+  button::after {
+    content: '';
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: -1px;
+    height: 2px;
+    background: transparent;
   }
   .num {
-    display: inline-grid;
-    place-items: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 1px solid currentColor;
-    font-size: 11px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  button.done {
+    color: var(--muted);
+  }
+  button.done .num::after {
+    content: ' ✓';
+  }
+  button.current {
+    color: var(--text);
+    font-weight: 700;
   }
   button.current .num {
+    color: var(--highlight);
+  }
+  button.current::after {
     background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
+    box-shadow: 0 0 10px var(--accent);
+  }
+  button:disabled {
+    opacity: 1;
+    color: var(--faint);
+  }
+  @media (max-width: 1100px) {
+    .label {
+      display: none;
+    }
+    button.current .label {
+      display: inline;
+    }
   }
 </style>

@@ -51,13 +51,16 @@
     align-items: center;
     gap: 2px;
     padding: 4px;
-    background: rgba(255, 255, 255, 0.92);
+    background: color-mix(in srgb, var(--panel) 88%, transparent);
+    backdrop-filter: blur(8px);
     border: 1px solid var(--line);
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
     z-index: 2;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    white-space: nowrap;
     max-width: calc(100% - 20px);
+    overflow-x: auto;
   }
   button {
     display: inline-flex;

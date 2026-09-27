@@ -217,7 +217,7 @@
     padding: 2px 4px;
   }
   .error {
-    color: #c62828;
+    color: var(--danger);
     font-size: 12px;
   }
 </style>

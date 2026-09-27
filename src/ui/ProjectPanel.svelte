@@ -79,9 +79,9 @@
     display: grid;
     gap: 4px;
     padding: 14px 10px;
-    border: 1.5px dashed #b9b3a9;
+    border: 1.5px dashed var(--line-strong);
     border-radius: 8px;
-    background: #fff;
+    background: var(--surface);
     text-align: center;
   }
   .drop span {
@@ -109,10 +109,10 @@
   .msg {
     margin: 8px 0 0;
     font-size: 12px;
-    color: #1b7f4b;
+    color: var(--ok);
   }
   .msg.error {
-    color: #c62828;
+    color: var(--danger);
   }
   .note {
     margin: 8px 0 0;
