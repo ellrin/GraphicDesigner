@@ -1,7 +1,9 @@
 <script lang="ts">
   import Section from '../../ui/Section.svelte'
   import { CANVAS_FRAME, frameLabel, resolveFrame } from '../../core/instances'
-  import { addComposition, project, removeComposition, setInstanceTemplate, ui } from '../../core/store.svelte'
+  import { addComposition, project, removeComposition, setInstanceTemplate, startFromRecipe, ui } from '../../core/store.svelte'
+  import type { Recipe } from '../../core/recipes'
+  import RecipeGallery from '../../ui/RecipeGallery.svelte'
   import FrameSelect, { type RegionOption } from '../../ui/FrameSelect.svelte'
   import OrientationTools from '../../ui/OrientationTools.svelte'
   import ParamPanel from '../../ui/ParamPanel.svelte'
@@ -31,6 +33,10 @@
     selected.orientation = { ...IDENTITY }
     selected.params = structuredClone(template.defaults)
   }
+
+  // 從範例開始：選好範例後套用，直接前往插入物件
+  let recipe = $state<Recipe | null>(null)
+  const hasWork = $derived(items.length > 0 || project.guides.items.length > 0 || project.blocks.items.length > 0)
 
   function add(id: string) {
     addComposition(id)
@@ -106,6 +112,17 @@
   </Section>
 {/if}
 
+<Section id="comp-recipes" title="從範例開始" help="套用範例的構圖、視覺引導與區塊，直接前往「插入物件」；之後仍可回到前面的步驟調整。">
+  <RecipeGallery aspect={project.canvas.w / project.canvas.h} selected={recipe} onpick={(r) => (recipe = r)} min={120} />
+  {#if recipe}
+    <div class="apply">
+      <strong>{recipe.name}</strong>
+      {#if hasWork}<p class="warn">會取代目前的構圖、視覺引導與區塊（物件與背景保留，可以復原）。</p>{/if}
+      <button class="primary" onclick={() => recipe && startFromRecipe(recipe)}>套用並前往插入物件</button>
+    </div>
+  {/if}
+</Section>
+
 <style>
   .items {
     list-style: none;
@@ -158,6 +175,23 @@
   }
   .reset {
     width: 100%;
+  }
+  .apply {
+    position: sticky;
+    bottom: 70px;
+    display: grid;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-size: 13px;
+  }
+  .apply .warn {
+    margin: 0;
+    font-size: 12px;
+    color: var(--highlight);
   }
   .picker {
     margin-top: 8px;

@@ -489,6 +489,14 @@ export function completeStep() {
 
 export const currentStep = (): StepDef => STEPS[flow.current]
 
+/** 以版型範例開始：套用後直接前往「插入物件」（前面的步驟都已解鎖，可以回頭調整） */
+export function startFromRecipe(recipe: Recipe) {
+  applyRecipe(recipe)
+  const objects = STEPS.findIndex((s) => s.id === 'objects')
+  flow.reached = Math.max(flow.reached, objects)
+  flow.current = objects
+}
+
 /** 專案已經有後面步驟的內容時（套用範例、開啟專案檔），直接解鎖到那一步，讓內容可以編輯 */
 export function unlockSteps() {
   const has = [

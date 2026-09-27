@@ -3,14 +3,13 @@
   // 畫布尺寸只在建立專案時決定，設計途中不再更改。
   import { untrack } from 'svelte'
   import { CANVAS_PRESETS, type CanvasSpec } from '../core/canvas'
-  import { RECIPES, type Recipe } from '../core/recipes'
+  import type { Recipe } from '../core/recipes'
   import { createProject } from '../core/persistence.svelte'
   import { project } from '../core/store.svelte'
-  import { compositionTemplates } from '../layers/1-composition/templates'
   import CanvasSettings from './CanvasSettings.svelte'
   import Help from './Help.svelte'
   import ProjectPanel from './ProjectPanel.svelte'
-  import RecipeThumb from './RecipeThumb.svelte'
+  import RecipeGallery from './RecipeGallery.svelte'
 
   interface Props {
     open: boolean
@@ -22,7 +21,6 @@
   let draft = $state<CanvasSpec>({ ...project.canvas })
   let start = $state<'blank' | 'recipe'>('blank')
   let recipe = $state<Recipe | null>(null)
-  let group = $state('all')
   let confirming = $state(false)
 
   $effect(() => {
@@ -37,9 +35,6 @@
     } else if (!open && dialog.open) dialog.close()
   })
 
-  const groups = [...new Set(RECIPES.map((r) => r.group))]
-  const groupName = (id: string) => compositionTemplates.find((t) => t.id === id)?.meta.name ?? id
-  const list = $derived(group === 'all' ? RECIPES : RECIPES.filter((r) => r.group === group))
   const aspect = $derived(draft.w / draft.h)
   const hasWork = $derived(
     project.compositions.items.length > 0 ||
@@ -96,28 +91,14 @@
           </button>
           <button class="start" class:on={start === 'recipe'} onclick={() => (start = 'recipe')}>
             <strong>從版型範例開始</strong>
-            <span>構圖、引導與區塊都已配置好，可再逐步調整</span>
+            <span>構圖、引導與區塊都已配置好，直接從插入物件開始</span>
           </button>
         </div>
       </section>
 
       {#if start === 'recipe'}
         <section>
-          <div class="chips">
-            <button class:on={group === 'all'} onclick={() => (group = 'all')}>全部</button>
-            {#each groups as g (g)}
-              <button class:on={group === g} onclick={() => (group = g)}>{groupName(g)}</button>
-            {/each}
-          </div>
-          <div class="grid">
-            {#each list as r (r.id)}
-              <button class="card" class:on={recipe?.id === r.id} onclick={() => pick(r)} title={r.description}>
-                <RecipeThumb recipe={r} {aspect} />
-                <span class="name">{r.name}</span>
-                <small>{groupName(r.group)}</small>
-              </button>
-            {/each}
-          </div>
+          <RecipeGallery {aspect} selected={recipe} onpick={pick} />
         </section>
       {/if}
     {:else}
@@ -221,46 +202,9 @@
     font-size: 12px;
     color: var(--muted);
   }
-  .start.on,
-  .card.on {
+  .start.on {
     border-color: var(--accent);
     box-shadow: 0 0 0 1px var(--accent);
-  }
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 10px;
-  }
-  .chips button {
-    padding: 3px 10px;
-    font-size: 12px;
-    border-radius: 999px;
-  }
-  .chips button.on {
-    border-color: var(--accent);
-    color: var(--text);
-    background: var(--accent-soft);
-  }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 8px;
-  }
-  .card {
-    display: grid;
-    gap: 6px;
-    padding: 8px;
-    text-align: left;
-    align-content: start;
-  }
-  .card .name {
-    font-size: 12px;
-    line-height: 1.35;
-  }
-  .card small {
-    font-size: 11px;
-    color: var(--muted);
   }
   .current {
     margin: 0 0 12px;

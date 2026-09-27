@@ -1,6 +1,6 @@
 // 存檔（下載 .json）、讀檔、瀏覽器自動暫存。
 
-import { applyRecipe, flow, newProject, project, replaceProject, ui, unlockSteps, type ProjectData } from './store.svelte'
+import { flow, startFromRecipe, newProject, project, replaceProject, ui, unlockSteps, type ProjectData } from './store.svelte'
 import type { CanvasSpec } from './canvas'
 import type { Recipe } from './recipes'
 import { resetHistory } from './history.svelte'
@@ -91,7 +91,7 @@ export function createProject(canvas: CanvasSpec, recipe: Recipe | null) {
   project.canvas = { ...canvas }
   flow.current = flow.reached = 0
   Object.assign(ui, { selectedComposition: null, selectedGuide: null, selectedBlock: null, selectedObjects: [] })
-  if (recipe) applyRecipe(recipe)
+  if (recipe) startFromRecipe(recipe)
   resetHistory()
 }
 
