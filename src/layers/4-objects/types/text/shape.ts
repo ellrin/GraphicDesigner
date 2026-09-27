@@ -1,6 +1,7 @@
 import Konva from 'konva'
 import type { ParamValues } from '../../../../core/params'
 import type { ShapeBuilder } from '../index'
+import { createVerticalText, type LatinMode } from './vertical'
 
 /** 文字專屬、由文字編輯區（而非 params.json）控制的屬性預設值。 */
 export const TEXT_DEFAULTS: ParamValues = {
@@ -16,12 +17,35 @@ export const TEXT_DEFAULTS: ParamValues = {
 const build: ShapeBuilder = (ctx) => {
   const p = ctx.props
   const size = (p.fontSize as number) * ctx.canvasH
+  const family = `"${p.fontFamily}", "PingFang TC", "Microsoft JhengHei", sans-serif`
+
+  if (p.direction === 'vertical') {
+    return [
+      createVerticalText({
+        x: -ctx.w / 2,
+        y: -ctx.h / 2,
+        width: ctx.w,
+        height: ctx.h,
+        text: String(p.text ?? ''),
+        font: `${p.fontWeight ?? 400} ${size}px ${family}`,
+        fontSize: size,
+        lineHeight: p.lineHeight as number,
+        letterSpacing: (p.letterSpacing as number) * size,
+        align: p.align as 'left' | 'center' | 'right',
+        latin: (p.latin as LatinMode) ?? 'rotate',
+        fill: ctx.fill || '#000000',
+        stroke: ctx.stroke || undefined,
+        strokeWidth: ctx.strokeWidth,
+      }),
+    ]
+  }
+
   const text = new Konva.Text({
     x: -ctx.w / 2,
     y: -ctx.h / 2,
     width: ctx.w,
     text: String(p.text ?? ''),
-    fontFamily: `"${p.fontFamily}", "PingFang TC", "Microsoft JhengHei", sans-serif`,
+    fontFamily: family,
     fontStyle: String(p.fontWeight ?? 400),
     fontSize: size,
     lineHeight: p.lineHeight as number,

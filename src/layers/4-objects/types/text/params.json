@@ -1,7 +1,16 @@
 {
+  "direction": {
+    "type": "select",
+    "label": "排列方向",
+    "options": [
+      { "value": "horizontal", "label": "橫排" },
+      { "value": "vertical", "label": "直排（由右往左換行）" }
+    ],
+    "default": "horizontal"
+  },
   "align": {
     "type": "select",
-    "label": "水平對齊",
+    "label": "對齊（直排時為：靠上／置中／靠下）",
     "options": [
       { "value": "left", "label": "靠左" },
       { "value": "center", "label": "置中" },
@@ -11,7 +20,7 @@
   },
   "verticalAlign": {
     "type": "select",
-    "label": "垂直對齊",
+    "label": "垂直對齊（橫排）",
     "options": [
       { "value": "top", "label": "靠上" },
       { "value": "middle", "label": "置中" },
@@ -19,6 +28,16 @@
     ],
     "default": "top"
   },
-  "lineHeight": { "type": "number", "label": "行高", "min": 0.8, "max": 3, "step": 0.05, "default": 1.3 },
+  "latin": {
+    "type": "select",
+    "label": "直排中的英數字",
+    "options": [
+      { "value": "rotate", "label": "橫躺（1–2 位數字縱中橫）" },
+      { "value": "upright", "label": "每個字直立" },
+      { "value": "sideways", "label": "全部橫躺" }
+    ],
+    "default": "rotate"
+  },
+  "lineHeight": { "type": "number", "label": "行高（直排為欄距）", "min": 0.8, "max": 3, "step": 0.05, "default": 1.3 },
   "letterSpacing": { "type": "number", "label": "字距（em）", "min": -0.1, "max": 0.5, "step": 0.01, "default": 0 }
 }
