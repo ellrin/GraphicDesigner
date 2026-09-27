@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Section from '../../ui/Section.svelte'
   // 單一物件的編輯區（第四層「插入物件」與第五層「微調」共用）。
   import { importImageFile } from '../../core/assets'
   import { FONT_GROUPS } from '../../core/fonts'
@@ -104,8 +105,8 @@
 </script>
 
 {#if selected && selectedType}
-  <section class="editor">
-    <h3>選取的物件：{selectedType.meta.name}</h3>
+  <Section id="objedit-1" title="選取的物件：{selectedType.meta.name}" reopen={selected.uid}>
+  <div class="editor">
     <label class="row">
       <span>名稱</span>
       <input type="text" bind:value={selected.name} />
@@ -271,7 +272,8 @@
       <button onclick={() => duplicateObject(selected.uid)}>複製</button>
       <button onclick={() => removeObject(selected.uid)}>刪除</button>
     </div>
-  </section>
+  </div>
+</Section>
 {/if}
 
 <style>

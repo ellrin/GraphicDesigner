@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Section from '../../ui/Section.svelte'
   import { BLOCK_ROLES, BLOCK_SHAPES, roleOf, type BlockShape, type Suggestion } from '../../core/blocks'
   import {
     addBlock,
@@ -43,8 +44,7 @@
   }
 </script>
 
-<section>
-  <h3>區塊</h3>
+<Section id="blocks-1" title="區塊">
   <div class="seg" role="radiogroup" aria-label="繪製形狀">
     {#each BLOCK_SHAPES as s (s.id)}
       <button class:on={ui.blockTool === s.id} onclick={() => (ui.blockTool = s.id)}>{s.label}</button>
@@ -59,27 +59,12 @@
   </p>
   <button class="add" onclick={() => addBlock(null, 'subject', '', { shape: ui.blockTool === 'ellipse' ? 'ellipse' : 'rect' })}>＋ 新增區塊</button>
 
-  {#if items.length > 0}
-    <ul class="items">
-      {#each [...items].reverse() as b (b.uid)}
-        <li class:on={b.uid === ui.selectedBlock}>
-          <input type="checkbox" bind:checked={b.visible} title="顯示／隱藏" />
-          <span class="dot" style:background={b.color}></span>
-          <button class="name" onclick={() => (ui.selectedBlock = b.uid)}>
-            {b.name}<small>{roleOf(b.role).label}</small>
-          </button>
-          <button class="icon" onclick={() => moveBlock(b.uid, 1)} title="上移一層">↑</button>
-          <button class="icon" onclick={() => moveBlock(b.uid, -1)} title="下移一層">↓</button>
-          <button class="icon" onclick={() => removeBlock(b.uid)} title="刪除（Delete）">✕</button>
-        </li>
-      {/each}
-    </ul>
-  {/if}
-</section>
+  <p class="tip muted">區塊清單、上下順序與顯示開關在右側「圖層與排序」。</p>
+</Section>
 
 {#if selected}
-  <section class="editor">
-    <h3>選取的區塊</h3>
+  <Section id="blocks-2" title="選取的區塊">
+  <div class="editor">
     <label class="row">
       <span>名稱</span>
       <input type="text" bind:value={selected.name} />
@@ -135,11 +120,11 @@
       <button onclick={() => duplicateBlock(selected.uid)}>複製</button>
       <button onclick={() => removeBlock(selected.uid)}>刪除</button>
     </div>
-  </section>
+  </div>
+</Section>
 {/if}
 
-<section>
-  <h3>建議區塊</h3>
+<Section id="blocks-3" title="建議區塊">
   <p class="tip muted">
     依目前的構圖、視覺引導與錨點計算，只是參考。滑鼠移到按鈕上會在畫布預覽，點一下即採用，之後可再調整。
   </p>
@@ -163,7 +148,7 @@
       </div>
     </div>
   {/each}
-</section>
+</Section>
 
 <style>
   .tip {
@@ -201,26 +186,6 @@
     border-color: var(--accent);
     color: var(--text);
   }
-  .items {
-    list-style: none;
-    margin: 10px 0 0;
-    padding: 0;
-    display: grid;
-    gap: 4px;
-  }
-  .items li {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 6px;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    background: var(--surface);
-  }
-  .items li.on {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 1px var(--accent);
-  }
   .dot {
     display: inline-block;
     width: 10px;
@@ -228,27 +193,6 @@
     border-radius: 3px;
     flex: none;
     margin-right: 4px;
-  }
-  .name {
-    flex: 1;
-    min-width: 0;
-    text-align: left;
-    border: none;
-    background: none;
-    padding: 2px 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .name small {
-    color: var(--muted);
-    margin-left: 6px;
-  }
-  .icon {
-    border: none;
-    background: none;
-    color: var(--muted);
-    padding: 2px 4px;
   }
   .editor {
     display: grid;

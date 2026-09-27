@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Section from '../../ui/Section.svelte'
   import { importImageFile } from '../../core/assets'
   import type { AnchorOption } from '../../core/objects'
   import {
@@ -80,8 +81,10 @@
 
 </script>
 
-<section>
-  <h3>新增物件</h3>
+<!-- 選取物件時，編輯區自動展開並放在最上面 -->
+<ObjectEditor {anchors} {focusText} />
+
+<Section id="objects-1" title="新增物件">
   <label class="row">
     <span>放置位置</span>
     <select bind:value={target}>
@@ -109,10 +112,9 @@
   </div>
   <input bind:this={imageInput} type="file" accept="image/*" hidden onchange={onImage} />
   {#if error}<p class="error" role="alert">{error}</p>{/if}
-</section>
+</Section>
 
-<section>
-  <h3>背景</h3>
+<Section id="objects-2" title="背景">
   <div class="inline">
     <input type="color" bind:value={project.background.color} aria-label="背景顏色" />
     <button onclick={() => bgInput.click()}>{project.background.assetId ? '更換背景圖' : '＋ 背景圖…'}</button>
@@ -164,38 +166,15 @@
     hidden
     onchange={() => withImage(bgInput, ({ id }) => (project.background.assetId = id))}
   />
-</section>
+</Section>
 
-{#if items.length > 0}
-  <section>
-    <h3>物件（{items.length}）</h3>
-    <ul class="items">
-      {#each [...items].reverse() as o (o.uid)}
-        <li class:on={ui.selectedObjects.includes(o.uid)}>
-          <input type="checkbox" bind:checked={o.visible} title="顯示／隱藏" />
-          <button class="name" onclick={(e) => selectObject(o.uid, e.shiftKey)}>
-            {o.name}<small>{objectTypeOf(o.type)?.meta.name}</small>
-          </button>
-          <button class="icon" onclick={() => moveObject(o.uid, 1)} title="上移一層">↑</button>
-          <button class="icon" onclick={() => moveObject(o.uid, -1)} title="下移一層">↓</button>
-          <button class="icon" onclick={() => removeObject(o.uid)} title="刪除（Delete）">✕</button>
-        </li>
-      {/each}
-    </ul>
-  </section>
-{/if}
 
-<ObjectEditor {anchors} {focusText} />
 
 <style>
   .row {
     display: grid;
     gap: 4px;
     font-size: 13px;
-  }
-  section > .row + .types,
-  section > .row {
-    margin-bottom: 8px;
   }
   .types {
     display: grid;
@@ -213,31 +192,6 @@
     border: 1px solid var(--line);
     border-radius: 4px;
     background: none;
-  }
-  .items li.on {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 1px var(--accent);
-  }
-  .name {
-    flex: 1;
-    min-width: 0;
-    text-align: left;
-    border: none;
-    background: none;
-    padding: 2px 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .name small {
-    color: var(--muted);
-    margin-left: 6px;
-  }
-  .icon {
-    border: none;
-    background: none;
-    color: var(--muted);
-    padding: 2px 4px;
   }
   .error {
     color: var(--danger);

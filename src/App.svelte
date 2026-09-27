@@ -2,8 +2,7 @@
   import { onMount } from 'svelte'
   import { STEPS } from './config/steps'
   import theme from './config/theme.json'
-  import exportConfig from './config/export.json'
-  import { exportPng, type Renderer } from './core/exporter'
+  import type { Renderer } from './core/exporter'
   import type { Handle } from './core/compute'
   import { buildSnapGeometry, type SnapGeometry } from './core/snap'
   import { computeInstance, instanceHandles, instancePointFromCanvas, resolveFrame, type TemplateInstance } from './core/instances'
@@ -22,9 +21,8 @@
     type Suggestion,
   } from './core/blocks'
   import { initHistory, redo, undo } from './core/history.svelte'
-  import { downloadProject, initAutosave } from './core/persistence.svelte'
-  import ProjectPanel from './ui/ProjectPanel.svelte'
-  import ThemeSwitcher from './ui/ThemeSwitcher.svelte'
+  import { downloadProject, initAutosave, openProjectWithMessage } from './core/persistence.svelte'
+  import RightPanel from './ui/RightPanel.svelte'
   import { uiTheme } from './ui/theme.svelte'
   import {
     addBlock,
@@ -50,19 +48,15 @@
   import ObjectsPanel from './layers/4-objects/Panel.svelte'
   import type { AnchorOption } from './core/objects'
   import type { ObjectBox } from './renderer/objectLayer'
-  import ViewToolbar from './ui/ViewToolbar.svelte'
   import CompositionPanel from './layers/1-composition/Panel.svelte'
   import { compositionTemplates } from './layers/1-composition/templates'
   import GuidesPanel from './layers/2-guides/Panel.svelte'
   import { guideTemplates } from './layers/2-guides/templates'
   import CanvasView, { type GuideLayerView } from './renderer/CanvasView.svelte'
-  import CanvasSettings from './ui/CanvasSettings.svelte'
-  import LayerList from './ui/LayerList.svelte'
   import ProjectMenu from './ui/ProjectMenu.svelte'
   import Stepper from './ui/Stepper.svelte'
 
   let view: CanvasView
-  let projectPanel: ProjectPanel
 
   onMount(() => {
     // 先讀回暫存，再開始記錄復原歷史；圖片另外從 IndexedDB 讀回
@@ -358,10 +352,24 @@
   const editingObjects = $derived(step.id === 'objects' || step.id === 'refine')
 
   const render: Renderer = (o) => view.renderImage(o)
-  const exportName = () => `design-${new Date().toISOString().slice(0, 10)}`
 
-  function quickExportPng() {
-    exportPng(render, project.canvas, { dpi: exportConfig.printDpi, scale: 1 }, exportName())
+  // 右側面板收合狀態（介面偏好，記在瀏覽器中）
+  const RIGHT_KEY = 'graphic-designer:right-collapsed'
+  let rightCollapsed = $state(readFlag(RIGHT_KEY))
+  function readFlag(key: string) {
+    try {
+      return localStorage.getItem(key) === '1'
+    } catch {
+      return false
+    }
+  }
+  function toggleRight() {
+    rightCollapsed = !rightCollapsed
+    try {
+      localStorage.setItem(RIGHT_KEY, rightCollapsed ? '1' : '0')
+    } catch {
+      // 略過
+    }
   }
 
   /** 方向鍵微調：每次 1 單位（按住 Shift 為 10 單位），回傳 0–1 相對位移 */
@@ -442,7 +450,7 @@
     // 檔案拖到頁面任何地方：.json 當作專案檔開啟；其他檔案忽略（避免瀏覽器離開頁面）
     e.preventDefault()
     const file = e.dataTransfer?.files?.[0]
-    if (file && /\.json$/i.test(file.name)) projectPanel.open(file)
+    if (file && /\.json$/i.test(file.name)) openProjectWithMessage(file)
   }}
 />
 
@@ -454,19 +462,16 @@
     </div>
     <Stepper />
     <div class="right">
-      <ThemeSwitcher />
       <ProjectMenu />
-      <button class="primary" onclick={quickExportPng}>匯出 PNG</button>
     </div>
   </header>
 
-  <aside>
-    <ProjectPanel bind:this={projectPanel} />
-
-    <section>
-      <h3>畫布</h3>
-      <CanvasSettings />
-    </section>
+  <!-- 左側：這一步的設定（隨步驟改變） -->
+  <aside class="left">
+    <div class="step-title">
+      <span class="num">STEP {String(flow.current + 1).padStart(2, '0')}</span>
+      <strong>{step.label}</strong>
+    </div>
 
     {#if step.id === 'composition'}
       <CompositionPanel regions={regionOptions} />
@@ -477,13 +482,8 @@
     {:else if step.id === 'objects'}
       <ObjectsPanel anchors={anchorOptions} {focusText} />
     {:else if step.id === 'refine'}
-      <RefinePanel anchors={anchorOptions} {render} />
+      <RefinePanel anchors={anchorOptions} />
     {/if}
-
-    <section>
-      <h3>圖層</h3>
-      <LayerList />
-    </section>
 
     {#if flow.current < STEPS.length - 1}
       <div class="next-bar">
@@ -495,7 +495,6 @@
   </aside>
 
   <main>
-    <ViewToolbar showSuggestionsToggle={step.id === 'blocks'} />
     <div class="caption" aria-hidden="true">
       <span class="step">{String(flow.current + 1).padStart(2, '0')} / {step.label}</span>
       <span>{project.canvas.w} × {project.canvas.h} {project.canvas.unit}</span>
@@ -529,6 +528,11 @@
       uiThemeId={uiTheme.id}
     />
   </main>
+
+  <!-- 右側：跨步驟的設定（可收合） -->
+  <aside class="right-panel" class:collapsed={rightCollapsed}>
+    <RightPanel {render} collapsed={rightCollapsed} ontoggle={toggleRight} />
+  </aside>
 </div>
 
 <style>
@@ -536,8 +540,8 @@
     height: 100vh;
     display: grid;
     grid-template-rows: auto 1fr;
-    grid-template-columns: 340px 1fr;
-    grid-template-areas: 'header header' 'aside main';
+    grid-template-columns: 340px 1fr auto;
+    grid-template-areas: 'header header header' 'left main right';
   }
   header {
     grid-area: header;
@@ -579,10 +583,9 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    flex-wrap: wrap;
   }
-  aside {
-    grid-area: aside;
+  .left {
+    grid-area: left;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -590,6 +593,29 @@
     background: var(--panel);
     padding: 0 20px;
     counter-reset: section;
+  }
+  .step-title {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 18px 0 4px;
+    font-size: 18px;
+  }
+  .step-title .num {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: var(--highlight);
+  }
+  .right-panel {
+    grid-area: right;
+    width: 330px;
+    overflow-y: auto;
+    border-left: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .right-panel.collapsed {
+    width: 50px;
   }
   main {
     grid-area: main;
@@ -633,11 +659,15 @@
     opacity: 0.75;
     margin-left: 6px;
   }
-  @media (max-width: 720px) {
+  @media (max-width: 900px) {
     .app {
       grid-template-columns: 1fr;
-      grid-template-rows: auto 50vh 1fr;
-      grid-template-areas: 'header' 'main' 'aside';
+      grid-template-rows: auto 50vh auto auto;
+      grid-template-areas: 'header' 'main' 'left' 'right';
+    }
+    .right-panel,
+    .right-panel.collapsed {
+      width: auto;
     }
   }
 </style>

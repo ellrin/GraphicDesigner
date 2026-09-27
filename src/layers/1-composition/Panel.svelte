@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Section from '../../ui/Section.svelte'
   import { frameLabel, resolveFrame } from '../../core/instances'
   import { addComposition, project, removeComposition, setInstanceTemplate, ui } from '../../core/store.svelte'
   import FrameSelect, { type RegionOption } from '../../ui/FrameSelect.svelte'
@@ -28,8 +29,7 @@
   const otherRegions = $derived(regions.filter((r) => r.source !== selected?.uid))
 </script>
 
-<section>
-  <h3>構圖（{items.length}）</h3>
+<Section id="comp-1" title="構圖（{items.length}）">
   <p class="tip">可以疊加多個構圖，並把構圖套用在某個區域上，例如先用黃金分割切出右欄，再在右欄放一個黃金螺旋。</p>
   <ul class="items">
     {#each items as c (c.uid)}
@@ -45,18 +45,16 @@
     {/each}
   </ul>
   <button class="add" onclick={() => addComposition(selected?.templateId ?? compositionTemplates[0].id)}>＋ 再加一個構圖</button>
-</section>
+</Section>
 
 <RecipePanel group={selected?.templateId ?? compositionTemplates[0].id} />
 
 {#if selected && template}
-  <section>
-    <h3>套用範圍</h3>
+  <Section id="comp-2" title="套用範圍">
     <FrameSelect frame={selected.frame} regions={otherRegions} onchange={(f) => (selected.frame = f)} />
-  </section>
+  </Section>
 
-  <section>
-    <h3>選擇構圖</h3>
+  <Section id="comp-3" title="選擇構圖">
     <div class="grid">
       {#each compositionTemplates as t (t.id)}
         <button class="card" class:active={t.id === selected.templateId} onclick={() => t.id !== selected.templateId && setInstanceTemplate(selected, t)} title={t.meta.description}>
@@ -68,20 +66,18 @@
     {#if template.meta.description}
       <p class="desc">{template.meta.description}</p>
     {/if}
-  </section>
+  </Section>
 
-  <section>
-    <h3>方向</h3>
+  <Section id="comp-4" title="方向">
     <OrientationTools bind:orientation={selected.orientation} />
-  </section>
+  </Section>
 
-  <section>
-    <h3>參數</h3>
+  <Section id="comp-5" title="參數">
     <ParamPanel schema={template.params} bind:values={selected.params} onreset={() => (selected.params = structuredClone(template.defaults))} />
     {#if Object.keys(template.params).length === 0}
       <p class="desc">此構圖沒有可調參數。</p>
     {/if}
-  </section>
+  </Section>
 {/if}
 
 <style>

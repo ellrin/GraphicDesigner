@@ -67,6 +67,19 @@ export async function openProjectFile(file: File) {
   load(parse(await file.text()))
 }
 
+/** 專案檔操作的結果訊息（顯示在右側「專案檔」區） */
+export const projectMessage = $state({ kind: 'ok' as 'ok' | 'error', text: '' })
+
+/** 開啟專案檔並顯示結果（專案檔區或拖放到頁面任何地方都用這個） */
+export async function openProjectWithMessage(file: File) {
+  try {
+    await openProjectFile(file)
+    Object.assign(projectMessage, { kind: 'ok', text: `已開啟「${file.name}」` })
+  } catch (err) {
+    Object.assign(projectMessage, { kind: 'error', text: err instanceof Error ? err.message : '無法開啟檔案' })
+  }
+}
+
 export function startNewProject() {
   replaceProject(newProject())
   flow.current = flow.reached = 0

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Section from '../../ui/Section.svelte'
   import { addGuide, project, removeGuide, ui } from '../../core/store.svelte'
   import OrientationTools from '../../ui/OrientationTools.svelte'
   import FrameSelect, { type RegionOption } from '../../ui/FrameSelect.svelte'
@@ -20,8 +21,7 @@
   const nameOf = (id: string) => guideTemplates.find((t) => t.id === id)?.meta.name ?? id
 </script>
 
-<section>
-  <h3>已加入的引導（{items.length}）</h3>
+<Section id="guides-1" title="已加入的引導（{items.length}）">
   {#if items.length === 0}
     <p class="desc">從下方選擇要加入的視覺引導，可以疊加多種。</p>
   {:else}
@@ -37,28 +37,24 @@
       {/each}
     </ul>
   {/if}
-</section>
+</Section>
 
 {#if selected && selectedTemplate}
-  <section>
-    <h3>{selectedTemplate.meta.name}</h3>
+  <Section id="guides-2" title={selectedTemplate.meta.name}>
     {#if selectedTemplate.meta.description}
       <p class="desc">{selectedTemplate.meta.description}</p>
     {/if}
     {#if hasPoints}
       <p class="tip">可直接在畫布上拖曳白色控制點；靠近構圖錨點時會變紫色並自動吸附。</p>
     {/if}
-  </section>
-  <section>
-    <h3>套用範圍</h3>
+  </Section>
+  <Section id="guides-3" title="套用範圍">
     <FrameSelect frame={selected.frame} regions={regions.filter((r) => r.source !== selected.uid)} onchange={(f) => (selected.frame = f)} />
-  </section>
-  <section>
-    <h3>方向</h3>
+  </Section>
+  <Section id="guides-4" title="方向">
     <OrientationTools bind:orientation={selected.orientation} />
-  </section>
-  <section>
-    <h3>參數</h3>
+  </Section>
+  <Section id="guides-5" title="參數">
     <ParamPanel
       schema={selectedTemplate.params}
       bind:values={selected.params}
@@ -67,11 +63,10 @@
         selected.orientation = { ...IDENTITY }
       }}
     />
-  </section>
+  </Section>
 {/if}
 
-<section>
-  <h3>新增引導</h3>
+<Section id="guides-6" title="新增引導">
   <div class="grid">
     {#each guideTemplates as t (t.id)}
       <button class="card" onclick={() => addGuide(t.id)} title={t.meta.description}>
@@ -80,7 +75,7 @@
       </button>
     {/each}
   </div>
-</section>
+</Section>
 
 <style>
   .items {

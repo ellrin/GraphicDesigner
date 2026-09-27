@@ -1,20 +1,10 @@
 <script lang="ts">
   // 專案檔區域：把 .json 專案檔拖進來（或點選）即可繼續上次的編輯；也可以存成 .json。
-  import { downloadProject, openProjectFile, startNewProject } from '../core/persistence.svelte'
+  import { downloadProject, openProjectWithMessage as open, projectMessage as message, startNewProject } from '../core/persistence.svelte'
 
   let fileInput: HTMLInputElement
   let dragging = $state(false)
   let confirmingNew = $state(false)
-  let message = $state<{ kind: 'ok' | 'error'; text: string } | null>(null)
-
-  export async function open(file: File) {
-    try {
-      await openProjectFile(file)
-      message = { kind: 'ok', text: `已開啟「${file.name}」` }
-    } catch (err) {
-      message = { kind: 'error', text: err instanceof Error ? err.message : '無法開啟檔案' }
-    }
-  }
 
   function onPick(e: Event) {
     const input = e.currentTarget as HTMLInputElement
@@ -32,12 +22,11 @@
 
   function save() {
     downloadProject()
-    message = { kind: 'ok', text: '已下載專案檔，下次拖進上方區域即可繼續編輯' }
+    Object.assign(message, { kind: 'ok', text: '已下載專案檔，下次拖進上方區域即可繼續編輯' })
   }
 </script>
 
-<section class="project">
-  <h3>專案檔</h3>
+<div class="project">
   <button
     class="drop"
     class:dragging
@@ -59,7 +48,7 @@
     {#if confirmingNew}
       <span class="confirm">
         清空目前設計？
-        <button onclick={() => { startNewProject(); confirmingNew = false; message = null }}>確定</button>
+        <button onclick={() => { startNewProject(); confirmingNew = false; message.text = '' }}>確定</button>
         <button onclick={() => (confirmingNew = false)}>取消</button>
       </span>
     {:else}
@@ -67,11 +56,11 @@
     {/if}
   </div>
 
-  {#if message}
+  {#if message.text}
     <p class="msg" class:error={message.kind === 'error'} role="status">{message.text}</p>
   {/if}
   <p class="note">瀏覽器會自動暫存目前進度；要換電腦、備份或分享，請儲存成專案檔。專案檔包含用到的圖片。</p>
-</section>
+</div>
 
 <style>
   .drop {

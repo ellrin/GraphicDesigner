@@ -69,7 +69,7 @@
   }
   .dims {
     display: grid;
-    grid-template-columns: 1fr auto 1fr auto auto;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 62px auto;
     align-items: center;
     gap: 6px;
   }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Section from '../../ui/Section.svelte'
   // 版型範例：一鍵套用構圖＋區塊（依你提供的書中範例整理，只有版型，沒有圖片與文字內容）。
   import { CANVAS_PRESETS } from '../../core/canvas'
   import { RECIPES, type Recipe } from '../../core/recipes'
@@ -30,8 +31,7 @@
   let pendingCanvas = false
 </script>
 
-<section>
-  <h3>版型範例（{list.length}）</h3>
+<Section id="recipes-1" title="版型範例（{list.length}）">
   <p class="tip">一鍵套用構圖與已標好用途的區塊，之後可以照流程自由調整。</p>
   <label class="inline"><input type="checkbox" bind:checked={ui.showAllRecipes} /> 顯示所有構圖的範例</label>
 
@@ -70,7 +70,7 @@
       {/if}
     </div>
   {/if}
-</section>
+</Section>
 
 <style>
   .tip {
