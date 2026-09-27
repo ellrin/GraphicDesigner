@@ -7,6 +7,7 @@
   import TemplateThumb from '../../ui/TemplateThumb.svelte'
   import theme from '../../config/theme.json'
   import { compositionTemplates } from './templates'
+  import RecipePanel from './RecipePanel.svelte'
 
   let { regions }: { regions: RegionOption[] } = $props()
 
@@ -45,6 +46,8 @@
   </ul>
   <button class="add" onclick={() => addComposition(selected?.templateId ?? compositionTemplates[0].id)}>＋ 再加一個構圖</button>
 </section>
+
+<RecipePanel group={selected?.templateId ?? compositionTemplates[0].id} />
 
 {#if selected && template}
   <section>

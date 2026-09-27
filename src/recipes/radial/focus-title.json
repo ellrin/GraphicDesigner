@@ -1,0 +1,30 @@
+{
+  "name": "放射｜集中線標題",
+  "description": "放射線把視線拉到中央，標題放在放射中心。適合優惠、活動訊息。",
+  "canvas": "1x1",
+  "order": 1,
+  "compositions": [
+    {
+      "template": "radial",
+      "params": {
+        "rays": 24
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "標題",
+      "role": "title",
+      "anchor": [
+        0,
+        "放射中心"
+      ],
+      "size": [
+        0.62,
+        0.4
+      ],
+      "shape": "ellipse",
+      "filled": true
+    }
+  ]
+}

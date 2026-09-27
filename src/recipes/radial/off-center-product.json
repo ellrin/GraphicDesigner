@@ -1,0 +1,40 @@
+{
+  "name": "放射｜偏心放射、商品在焦點",
+  "description": "放射中心移到左下黃金位置，商品放在焦點，文字放右上。",
+  "canvas": "16x9",
+  "order": 2,
+  "compositions": [
+    {
+      "template": "radial",
+      "params": {
+        "cx": 0.382,
+        "cy": 0.618,
+        "rays": 18
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "商品",
+      "role": "image",
+      "anchor": [
+        0,
+        "放射中心"
+      ],
+      "size": [
+        0.45,
+        0.45
+      ]
+    },
+    {
+      "name": "文字",
+      "role": "text",
+      "rect": [
+        0.6,
+        0.08,
+        0.34,
+        0.35
+      ]
+    }
+  ]
+}

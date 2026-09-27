@@ -1,0 +1,40 @@
+{
+  "name": "黃金螺旋｜直式大標、下方資訊（DM）",
+  "description": "上方大正方形放標題，下方副區放資訊，最小格放 QR code。",
+  "canvas": "a5",
+  "order": 2,
+  "compositions": [
+    {
+      "template": "golden-spiral"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "標題",
+      "role": "title",
+      "region": [
+        0,
+        "正方形 1"
+      ],
+      "inset": 0.04
+    },
+    {
+      "name": "其他資訊",
+      "role": "text",
+      "region": [
+        0,
+        "正方形 2"
+      ],
+      "inset": 0.03
+    },
+    {
+      "name": "QR／Logo",
+      "role": "other",
+      "region": [
+        0,
+        "正方形 3"
+      ],
+      "inset": 0.02
+    }
+  ]
+}

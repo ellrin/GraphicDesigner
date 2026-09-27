@@ -1,0 +1,30 @@
+{
+  "name": "黃金分割｜上圖下文",
+  "description": "上方 0.618 放照片，下方 0.382 放標題與說明。",
+  "canvas": "a4",
+  "order": 2,
+  "compositions": [
+    {
+      "template": "phi-grid"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "主照片",
+      "role": "image",
+      "region": [
+        0,
+        "第 1–2 列"
+      ]
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "region": [
+        0,
+        "第 3 列"
+      ],
+      "inset": 0.04
+    }
+  ]
+}

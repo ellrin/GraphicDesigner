@@ -43,6 +43,36 @@ const build: ShapeBuilder = (ctx) => [
 export default build
 ```
 
+## 新增一個版型範例
+
+版型範例 = 構圖 + 視覺引導 + 預先標好用途的區塊（只有版型，沒有圖片與文字）。
+在 `src/recipes/<構圖 id>/` 新增一個 JSON 檔即可，第一步的「版型範例」會自動列出。
+
+```json
+{
+  "name": "雙黃金螺旋｜左側插圖、右欄直排文字",
+  "description": "說明文字",
+  "canvas": "1x1",
+  "compositions": [
+    { "template": "bisect", "params": { "axis": "vertical", "ratio": 0.618 } },
+    { "template": "golden-spiral", "frame": { "region": [0, "右半"] } }
+  ],
+  "blocks": [
+    { "name": "插圖", "role": "image", "region": [0, "左半"] },
+    { "name": "直排標題", "role": "title", "region": [1, "正方形 1"], "inset": 0.02 },
+    { "name": "徽章", "role": "cta", "anchor": [1, "螺旋中心"], "size": [0.2, 0.2], "shape": "ellipse" },
+    { "name": "Logo", "role": "logo", "rect": [0, 0, 0.2, 0.1] },
+    { "name": "斜切照片", "role": "image", "points": [[0, 0], [0.6, 0], [0, 1]] }
+  ]
+}
+```
+
+- `region: [第幾個構圖, 區域名稱]`：用構圖切出的區域（會保留三角形、圓形等形狀），任何畫布比例都能正確套用
+- `anchor: [第幾個構圖, 錨點名稱]` + `size`：以錨點為中心的區塊（大小相對畫布短邊）
+- `rect`／`points`：相對畫布（0–1）的矩形或多邊形
+- 構圖的 `frame` 可以指定套用在前面某個構圖的區域上
+- 可用的區域與錨點名稱，可以在第三步的「建議區塊」清單中看到
+
 ## 字型
 
 內建中文 19 種、英文 32 種可商用字型（OFL）。字型檔不包含在 repo 中，使用時才從 Google Fonts 載入，詳見 [FONTS.md](FONTS.md)。

@@ -1,0 +1,26 @@
+{
+  "name": "框中框｜雙層框、中央標題",
+  "description": "兩層邊框把視線收進中央，適合公告與活動主視覺。",
+  "canvas": "1x1",
+  "order": 2,
+  "compositions": [
+    {
+      "template": "frame-in-frame",
+      "params": {
+        "inset": 0.08,
+        "layers": 2
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "標題",
+      "role": "title",
+      "region": [
+        0,
+        "內框"
+      ],
+      "inset": 0.04
+    }
+  ]
+}

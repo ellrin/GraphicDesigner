@@ -8,6 +8,7 @@ import { objectTypeOf } from '../layers/4-objects/types'
 import { TEXT_DEFAULTS } from '../layers/4-objects/types/text/shape'
 import { IDENTITY, type Orientation } from './transform'
 import { CANVAS_FRAME, type FrameRef, type TemplateInstance } from './instances'
+import { resolveRecipe, toProjectBlocks, type Recipe } from './recipes'
 import type { ParamValues } from './params'
 import type { Template } from './registry'
 import { STEPS, type StepDef } from '../config/steps'
@@ -133,6 +134,8 @@ export const ui = $state({
   editBackground: false,
   /** 等待使用者在照片上點一下標記主體：'bg' 或圖片物件 uid */
   pickSubject: null as string | null,
+  /** 版型範例：顯示所有構圖的範例（否則只顯示目前構圖的） */
+  showAllRecipes: false,
 })
 
 /** 點選物件：additive（按住 Shift）時切換加入／移除，否則只選這一個；null = 取消全部。 */
@@ -437,6 +440,29 @@ export const resizeCanvas = discrete((w: number, h: number, patch: Partial<Canva
     if (typeof o.props.fontSize === 'number') o.props.fontSize = (o.props.fontSize * old.h * f) / h
   }
   project.canvas = { ...old, ...patch, w, h }
+})
+
+// ── 版型範例 ────────────────────────────────────────────
+
+/**
+ * 套用版型範例：取代目前的構圖、視覺引導與區塊（物件與背景保留）。
+ * withCanvas 為 true 且範例有建議畫布時，先換成該畫布尺寸。
+ */
+export const applyRecipe = discrete((recipe: Recipe, withCanvas: boolean = false) => {
+  const preset = withCanvas && recipe.canvas ? CANVAS_PRESETS.find((p) => p.id === recipe.canvas) : undefined
+  if (preset) {
+    const [w, h] = recipe.portrait ? [Math.min(preset.w, preset.h), Math.max(preset.w, preset.h)] : [preset.w, preset.h]
+    resizeCanvas(w, h, { presetId: preset.id, unit: preset.unit })
+  }
+  const c = project.canvas
+  const r = resolveRecipe(recipe, c, compositionTemplates, guideTemplates)
+  if (!r.compositions.length) return
+  project.compositions.items = r.compositions
+  project.guides.items = r.guides
+  project.blocks.items = toProjectBlocks(r.blocks, c)
+  ui.selectedComposition = r.compositions[0].uid
+  ui.selectedGuide = null
+  ui.selectedBlock = null
 })
 
 // ── 線性流程 ────────────────────────────────────────────

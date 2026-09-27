@@ -15,9 +15,10 @@ export default defineGenerator<P>(({ w, h }, p) => {
 
   for (const x of xs) primitives.push(line(pt(x, 0), pt(x, h)))
   for (const y of ys) primitives.push(line(pt(0, y), pt(w, y)))
-  for (const x of xs) {
-    for (const y of ys) {
-      anchors.push({ x, y, label: '交點' })
+  for (const [i, x] of xs.entries()) {
+    for (const [j, y] of ys.entries()) {
+      // 交點依位置命名：「交點 欄-列」，例如三分法左上為 交點 1-1
+      anchors.push({ x, y, label: `交點 ${i + 1}-${j + 1}` })
       if (p.markPoints) primitives.push(circle(pt(x, y), Math.min(w, h) * 0.02, { weight: 'sub' }))
     }
   }

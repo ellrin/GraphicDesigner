@@ -1,0 +1,41 @@
+{
+  "name": "斜帶｜商品斜帶、兩側內文",
+  "description": "商品放在寬斜帶中央，兩側放內文，斜向色塊增加躍動感。",
+  "canvas": "16x9",
+  "order": 2,
+  "compositions": [
+    {
+      "template": "diagonal-band",
+      "params": {
+        "angle": -30,
+        "width": 0.46
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "商品",
+      "role": "image",
+      "region": [
+        0,
+        "斜帶 1"
+      ]
+    },
+    {
+      "name": "內文 1",
+      "role": "text",
+      "region": [
+        0,
+        "斜帶一側"
+      ]
+    },
+    {
+      "name": "內文 2",
+      "role": "text",
+      "region": [
+        0,
+        "斜帶另一側"
+      ]
+    }
+  ]
+}

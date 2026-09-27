@@ -1,0 +1,53 @@
+{
+  "name": "金字塔三層（直式名片）",
+  "description": "三角形由上而下分三層：頂端放名字（最重要）、中間放資訊、底部最寬處放插畫。",
+  "canvas": "card-tw",
+  "portrait": true,
+  "order": 3,
+  "compositions": [
+    {
+      "template": "triangle",
+      "params": {
+        "a": {
+          "x": 0.5,
+          "y": 0.06
+        },
+        "b": {
+          "x": 0.08,
+          "y": 0.94
+        },
+        "c": {
+          "x": 0.92,
+          "y": 0.94
+        },
+        "bands": 3
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "筆名",
+      "role": "title",
+      "region": [
+        0,
+        "第 1 層"
+      ]
+    },
+    {
+      "name": "其他資訊",
+      "role": "text",
+      "region": [
+        0,
+        "第 2 層"
+      ]
+    },
+    {
+      "name": "插畫",
+      "role": "image",
+      "region": [
+        0,
+        "第 3 層"
+      ]
+    }
+  ]
+}

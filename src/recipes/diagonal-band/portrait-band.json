@@ -1,0 +1,47 @@
+{
+  "name": "斜帶｜直式斜向照片、直排標題",
+  "description": "直式畫面用斜帶切出照片區，標題直排放在右上。適合限時動態。",
+  "canvas": "9x16",
+  "order": 3,
+  "compositions": [
+    {
+      "template": "diagonal-band",
+      "params": {
+        "angle": -35,
+        "width": 0.55,
+        "center": {
+          "x": 0.45,
+          "y": 0.58
+        }
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "照片",
+      "role": "image",
+      "region": [
+        0,
+        "斜帶 1"
+      ]
+    },
+    {
+      "name": "直排標題",
+      "role": "title",
+      "rect": [
+        0.64,
+        0.05,
+        0.3,
+        0.4
+      ]
+    },
+    {
+      "name": "其他",
+      "role": "other",
+      "region": [
+        0,
+        "斜帶另一側"
+      ]
+    }
+  ]
+}

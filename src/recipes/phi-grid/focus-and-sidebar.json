@@ -1,0 +1,44 @@
+{
+  "name": "黃金分割｜焦點在黃金交點、左側文字",
+  "description": "照片鋪滿，主體放在黃金交點；左側窄欄放文字。",
+  "canvas": "16x9",
+  "order": 3,
+  "compositions": [
+    {
+      "template": "phi-grid"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "背景照片",
+      "role": "background",
+      "rect": [
+        0,
+        0,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "主體",
+      "role": "subject",
+      "anchor": [
+        0,
+        "黃金交點 2-1"
+      ],
+      "size": [
+        0.34,
+        0.34
+      ]
+    },
+    {
+      "name": "文字",
+      "role": "text",
+      "region": [
+        0,
+        "第 1 欄"
+      ],
+      "inset": 0.04
+    }
+  ]
+}

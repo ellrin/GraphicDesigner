@@ -1,0 +1,38 @@
+{
+  "name": "對角線｜照片背景、X 交點放標題",
+  "description": "照片鋪滿，人物放在對角線上；標題放在兩條對角線的交點附近。",
+  "canvas": "16x9",
+  "order": 2,
+  "compositions": [
+    {
+      "template": "diagonal",
+      "params": {
+        "mode": "x"
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "背景照片",
+      "role": "background",
+      "rect": [
+        0,
+        0,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "anchor": [
+        0,
+        "交點"
+      ],
+      "size": [
+        0.55,
+        0.34
+      ]
+    }
+  ]
+}

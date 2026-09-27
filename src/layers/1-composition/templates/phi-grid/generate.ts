@@ -15,9 +15,9 @@ export default defineGenerator<P>(({ w, h }, p) => {
     primitives.push(line(pt(w * r, 0), pt(w * r, h)))
     primitives.push(line(pt(0, h * r), pt(w, h * r)))
   }
-  for (const rx of ratios) {
-    for (const ry of ratios) {
-      anchors.push({ x: w * rx, y: h * ry, label: '黃金交點' })
+  for (const [i, rx] of ratios.entries()) {
+    for (const [j, ry] of ratios.entries()) {
+      anchors.push({ x: w * rx, y: h * ry, label: `黃金交點 ${i + 1}-${j + 1}` })
       if (p.markPoints) primitives.push(circle(pt(w * rx, h * ry), Math.min(w, h) * 0.02, { weight: 'sub' }))
     }
   }

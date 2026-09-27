@@ -1,0 +1,33 @@
+{
+  "name": "黃金比例二分｜大圖＋窄文字欄",
+  "description": "以 0.618 分割左右，大區放圖、窄欄放文字。",
+  "canvas": "16x9",
+  "order": 3,
+  "compositions": [
+    {
+      "template": "bisect",
+      "params": {
+        "ratio": 0.618
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "照片",
+      "role": "image",
+      "region": [
+        0,
+        "左半"
+      ]
+    },
+    {
+      "name": "文字",
+      "role": "text",
+      "region": [
+        0,
+        "右半"
+      ],
+      "inset": 0.05
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "name": "三分法｜全版照片、主體放在交點",
+  "description": "照片鋪滿，主體放在右上交點，標題放在左欄。放照片後可用 ⊕ 把主體對準交點。",
+  "canvas": "16x9",
+  "order": 3,
+  "compositions": [
+    {
+      "template": "rule-of-thirds"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "背景照片",
+      "role": "background",
+      "rect": [
+        0,
+        0,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "主體",
+      "role": "subject",
+      "anchor": [
+        0,
+        "交點 2-1"
+      ],
+      "size": [
+        0.38,
+        0.38
+      ]
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "region": [
+        0,
+        "第 1 欄"
+      ],
+      "inset": 0.04
+    }
+  ]
+}

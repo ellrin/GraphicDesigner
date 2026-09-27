@@ -1,0 +1,40 @@
+{
+  "name": "三分法｜三欄並排",
+  "description": "畫面分成三欄，兩欄放照片、一欄放文字，井然有序。",
+  "canvas": "16x9",
+  "order": 4,
+  "compositions": [
+    {
+      "template": "rule-of-thirds"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "照片 1",
+      "role": "image",
+      "region": [
+        0,
+        "第 1 欄"
+      ],
+      "inset": 0.01
+    },
+    {
+      "name": "照片 2",
+      "role": "image",
+      "region": [
+        0,
+        "第 2 欄"
+      ],
+      "inset": 0.01
+    },
+    {
+      "name": "文字",
+      "role": "text",
+      "region": [
+        0,
+        "第 3 欄"
+      ],
+      "inset": 0.03
+    }
+  ]
+}

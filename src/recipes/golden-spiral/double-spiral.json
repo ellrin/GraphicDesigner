@@ -1,0 +1,75 @@
+{
+  "name": "雙黃金螺旋｜左側插圖、右欄直排文字",
+  "description": "先用 0.618 把畫面切成左右兩區，右欄再套一個黃金螺旋；插圖在左、直排標題與重點數字沿右欄螺旋排列。",
+  "canvas": "1x1",
+  "order": 3,
+  "compositions": [
+    {
+      "template": "bisect",
+      "params": {
+        "axis": "vertical",
+        "ratio": 0.618
+      }
+    },
+    {
+      "template": "golden-spiral",
+      "frame": {
+        "region": [
+          0,
+          "右半"
+        ]
+      },
+      "params": {
+        "fit": "stretch"
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "插圖",
+      "role": "image",
+      "region": [
+        0,
+        "左半"
+      ]
+    },
+    {
+      "name": "標語",
+      "role": "title",
+      "rect": [
+        0,
+        0,
+        0.618,
+        0.2
+      ],
+      "inset": 0.02
+    },
+    {
+      "name": "直排標題",
+      "role": "title",
+      "region": [
+        1,
+        "正方形 1"
+      ],
+      "inset": 0.02
+    },
+    {
+      "name": "說明",
+      "role": "text",
+      "region": [
+        1,
+        "正方形 2"
+      ],
+      "inset": 0.01
+    },
+    {
+      "name": "重點數字",
+      "role": "cta",
+      "region": [
+        1,
+        "正方形 3"
+      ],
+      "inset": 0.01
+    }
+  ]
+}

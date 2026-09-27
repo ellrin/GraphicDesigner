@@ -1,0 +1,76 @@
+{
+  "name": "三點配置｜三張圓形照片",
+  "description": "三張圓形照片放在三角形頂點，視線在三張照片間循環；大小可依重要性調整。",
+  "canvas": "a4",
+  "order": 4,
+  "compositions": [
+    {
+      "template": "triangle",
+      "params": {
+        "a": {
+          "x": 0.32,
+          "y": 0.24
+        },
+        "b": {
+          "x": 0.27,
+          "y": 0.74
+        },
+        "c": {
+          "x": 0.72,
+          "y": 0.5
+        }
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "照片 1",
+      "role": "image",
+      "anchor": [
+        0,
+        "頂點 A"
+      ],
+      "size": [
+        0.44,
+        0.44
+      ],
+      "shape": "ellipse"
+    },
+    {
+      "name": "照片 2",
+      "role": "image",
+      "anchor": [
+        0,
+        "頂點 B"
+      ],
+      "size": [
+        0.4,
+        0.4
+      ],
+      "shape": "ellipse"
+    },
+    {
+      "name": "照片 3",
+      "role": "image",
+      "anchor": [
+        0,
+        "頂點 C"
+      ],
+      "size": [
+        0.46,
+        0.46
+      ],
+      "shape": "ellipse"
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "rect": [
+        0.56,
+        0.04,
+        0.4,
+        0.16
+      ]
+    }
+  ]
+}

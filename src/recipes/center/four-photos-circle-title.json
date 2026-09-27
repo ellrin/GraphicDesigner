@@ -1,0 +1,58 @@
+{
+  "name": "中央｜四宮格照片＋圓形標題",
+  "description": "畫面切成四等分放照片，正中央的圓形放標題，照片主角避開圓形。",
+  "canvas": "16x9",
+  "order": 1,
+  "compositions": [
+    {
+      "template": "center",
+      "params": {
+        "radius": 0.8,
+        "crosshair": true
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "照片 1",
+      "role": "image",
+      "region": [
+        0,
+        "左上"
+      ]
+    },
+    {
+      "name": "照片 2",
+      "role": "image",
+      "region": [
+        0,
+        "右上"
+      ]
+    },
+    {
+      "name": "照片 3",
+      "role": "image",
+      "region": [
+        0,
+        "左下"
+      ]
+    },
+    {
+      "name": "照片 4",
+      "role": "image",
+      "region": [
+        0,
+        "右下"
+      ]
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "region": [
+        0,
+        "中央圓形"
+      ],
+      "filled": true
+    }
+  ]
+}

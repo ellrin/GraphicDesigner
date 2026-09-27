@@ -1,0 +1,34 @@
+{
+  "name": "對稱｜上文字、下照片",
+  "description": "上下各半，上方放文字、下方放照片，穩重有安定感。",
+  "canvas": "4x5",
+  "order": 1,
+  "compositions": [
+    {
+      "template": "bisect",
+      "params": {
+        "axis": "horizontal",
+        "ratio": 0.5
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "文字",
+      "role": "title",
+      "region": [
+        0,
+        "上半"
+      ],
+      "inset": 0.05
+    },
+    {
+      "name": "照片",
+      "role": "image",
+      "region": [
+        0,
+        "下半"
+      ]
+    }
+  ]
+}

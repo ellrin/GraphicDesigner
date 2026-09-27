@@ -1,0 +1,52 @@
+{
+  "name": "對角線｜左上標語、右下商品",
+  "description": "一條對角線把畫面切成兩半，左上放標語、右下放商品照片，斜向排列帶來動感。",
+  "canvas": "16x9",
+  "order": 3,
+  "compositions": [
+    {
+      "template": "diagonal",
+      "params": {
+        "mode": "single"
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "標語",
+      "role": "title",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "name": "商品照片",
+      "role": "image",
+      "points": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0,
+          1
+        ]
+      ]
+    }
+  ]
+}

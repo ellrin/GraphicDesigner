@@ -1,0 +1,42 @@
+{
+  "name": "黃金螺旋｜照片背景、螺旋小格放文字",
+  "description": "照片鋪滿做背景，標題與日期放在螺旋切出的小正方形裡，視線沿螺旋收束。",
+  "canvas": "16x9",
+  "order": 1,
+  "compositions": [
+    {
+      "template": "golden-spiral"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "背景照片",
+      "role": "background",
+      "rect": [
+        0,
+        0,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "region": [
+        0,
+        "正方形 2"
+      ],
+      "inset": 0.02,
+      "filled": true
+    },
+    {
+      "name": "日期",
+      "role": "text",
+      "region": [
+        0,
+        "正方形 3"
+      ],
+      "inset": 0.01
+    }
+  ]
+}

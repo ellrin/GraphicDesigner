@@ -1,0 +1,44 @@
+{
+  "name": "框中框｜照片外框＋壓在邊緣的標題",
+  "description": "照片放在內框裡，標題壓在內框右下角的邊緣，營造拍立得般的效果。",
+  "canvas": "4x5",
+  "order": 1,
+  "compositions": [
+    {
+      "template": "frame-in-frame",
+      "params": {
+        "inset": 0.1
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "背景",
+      "role": "background",
+      "rect": [
+        0,
+        0,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "照片",
+      "role": "image",
+      "region": [
+        0,
+        "內框"
+      ]
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "rect": [
+        0.45,
+        0.7,
+        0.5,
+        0.2
+      ]
+    }
+  ]
+}

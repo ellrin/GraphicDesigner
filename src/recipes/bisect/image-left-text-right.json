@@ -1,0 +1,30 @@
+{
+  "name": "對稱｜左照片、右文字",
+  "description": "左右各半，照片與文字分工清楚。",
+  "canvas": "16x9",
+  "order": 2,
+  "compositions": [
+    {
+      "template": "bisect"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "照片",
+      "role": "image",
+      "region": [
+        0,
+        "左半"
+      ]
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "region": [
+        0,
+        "右半"
+      ],
+      "inset": 0.07
+    }
+  ]
+}

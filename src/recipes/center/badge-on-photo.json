@@ -1,0 +1,45 @@
+{
+  "name": "中央｜全版照片＋圓形徽章",
+  "description": "照片鋪滿，中央圓形徽章放主要訊息。",
+  "canvas": "4x5",
+  "order": 3,
+  "compositions": [
+    {
+      "template": "center",
+      "params": {
+        "radius": 0.55
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "背景照片",
+      "role": "background",
+      "rect": [
+        0,
+        0,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "徽章",
+      "role": "cta",
+      "region": [
+        0,
+        "中央圓形"
+      ],
+      "filled": true
+    },
+    {
+      "name": "說明",
+      "role": "text",
+      "rect": [
+        0.1,
+        0.86,
+        0.8,
+        0.09
+      ]
+    }
+  ]
+}

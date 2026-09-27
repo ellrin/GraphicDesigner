@@ -1,0 +1,51 @@
+{
+  "name": "黃金螺旋｜大圖、右側文字格（POP）",
+  "description": "大正方形放商品照片，右側由大到小的正方形依序放商品名、說明與價格。",
+  "canvas": "4x3",
+  "order": 4,
+  "compositions": [
+    {
+      "template": "golden-spiral",
+      "params": {
+        "fit": "stretch"
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "商品照片",
+      "role": "image",
+      "region": [
+        0,
+        "正方形 1"
+      ]
+    },
+    {
+      "name": "商品名",
+      "role": "title",
+      "region": [
+        0,
+        "正方形 2"
+      ],
+      "inset": 0.02
+    },
+    {
+      "name": "說明文",
+      "role": "text",
+      "region": [
+        0,
+        "正方形 3"
+      ],
+      "inset": 0.01
+    },
+    {
+      "name": "價格",
+      "role": "cta",
+      "region": [
+        0,
+        "正方形 4"
+      ],
+      "inset": 0.005
+    }
+  ]
+}

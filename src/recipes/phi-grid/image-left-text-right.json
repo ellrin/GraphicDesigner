@@ -1,0 +1,30 @@
+{
+  "name": "黃金分割｜左圖右文",
+  "description": "以 0.618 分割，大區放照片、小區放文字。",
+  "canvas": "16x9",
+  "order": 1,
+  "compositions": [
+    {
+      "template": "phi-grid"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "主照片",
+      "role": "image",
+      "region": [
+        0,
+        "第 1–2 欄"
+      ]
+    },
+    {
+      "name": "標題與內文",
+      "role": "title",
+      "region": [
+        0,
+        "第 3 欄"
+      ],
+      "inset": 0.04
+    }
+  ]
+}
