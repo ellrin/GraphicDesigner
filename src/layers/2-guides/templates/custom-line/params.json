@@ -1,0 +1,7 @@
+{
+  "a": { "type": "point", "label": "端點 A", "default": { "x": 0.15, "y": 0.8 }, "min": -0.5, "max": 1.5 },
+  "b": { "type": "point", "label": "端點 B", "default": { "x": 0.85, "y": 0.25 }, "min": -0.5, "max": 1.5 },
+  "extend": { "type": "boolean", "label": "延伸到畫面邊緣", "default": true },
+  "copies": { "type": "int", "label": "平行線數量", "min": 0, "max": 8, "default": 0 },
+  "spacing": { "type": "number", "label": "平行線間距（相對短邊）", "min": -0.5, "max": 0.5, "step": 0.01, "default": 0.12 }
+}
