@@ -30,7 +30,7 @@ export const objectBox = (o: DesignObject, c: Frame): FramingBox => ({
 export const canvasBox = (c: Frame): FramingBox => ({ x: 0, y: 0, w: c.w, h: c.h, rotation: 0 })
 
 /** 框內相對位置（0–1）→ 畫布座標 */
-function toCanvas(box: FramingBox, at: Pt): Pt {
+export function toCanvas(box: FramingBox, at: Pt): Pt {
   const lx = (at.x - 0.5) * box.w
   const ly = (at.y - 0.5) * box.h
   const a = (box.rotation * Math.PI) / 180
@@ -68,5 +68,31 @@ export function markSubject(size: ImageSize, box: FramingBox, fit: ImageFit, f: 
   return {
     focus: { x: Math.min(1, Math.max(0, focus.x)), y: Math.min(1, Math.max(0, focus.y)) },
     target: { x: at.x, y: at.y },
+  }
+}
+
+/**
+ * 以畫布座標的頂點重新決定物件框：框貼齊頂點的外框（在物件自己的旋轉方向下），
+ * 回傳新的框（畫布座標）與各頂點在框內的相對位置。拖曳頂點超出原框時，框會跟著擴大。
+ */
+export function fitBoxToPoints(rotation: number, pts: Pt[]): { box: FramingBox; rel: Pt[] } {
+  const a = (rotation * Math.PI) / 180
+  const cos = Math.cos(a)
+  const sin = Math.sin(a)
+  // 轉到物件自己的座標軸
+  const local = pts.map((p) => ({ x: p.x * cos + p.y * sin, y: -p.x * sin + p.y * cos }))
+  const xs = local.map((p) => p.x)
+  const ys = local.map((p) => p.y)
+  const minX = Math.min(...xs)
+  const minY = Math.min(...ys)
+  const w = Math.max(Math.max(...xs) - minX, 1)
+  const h = Math.max(Math.max(...ys) - minY, 1)
+  const mx = minX + w / 2
+  const my = minY + h / 2
+  const cx = mx * cos - my * sin
+  const cy = mx * sin + my * cos
+  return {
+    box: { x: cx - w / 2, y: cy - h / 2, w, h, rotation },
+    rel: local.map((p) => ({ x: (p.x - minX) / w, y: (p.y - minY) / h })),
   }
 }

@@ -41,13 +41,14 @@
     updateObject,
   } from './core/store.svelte'
   import { getImage, loadStoredAssets } from './core/assets'
-  import { canvasBox, markSubject, objectBox, subjectOnCanvas, targetFromCanvas, type ImageSize } from './core/framing'
+  import { canvasBox, fitBoxToPoints, markSubject, objectBox, subjectOnCanvas, targetFromCanvas, toCanvas, type ImageSize } from './core/framing'
+  import { TRIANGLE_VERTICES } from './layers/4-objects/types/triangle/shape'
   import type { ImageFit, ImageFraming } from './core/objects'
   import { FONT_GROUPS, loadFont } from './core/fonts'
   import BlocksPanel from './layers/3-blocks/Panel.svelte'
   import RefinePanel from './layers/5-refine/Panel.svelte'
   import ObjectsPanel from './layers/4-objects/Panel.svelte'
-  import type { AnchorOption } from './core/objects'
+  import type { AnchorOption, DesignObject } from './core/objects'
   import type { ObjectBox } from './renderer/objectLayer'
   import CompositionPanel from './layers/1-composition/Panel.svelte'
   import { compositionTemplates } from './layers/1-composition/templates'
@@ -322,8 +323,22 @@
     return { key: `img:${o.uid}`, box: objectBox(o, c), size, fit: o.props.fit as ImageFit, framing: o.props as unknown as ImageFraming, obj: o }
   })
 
+  /** 單選的三角形：三個頂點可以直接在畫布上拖曳 */
+  const triangleTarget = $derived.by(() => {
+    if (!(step.id === 'objects' || step.id === 'refine') || ui.selectedObjects.length !== 1) return null
+    const o = project.objects.items.find((x) => x.uid === ui.selectedObjects[0])
+    return o?.type === 'triangle' && o.visible ? o : null
+  })
+
+  const triangleCorners = (o: DesignObject) =>
+    TRIANGLE_VERTICES.map((k) => toCanvas(objectBox(o, project.canvas), o.props[k] as Pt))
+
   const handles = $derived.by((): Handle[] => {
     if (editing) return instanceHandles(editing.t, editing.inst, editing.frame)
+    if (triangleTarget) {
+      const corners = triangleCorners(triangleTarget)
+      return TRIANGLE_VERTICES.map((k, i) => ({ key: `tri:${k}`, label: `頂點 ${i + 1}`, pos: corners[i] }))
+    }
     const f = framingTarget
     if (!f || f.fit === 'stretch') return []
     return [{ key: f.key, label: '主體', pos: subjectOnCanvas(f.size, f.box, f.fit, f.framing) }]
@@ -339,6 +354,17 @@
   function onHandleMove(key: string, p: Pt) {
     if (editing) {
       editing.inst.params[key] = instancePointFromCanvas(editing.t, editing.inst, key, p, editing.frame)
+      return
+    }
+    // 拖曳三角形頂點：物件框跟著頂點調整
+    if (triangleTarget && key.startsWith('tri:')) {
+      const o = triangleTarget
+      const corners = triangleCorners(o)
+      corners[TRIANGLE_VERTICES.indexOf(key.slice(4) as (typeof TRIANGLE_VERTICES)[number])] = p
+      const { box, rel } = fitBoxToPoints(o.rotation, corners)
+      const c = project.canvas
+      updateObject(o.uid, { x: box.x / c.w, y: box.y / c.h, w: box.w / c.w, h: box.h / c.h })
+      TRIANGLE_VERTICES.forEach((k, i) => (o.props[k] = rel[i]))
       return
     }
     // 拖曳主體標記：照片跟著移動，讓主體落在標記位置（會吸附到錨點）
