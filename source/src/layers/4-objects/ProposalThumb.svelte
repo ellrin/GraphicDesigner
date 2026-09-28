@@ -19,7 +19,8 @@
   const pts = (ps: { x: number; y: number }[]) => ps.map((p) => `${p.x},${p.y}`).join(' ')
 
   const c = $derived(project.canvas)
-  const others = $derived(project.objects.items.filter((o) => o.visible && !isContent(o)))
+  // 範本預覽（有 blocks）：只畫這個範本自己的色塊，不畫目前專案裡上一個範本留下的色塊
+  const others = $derived(project.objects.items.filter((o) => o.visible && !isContent(o) && !(blocks.length && o.type === 'panel')))
   // 範本預覽：文字顏色依範本的色塊與照片判斷（專案裡還沒有這些色塊）
   function insideBlock(b: ResolvedBlock, p: { x: number; y: number }): boolean {
     const r = b.rect
@@ -38,7 +39,8 @@
     const under = [...blocks].reverse().find((b) => (b.panel || b.role === 'image' || b.role === 'background') && insideBlock(b, at))
     if (under?.panel) return readableOn(panelColor(under.panel))
     if (under) return '#ffffff'
-    return contentColor(role, { x: at.x / c.w, y: at.y / c.h }, index)
+    // 不在範本色塊或照片上：只看背景（index 0 = 忽略專案裡的物件）
+    return contentColor(role, { x: at.x / c.w, y: at.y / c.h }, 0)
   }
 
   const texts = $derived(
