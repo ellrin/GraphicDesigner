@@ -3,6 +3,7 @@ import type { ParamValues } from '../../../../core/params'
 import type { ShapeBuilder } from '../index'
 import { createVerticalText, type LatinMode } from './vertical'
 import { isPriceNote, splitPrice } from '../../../../core/textfit'
+import { slantOffset } from '../../../../core/autolayout'
 
 /** 文字專屬、由文字編輯區（而非 params.json）控制的屬性預設值。 */
 export const TEXT_DEFAULTS: ParamValues = {
@@ -43,6 +44,35 @@ const build: ShapeBuilder = (ctx) => {
 
   // 價目：每行拆成品名（靠左）與價格（靠右），中間以點線連接
   if (p.role === 'price') return priceLines(ctx, size, family).map((t) => withShadow(p, size, t))
+
+  // 斜排：每一行單獨畫，依「斜排」參數往旁邊移（文字已經分好行，不再自動換行）
+  const slant = Number(p.slant ?? 0)
+  if (slant && p.align !== 'center' && p.align !== 'right') {
+    const lines = String(p.text ?? '').split('\n')
+    const lh = p.lineHeight as number
+    return lines.map((line, i) =>
+      withShadow(
+        p,
+        size,
+        new Konva.Text({
+          x: -ctx.w / 2 + slantOffset(slant, size, i, lines.length),
+          y: -ctx.h / 2 + i * size * lh,
+          text: line,
+          fontFamily: family,
+          fontStyle: String(p.fontWeight ?? 400),
+          fontSize: size,
+          lineHeight: lh,
+          letterSpacing: (p.letterSpacing as number) * size,
+          wrap: 'none',
+          fill: ctx.fill || '#000000',
+          stroke: ctx.stroke || undefined,
+          strokeEnabled: !!ctx.stroke && ctx.strokeWidth > 0,
+          strokeWidth: ctx.strokeWidth,
+          fillAfterStrokeEnabled: true,
+        }),
+      ),
+    )
+  }
 
   const text = new Konva.Text({
     x: -ctx.w / 2,

@@ -603,6 +603,7 @@ export const applyProposal = discrete((proposal: Proposal) => {
       align: pl.align,
       verticalAlign: 'top',
       direction: pl.direction,
+      slant: pl.slant ?? 0,
       letterSpacing: 0,
       fontWeight: weightFor(roleDef(pl.role).weight, String(o.props.fontFamily)),
     })

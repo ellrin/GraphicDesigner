@@ -1,6 +1,6 @@
 <script lang="ts">
   // 排版提案的縮圖：畫出背景、其他物件的大致位置，以及文字實際排出來的樣子。
-  import { inkCenter, roleDef, type Proposal } from '../../core/autolayout'
+  import { inkCenter, roleDef, slantOffset, type Proposal } from '../../core/autolayout'
   import { contentColor, isContent, panelColor, project } from '../../core/store.svelte'
   import { getAssetUrl } from '../../core/assets'
   import { isPriceNote, splitPrice } from '../../core/textfit'
@@ -109,7 +109,7 @@
     {:else}
       {#each pl.lines as line, i (i)}
         <text
-          x={xOf(pl.rect, pl.align)}
+          x={xOf(pl.rect, pl.align) + (pl.slant && pl.align === 'left' ? slantOffset(pl.slant, pl.size, i, pl.lines.length) : 0)}
           y={pl.rect.y + i * pl.size * pl.lineHeight + pl.size * (0.88 + (pl.lineHeight - 1) / 2)}
           font-size={pl.size}
           font-family={family}

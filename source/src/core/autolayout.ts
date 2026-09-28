@@ -97,6 +97,14 @@ export interface Placement {
   text?: string
   /** 預覽用的各行文字 */
   lines: string[]
+  /** 斜排：每一行比上一行往右移多少（字寬為單位，負值往左）；0 = 一般對齊 */
+  slant?: number
+}
+
+/** 斜排時第 i 行相對文字框左緣的位移（畫布單位）：整段最左的一行貼齊左緣 */
+export function slantOffset(slant: number, size: number, i: number, lines: number): number {
+  const step = slant * size
+  return i * step - Math.min(0, (lines - 1) * step)
 }
 
 export interface Proposal {
@@ -425,11 +433,11 @@ function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: n
   const textOnly = items.every((i) => i.role === 'body' || i.role === 'list')
   let align: Placement['align'] = opts.align ?? (textOnly ? 'left' : cx < 0.38 ? 'left' : cx > 0.62 ? 'right' : 'center')
   let frame = { x: inner.x, w: inner.w }
-  let pads: ((line: string, y: number, size: number) => string) | undefined
+  let slanted = false
 
   if (shaped) {
     // 依每行的左右邊界決定對齊：左邊是直的就靠左、右邊是直的就靠右、對稱就置中；
-    // 都不是時靠左並在行首補全形空白，讓每行落在形狀中間
+    // 都不是時（平行四邊形的斜帶）：靠左並設定「斜排」，每行跟著斜邊往旁邊移
     const chords = out.flatMap((o) => o.lines.map((_, i) => lineChord(chord, o.y + i * o.size * roleDef(o.item.role).lineHeight, o.size))).filter((c): c is [number, number] => !!c)
     const tol = Math.min(...out.map((o) => o.size)) * 0.5
     const spread = (vs: number[]) => Math.max(...vs) - Math.min(...vs)
@@ -450,12 +458,7 @@ function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: n
     } else if (chords.length) {
       align = 'left'
       frame = { x: Math.min(...lefts), w: Math.max(...rights) - Math.min(...lefts) }
-      pads = (line, y, size) => {
-        const c = lineChord(chord, y, size)
-        if (!c) return line
-        const offset = c[0] + (c[1] - c[0] - units(line) * size) / 2 - frame.x // 字重已在排版時設定
-        return '\u3000'.repeat(Math.max(0, Math.round(offset / size))) + line
-      }
+      slanted = true
     }
   }
 
@@ -472,18 +475,33 @@ function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: n
         if (c) x = (c[0] + c[1]) / 2 - lw / 2
         return { uid: item.uid, role: item.role, rect: { x, y: y + dy, w: lw, h }, size, lineHeight: 1, align, direction: 'horizontal' as const, lines: [] }
       }
-      const shown = pads ? lines.map((l, i) => pads!(l, y + i * size * lh, size)) : lines
+      // 斜排：每行放在該行可用範圍的中間，再取第一行與最後一行算出每行的位移
+      let rect = { x: frame.x, y: y + dy, w: frame.w, h }
+      let slant = 0
+      if (slanted && lines.length) {
+        setMeasureWeight(weightOf(item.role))
+        const offs = lines.map((l, i) => {
+          const c = lineChord(chord, y + i * size * lh, size)
+          return c ? c[0] + (c[1] - c[0] - units(l) * size) / 2 : frame.x
+        })
+        const n = lines.length
+        const step = n > 1 ? (offs[n - 1] - offs[0]) / (n - 1) : 0
+        slant = Math.round((step / size) * 100) / 100
+        const left = Math.min(offs[0], offs[0] + (n - 1) * step)
+        rect = { x: left, y: y + dy, w: Math.max(size, frame.x + frame.w - left), h }
+      }
       return {
         uid: item.uid,
         role: item.role,
-        rect: { x: frame.x, y: y + dy, w: frame.w, h },
+        rect,
+        slant,
         size,
         lineHeight: lh,
         align,
         direction: 'horizontal' as const,
         // 用算好的斷行（避頭點、平均行長、依形狀分段）
-        text: shown.join('\n'),
-        lines: shown,
+        text: lines.join('\n'),
+        lines,
       }
     }),
   }
@@ -634,8 +652,8 @@ export function inkRects(p: Placement): Rect[] {
   if (p.role === 'logo' || p.direction === 'vertical' || p.role === 'price' || !p.lines.length) return [p.rect]
   const step = p.size * p.lineHeight
   return p.lines.map((line, i) => {
-    const w = Math.min(p.rect.w, lineUnits(line.replace(/^\u3000+/, ''), p.role) * p.size)
-    const lead = (line.length - line.replace(/^\u3000+/, '').length) * p.size
+    const w = Math.min(p.rect.w, lineUnits(line, p.role) * p.size)
+    const lead = p.slant ? slantOffset(p.slant, p.size, i, p.lines.length) : 0
     const x = p.align === 'right' ? p.rect.x + p.rect.w - w : p.align === 'center' ? p.rect.x + (p.rect.w - w) / 2 : p.rect.x + lead
     return { x, y: p.rect.y + i * step + ((p.lineHeight - 1) * p.size) / 2, w, h: p.size }
   })
