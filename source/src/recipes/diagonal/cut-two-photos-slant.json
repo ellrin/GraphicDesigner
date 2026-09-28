@@ -1,0 +1,71 @@
+{
+  "name": "斜切｜兩張照片斜接",
+  "description": "兩張照片斜向拼接，底部深色條放文字。",
+  "cut": "diagonal",
+  "order": 66,
+  "compositions": [
+    {
+      "template": "diagonal",
+      "params": {
+        "mode": "single"
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "照片 1",
+      "role": "image",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0.62,
+          0
+        ],
+        [
+          0.38,
+          0.7
+        ],
+        [
+          0,
+          0.7
+        ]
+      ]
+    },
+    {
+      "name": "照片 2",
+      "role": "image",
+      "points": [
+        [
+          0.62,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          0.7
+        ],
+        [
+          0.38,
+          0.7
+        ]
+      ]
+    },
+    {
+      "name": "文字條",
+      "role": "title",
+      "rect": [
+        0,
+        0.7,
+        1,
+        0.3
+      ],
+      "panel": "dark"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "name": "幾何｜同心圓",
+  "description": "兩層同心圓，內圈放標題。",
+  "cut": "geometric",
+  "order": 79,
+  "compositions": [
+    {
+      "template": "radial"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "外圈",
+      "role": "other",
+      "rect": [
+        0.04,
+        0.04,
+        0.92,
+        0.92
+      ],
+      "square": true,
+      "shape": "ellipse",
+      "panel": "primary"
+    },
+    {
+      "name": "內圈",
+      "role": "title",
+      "rect": [
+        0.2,
+        0.2,
+        0.6,
+        0.6
+      ],
+      "square": true,
+      "shape": "ellipse",
+      "panel": "light"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "name": "矩形｜上色帶標題、下大圖",
+  "description": "上方 38% 是色帶放標題，下方大圖。",
+  "cut": "rect",
+  "order": 50,
+  "compositions": [
+    {
+      "template": "bisect",
+      "params": {
+        "axis": "horizontal",
+        "ratio": 0.382
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "標題色帶",
+      "role": "title",
+      "rect": [
+        0,
+        0,
+        1,
+        0.382
+      ],
+      "panel": "primary"
+    },
+    {
+      "name": "照片",
+      "role": "image",
+      "rect": [
+        0,
+        0.382,
+        1,
+        0.618
+      ]
+    }
+  ]
+}

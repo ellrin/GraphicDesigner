@@ -1,0 +1,48 @@
+{
+  "name": "矩形｜頁首＋雙欄",
+  "description": "深色頁首放標題，下方兩欄內文（適合菜單、DM）。",
+  "cut": "rect",
+  "order": 56,
+  "compositions": [
+    {
+      "template": "bisect",
+      "params": {
+        "axis": "horizontal",
+        "ratio": 0.22
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "頁首",
+      "role": "title",
+      "rect": [
+        0,
+        0,
+        1,
+        0.22
+      ],
+      "panel": "dark"
+    },
+    {
+      "name": "左欄",
+      "role": "text",
+      "rect": [
+        0.06,
+        0.26,
+        0.42,
+        0.7
+      ]
+    },
+    {
+      "name": "右欄",
+      "role": "text",
+      "rect": [
+        0.52,
+        0.26,
+        0.42,
+        0.7
+      ]
+    }
+  ]
+}

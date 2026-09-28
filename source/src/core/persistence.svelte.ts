@@ -90,7 +90,8 @@ export function setThumbnailRenderer(fn: () => string | undefined) {
 
 /** 立即把目前的專案存到「我的專案」（還沒有編號時建立一個） */
 export function saveNow() {
-  if (!projects.current) setCurrent(newProjectId())
+  // 沒有開啟中的專案（清單是空的）：不存，避免自動生出空白專案
+  if (!projects.current) return
   const c = project.canvas
   writeProject(projects.current!, toFile(false), { name: project.name, w: c.w, h: c.h, unit: c.unit })
   scheduleThumb()

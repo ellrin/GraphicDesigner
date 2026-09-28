@@ -1,0 +1,38 @@
+{
+  "name": "矩形｜左色欄、右大圖",
+  "description": "左側深色窄欄放文字，右側大圖。",
+  "cut": "rect",
+  "order": 51,
+  "compositions": [
+    {
+      "template": "bisect",
+      "params": {
+        "axis": "vertical",
+        "ratio": 0.382
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "文字欄",
+      "role": "title",
+      "rect": [
+        0,
+        0,
+        0.382,
+        1
+      ],
+      "panel": "dark"
+    },
+    {
+      "name": "照片",
+      "role": "image",
+      "rect": [
+        0.382,
+        0,
+        0.618,
+        1
+      ]
+    }
+  ]
+}

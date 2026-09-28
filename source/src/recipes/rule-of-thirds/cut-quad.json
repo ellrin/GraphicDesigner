@@ -1,0 +1,59 @@
+{
+  "name": "矩形｜田字四格",
+  "description": "四格交錯：兩格照片、一格標題色塊、一格內文。",
+  "cut": "rect",
+  "order": 53,
+  "compositions": [
+    {
+      "template": "rule-of-thirds",
+      "params": {
+        "cols": 2,
+        "rows": 2
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "照片 1",
+      "role": "image",
+      "rect": [
+        0,
+        0,
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "rect": [
+        0.5,
+        0,
+        0.5,
+        0.5
+      ],
+      "panel": "primary"
+    },
+    {
+      "name": "內文",
+      "role": "text",
+      "rect": [
+        0,
+        0.5,
+        0.5,
+        0.5
+      ],
+      "panel": "light"
+    },
+    {
+      "name": "照片 2",
+      "role": "image",
+      "rect": [
+        0.5,
+        0.5,
+        0.5,
+        0.5
+      ]
+    }
+  ]
+}

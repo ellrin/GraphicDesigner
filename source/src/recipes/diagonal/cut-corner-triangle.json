@@ -1,0 +1,55 @@
+{
+  "name": "斜切｜角落三角＋大字",
+  "description": "右上角三角色塊放醒目訊息，其餘留白放大標題。",
+  "cut": "diagonal",
+  "order": 65,
+  "compositions": [
+    {
+      "template": "diagonal",
+      "params": {
+        "mode": "golden"
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "角標",
+      "role": "cta",
+      "points": [
+        [
+          0.62,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          0.38
+        ]
+      ],
+      "panel": "accent"
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "rect": [
+        0.06,
+        0.22,
+        0.66,
+        0.36
+      ]
+    },
+    {
+      "name": "內文",
+      "role": "text",
+      "rect": [
+        0.06,
+        0.62,
+        0.6,
+        0.3
+      ]
+    }
+  ]
+}

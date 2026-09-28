@@ -1,0 +1,44 @@
+{
+  "name": "矩形｜側邊色條＋留白",
+  "description": "左側細色條，右側大量留白放文字，簡潔。",
+  "cut": "rect",
+  "order": 58,
+  "compositions": [
+    {
+      "template": "phi-grid"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "色條",
+      "role": "other",
+      "rect": [
+        0,
+        0,
+        0.1,
+        1
+      ],
+      "panel": "accent"
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "rect": [
+        0.18,
+        0.1,
+        0.74,
+        0.4
+      ]
+    },
+    {
+      "name": "內文",
+      "role": "text",
+      "rect": [
+        0.18,
+        0.55,
+        0.74,
+        0.35
+      ]
+    }
+  ]
+}

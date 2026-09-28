@@ -37,7 +37,21 @@ export interface BlockSpec {
   /** 往內縮（相對畫布短邊），留出邊距；多邊形不支援 */
   inset?: number
   filled?: boolean
+  /** 縮成範圍內置中的正方形（搭配 ellipse 在任何畫布比例都是正圓） */
+  square?: boolean
+  /** 在成品中畫成色塊（顏色取自配色的角色） */
+  panel?: PanelTone
 }
+
+export type PanelTone = 'primary' | 'accent' | 'dark' | 'light'
+
+/** 切割類型（精靈第三步的分組） */
+export type CutKind = 'rect' | 'diagonal' | 'geometric'
+export const CUT_KINDS: { id: CutKind; label: string }[] = [
+  { id: 'rect', label: '矩形切割' },
+  { id: 'diagonal', label: '斜切・三角' },
+  { id: 'geometric', label: '幾何・圓弧' },
+]
 
 export interface Recipe {
   id: string
@@ -49,6 +63,8 @@ export interface Recipe {
   canvas?: string
   /** 建議畫布改為直式（長寬對調） */
   portrait?: boolean
+  /** 切割類型；省略時依區塊形狀判斷 */
+  cut?: CutKind
   compositions: InstanceSpec[]
   guides?: InstanceSpec[]
   blocks: BlockSpec[]
@@ -63,6 +79,7 @@ export interface ResolvedBlock {
   rect: Rect
   points?: Pt[]
   filled: boolean
+  panel?: PanelTone
 }
 
 export interface ResolvedRecipe {
@@ -132,7 +149,7 @@ export function resolveRecipe(recipe: Recipe, canvas: Frame, compTemplates: Temp
   const short = Math.min(canvas.w, canvas.h)
   const blocks: ResolvedBlock[] = []
   for (const b of recipe.blocks) {
-    const base = { name: b.name, role: roleOf(b.role).id, filled: b.filled ?? false }
+    const base = { name: b.name, role: roleOf(b.role).id, filled: b.filled ?? false, panel: b.panel }
     let region: Region | undefined
     if (b.region) {
       region = done[b.region[0]]?.output.regions?.find((r) => r.label === b.region![1])
@@ -167,6 +184,10 @@ export function resolveRecipe(recipe: Recipe, canvas: Frame, compTemplates: Temp
       continue
     }
     if (!rect) continue
+    if (b.square) {
+      const s = Math.min(rect.w, rect.h)
+      rect = { x: rect.x + (rect.w - s) / 2, y: rect.y + (rect.h - s) / 2, w: s, h: s }
+    }
     const d = (b.inset ?? 0) * short
     if (d) rect = { x: rect.x + d, y: rect.y + d, w: Math.max(1, rect.w - 2 * d), h: Math.max(1, rect.h - 2 * d) }
     blocks.push({ ...base, shape, rect })
@@ -198,6 +219,14 @@ export function toProjectBlocks(blocks: ResolvedBlock[], canvas: Frame): Block[]
 }
 
 const files = import.meta.glob<Omit<Recipe, 'id' | 'group'>>('../recipes/*/*.json', { eager: true, import: 'default' })
+
+/** 範本的切割類型：有指定就用指定的，否則有多邊形 → 斜切、有橢圓 → 幾何、其他 → 矩形 */
+export function cutOf(r: Recipe): CutKind {
+  if (r.cut) return r.cut
+  if (r.blocks.some((b) => b.points)) return 'diagonal'
+  if (r.blocks.some((b) => b.shape === 'ellipse')) return 'geometric'
+  return 'rect'
+}
 
 export const RECIPES: Recipe[] = Object.entries(files)
   .map(([path, r]) => {

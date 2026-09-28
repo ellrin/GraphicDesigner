@@ -1,0 +1,44 @@
+{
+  "name": "矩形｜L 形：大圖＋右欄＋底條",
+  "description": "黃金比例切出大圖，右側標題、底部強調色條放資訊。",
+  "cut": "rect",
+  "order": 54,
+  "compositions": [
+    {
+      "template": "phi-grid"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "照片",
+      "role": "image",
+      "rect": [
+        0,
+        0,
+        0.618,
+        0.618
+      ]
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "rect": [
+        0.618,
+        0,
+        0.382,
+        0.618
+      ]
+    },
+    {
+      "name": "資訊條",
+      "role": "text",
+      "rect": [
+        0,
+        0.618,
+        1,
+        0.382
+      ],
+      "panel": "accent"
+    }
+  ]
+}

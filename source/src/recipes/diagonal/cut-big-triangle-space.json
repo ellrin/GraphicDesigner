@@ -1,0 +1,55 @@
+{
+  "name": "斜切｜大三角＋留白文字",
+  "description": "右下大三角色塊當裝飾，文字放左上留白處。",
+  "cut": "diagonal",
+  "order": 69,
+  "compositions": [
+    {
+      "template": "diagonal",
+      "params": {
+        "mode": "single"
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "三角",
+      "role": "other",
+      "points": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          0.3
+        ]
+      ],
+      "panel": "accent"
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "rect": [
+        0.06,
+        0.08,
+        0.62,
+        0.3
+      ]
+    },
+    {
+      "name": "內文",
+      "role": "text",
+      "rect": [
+        0.06,
+        0.42,
+        0.5,
+        0.28
+      ]
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "name": "矩形｜三欄：圖・字・圖",
+  "description": "三等分，中間一欄是淺色文字欄。",
+  "cut": "rect",
+  "order": 52,
+  "compositions": [
+    {
+      "template": "rule-of-thirds",
+      "params": {
+        "cols": 3,
+        "rows": 3
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "照片 1",
+      "role": "image",
+      "rect": [
+        0,
+        0,
+        0.3333,
+        1
+      ]
+    },
+    {
+      "name": "文字",
+      "role": "text",
+      "rect": [
+        0.3333,
+        0,
+        0.3333,
+        1
+      ],
+      "panel": "light"
+    },
+    {
+      "name": "照片 2",
+      "role": "image",
+      "rect": [
+        0.6667,
+        0,
+        0.3333,
+        1
+      ]
+    }
+  ]
+}

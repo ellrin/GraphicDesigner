@@ -1,0 +1,61 @@
+{
+  "name": "幾何｜雙圓照片",
+  "description": "兩個圓形照片並排，下方文字。",
+  "cut": "geometric",
+  "order": 75,
+  "compositions": [
+    {
+      "template": "bisect",
+      "params": {
+        "axis": "vertical",
+        "ratio": 0.5
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "照片 1",
+      "role": "image",
+      "rect": [
+        0.04,
+        0.06,
+        0.44,
+        0.52
+      ],
+      "square": true,
+      "shape": "ellipse"
+    },
+    {
+      "name": "照片 2",
+      "role": "image",
+      "rect": [
+        0.52,
+        0.06,
+        0.44,
+        0.52
+      ],
+      "square": true,
+      "shape": "ellipse"
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "rect": [
+        0.06,
+        0.62,
+        0.88,
+        0.16
+      ]
+    },
+    {
+      "name": "內文",
+      "role": "text",
+      "rect": [
+        0.06,
+        0.8,
+        0.88,
+        0.15
+      ]
+    }
+  ]
+}

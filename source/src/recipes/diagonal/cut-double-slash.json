@@ -1,0 +1,83 @@
+{
+  "name": "斜切｜雙斜線三塊",
+  "description": "兩道平行斜線切出照片、細色帶與文字。",
+  "cut": "diagonal",
+  "order": 64,
+  "compositions": [
+    {
+      "template": "diagonal",
+      "params": {
+        "mode": "single"
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "照片",
+      "role": "image",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0.6,
+          0
+        ],
+        [
+          0.3,
+          1
+        ],
+        [
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "name": "色帶",
+      "role": "other",
+      "points": [
+        [
+          0.6,
+          0
+        ],
+        [
+          0.72,
+          0
+        ],
+        [
+          0.42,
+          1
+        ],
+        [
+          0.3,
+          1
+        ]
+      ],
+      "panel": "accent"
+    },
+    {
+      "name": "文字",
+      "role": "title",
+      "points": [
+        [
+          0.72,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0.42,
+          1
+        ]
+      ]
+    }
+  ]
+}

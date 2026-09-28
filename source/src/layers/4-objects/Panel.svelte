@@ -116,7 +116,7 @@
     </select>
   </label>
   <div class="types">
-    {#each objectTypes.filter((t) => t.meta.category !== 'decor') as t (t.id)}
+    {#each objectTypes.filter((t) => t.meta.category !== 'decor' && t.meta.category !== 'panel') as t (t.id)}
       <button onclick={() => add(t.id)}>{t.id === 'image' ? '＋ 圖片…' : `＋ ${t.meta.name}`}</button>
     {/each}
   </div>

@@ -1,0 +1,38 @@
+{
+  "name": "矩形｜色框",
+  "description": "滿版主色外框，內框淺色放內容。",
+  "cut": "rect",
+  "order": 55,
+  "compositions": [
+    {
+      "template": "frame-in-frame",
+      "params": {
+        "inset": 0.08
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "外框",
+      "role": "other",
+      "rect": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "panel": "primary"
+    },
+    {
+      "name": "內容",
+      "role": "title",
+      "rect": [
+        0.08,
+        0.08,
+        0.84,
+        0.84
+      ],
+      "panel": "light"
+    }
+  ]
+}

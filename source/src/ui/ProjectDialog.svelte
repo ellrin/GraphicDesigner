@@ -30,7 +30,7 @@
     } else if (!open && dialog.open) dialog.close()
   })
 
-  const inWizard = $derived(tab === 'wizard' || tab === 'new' || (tab === 'projects' && !projects.list.length))
+  const inWizard = $derived(tab === 'wizard' || tab === 'new')
   const sorted = $derived([...projects.list].sort((a, b) => b.updatedAt - a.updatedAt))
   function when(t: number) {
     const d = new Date(t)
@@ -48,7 +48,7 @@
   {#if !(inWizard && (wizardStep > 1 || tab === 'wizard'))}
     <header>
       <nav class="tabs">
-        {#if projects.list.length}<button class:on={tab === 'projects'} onclick={() => (tab = 'projects')}>我的專案</button>{/if}
+        <button class:on={tab === 'projects'} onclick={() => (tab = 'projects')}>我的專案</button>
         <button class:on={tab === 'new'} onclick={() => (tab = 'new')}>新專案</button>
         <button class:on={tab === 'file'} onclick={() => (tab = 'file')}>專案檔</button>
       </nav>
@@ -64,6 +64,7 @@
     <div class="body">
       {#if tab === 'projects'}
         <div class="projects">
+          <button class="add-card" onclick={() => (tab = 'new')}><span>＋</span>新增設計</button>
           {#each sorted as p (p.id)}
             <div class="proj" class:current={p.id === projects.current}>
               <button class="pick" onclick={() => openOne(p.id)} title="開啟">
@@ -242,5 +243,24 @@
     border-color: var(--danger);
     background: var(--danger);
     color: #fff;
+  }
+  .add-card {
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 6px;
+    min-height: 150px;
+    border: 2px dashed var(--line-strong);
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .add-card span {
+    font-size: 36px;
+    line-height: 1;
+    color: var(--accent);
+  }
+  .add-card:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--text);
   }
 </style>

@@ -1,0 +1,26 @@
+{
+  "name": "幾何｜中央大圓標題",
+  "description": "正中央主色大圓放標題，強烈聚焦。",
+  "cut": "geometric",
+  "order": 70,
+  "compositions": [
+    {
+      "template": "center"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "圓",
+      "role": "title",
+      "rect": [
+        0.08,
+        0.08,
+        0.84,
+        0.84
+      ],
+      "square": true,
+      "shape": "ellipse",
+      "panel": "primary"
+    }
+  ]
+}

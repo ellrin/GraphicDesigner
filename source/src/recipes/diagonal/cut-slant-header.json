@@ -1,0 +1,84 @@
+{
+  "name": "斜切｜斜頁首＋照片＋斜頁尾",
+  "description": "上下兩道斜邊，中間照片。",
+  "cut": "diagonal",
+  "order": 68,
+  "compositions": [
+    {
+      "template": "diagonal",
+      "params": {
+        "mode": "single"
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "頁首",
+      "role": "title",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          0.28
+        ],
+        [
+          0,
+          0.4
+        ]
+      ],
+      "panel": "dark"
+    },
+    {
+      "name": "照片",
+      "role": "image",
+      "points": [
+        [
+          0,
+          0.4
+        ],
+        [
+          1,
+          0.28
+        ],
+        [
+          1,
+          0.75
+        ],
+        [
+          0,
+          0.87
+        ]
+      ]
+    },
+    {
+      "name": "頁尾",
+      "role": "text",
+      "points": [
+        [
+          0,
+          0.87
+        ],
+        [
+          1,
+          0.75
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "panel": "light"
+    }
+  ]
+}

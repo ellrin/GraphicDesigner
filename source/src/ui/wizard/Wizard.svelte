@@ -11,7 +11,7 @@
   import { paletteOf, PALETTES } from '../../core/palettes'
   import { createProject, storedProjectData } from '../../core/persistence.svelte'
   import { projects } from '../../core/projects.svelte'
-  import { RECIPES, resolveRecipe, type Recipe } from '../../core/recipes'
+  import { CUT_KINDS, cutOf, RECIPES, resolveRecipe, type Recipe } from '../../core/recipes'
   import {
     addGuide,
     addObject,
@@ -103,12 +103,10 @@
   }
 
   // ── 3 版型：用自己的文字預覽每個範本 ────────────────────
-  const groups = [...new Set(RECIPES.map((r) => r.group))]
-  const groupName = (id: string) => compositionTemplates.find((t) => t.id === id)?.meta.name ?? id
-  let group = $state('all')
+  let group = $state<string>('all')
   let chosenRecipe = $state<string | null>(null)
   let onlyComposition = $state(false)
-  const shown = $derived(group === 'all' ? RECIPES : RECIPES.filter((r) => r.group === group))
+  const shown = $derived(group === 'all' ? RECIPES : RECIPES.filter((r) => cutOf(r) === group))
   const previews = $derived.by(() => {
     if (step !== 3) return []
     const c = project.canvas
@@ -161,7 +159,7 @@
     const cur = paletteOf(project.palette)
     return cur && !picks.includes(cur) ? [cur, ...picks.slice(0, 7)] : picks
   })
-  const imageSlots = $derived(project.blocks.items.filter((b) => b.role === 'image' && b.visible))
+  const imageSlots = $derived(project.blocks.items.filter((b) => (b.role === 'image' || b.role === 'background') && b.visible))
   const filled = (uid: string) => project.objects.items.some((o) => o.type === 'image' && o.mask === uid)
   let slotInput: HTMLInputElement | undefined = $state()
   let slotTarget: string | null = null
@@ -174,9 +172,10 @@
     // 照片放進區塊：物件框 = 區塊外框，並用區塊形狀裁切
     project.objects.items = project.objects.items.filter((o) => !(o.type === 'image' && o.mask === b.uid))
     addObject('image', { rect: { x: b.x, y: b.y, w: b.w, h: b.h }, block: b.uid }, { assetId: id })
-    // 照片放在最下層，文字在上
+    // 照片放在色塊之上、文字之下
     const img = project.objects.items.pop()!
-    project.objects.items.unshift(img)
+    const at = project.objects.items.filter((o) => o.type === 'panel').length
+    project.objects.items.splice(at, 0, img)
     ui.selectedObjects = []
   }
   const proposals = $derived(step === 5 ? proposeLayouts(projectLayoutInput(regions, path)) : [])
@@ -275,8 +274,8 @@
         <h3>空間怎麼切？ <Help text="範本包含構圖線與切好的區塊；縮圖用你的文字預覽。之後都可以在編輯器中調整。" /></h3>
         <div class="chips-row">
           <button class:on={!onlyComposition && group === 'all'} onclick={() => ((group = 'all'), (onlyComposition = false))}>全部</button>
-          {#each groups as g (g)}
-            <button class:on={!onlyComposition && group === g} onclick={() => ((group = g), (onlyComposition = false))}>{groupName(g)}</button>
+          {#each CUT_KINDS as k (k.id)}
+            <button class:on={!onlyComposition && group === k.id} onclick={() => ((group = k.id), (onlyComposition = false))}>{k.label}</button>
           {/each}
           <button class:on={onlyComposition} onclick={() => (onlyComposition = true)}>只選構圖</button>
         </div>

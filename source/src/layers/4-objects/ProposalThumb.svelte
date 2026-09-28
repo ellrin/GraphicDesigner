@@ -1,7 +1,7 @@
 <script lang="ts">
   // 排版提案的縮圖：畫出背景、其他物件的大致位置，以及文字實際排出來的樣子。
   import { roleDef, type Proposal } from '../../core/autolayout'
-  import { contentColor, isContent, project } from '../../core/store.svelte'
+  import { contentColor, isContent, panelColor, project } from '../../core/store.svelte'
   import { getAssetUrl } from '../../core/assets'
   import { isPriceNote, splitPrice } from '../../core/textfit'
 
@@ -37,8 +37,9 @@
   <rect width={c.w} height={c.h} fill={project.background.color} />
   {#if project.background.assetId}<rect width={c.w} height={c.h} fill="#8a8f98" opacity="0.5" />{/if}
   {#each blocks as b, i (i)}
-    {@const color = b.role === 'image' ? '#9aa0a8' : roleOf(b.role).color}
-    {@const op = b.role === 'image' ? 0.55 : 0.12}
+    {@const photo = b.role === 'image' || b.role === 'background'}
+    {@const color = b.panel ? panelColor(b.panel) : photo ? '#9aa0a8' : roleOf(b.role).color}
+    {@const op = b.panel ? 1 : photo ? 0.55 : 0.12}
     {#if b.shape === 'polygon' && b.points}
       <polygon points={pts(b.points)} fill={color} fill-opacity={op} stroke={color} stroke-opacity="0.5" stroke-width={c.w / 300} />
     {:else if b.shape === 'ellipse'}

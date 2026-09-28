@@ -21,7 +21,7 @@
     type Suggestion,
   } from './core/blocks'
   import { initHistory, redo, undo } from './core/history.svelte'
-  import { downloadProject, hasAutosave, initAutosave, openProjectWithMessage, projectMessage, setThumbnailRenderer } from './core/persistence.svelte'
+  import { downloadProject, initAutosave, openProjectWithMessage, projectMessage, setThumbnailRenderer } from './core/persistence.svelte'
   import ProjectDialog, { type ProjectTab } from './ui/ProjectDialog.svelte'
   import { projects } from './core/projects.svelte'
   import RightPanel from './ui/RightPanel.svelte'
@@ -62,7 +62,7 @@
   import ProjectMenu from './ui/ProjectMenu.svelte'
   import Stepper from './ui/Stepper.svelte'
 
-  let view: CanvasView
+  let view: CanvasView | undefined = $state()
 
   // 專案視窗：第一次使用（沒有暫存）時直接打開，先決定畫布與起點
   let projectOpen = $state(false)
@@ -84,7 +84,6 @@
   })
 
   onMount(() => {
-    if (!hasAutosave()) openProject('new')
     // 「我的專案」縮圖：用畫布輸出一張小圖
     setThumbnailRenderer(() => view?.renderImage({ pixelWidth: 240, mime: 'image/jpeg', quality: 0.72 }))
     // 先讀回暫存，再開始記錄復原歷史；圖片另外從 IndexedDB 讀回
@@ -431,7 +430,7 @@
   /** 第四、五步都可以編輯物件 */
   const editingObjects = $derived(step.id === 'objects' || step.id === 'refine')
 
-  const render: Renderer = (o) => view.renderImage(o)
+  const render: Renderer = (o) => view?.renderImage(o) ?? ''
 
   // 右側面板收合狀態（介面偏好，記在瀏覽器中）
   const RIGHT_KEY = 'graphic-designer:right-collapsed'
@@ -540,17 +539,29 @@
       <strong>GRAPHIC<span class="slash">/</span>DESIGNER</strong>
       <small>構圖設計工作台</small>
     </div>
-    <Stepper />
+    {#if projects.current}<Stepper />{/if}
     <div class="right">
+      {#if projects.current}
       <button class="project-btn" onclick={() => openProject(projects.list.length ? 'projects' : 'new')} title="我的專案、新專案、專案檔">
         專案<small>{project.name ? `${project.name}・` : ''}{project.canvas.w} × {project.canvas.h} {project.canvas.unit}</small>
       </button>
       <button onclick={() => openProject('wizard')} title="用精靈一步步重新調整文字、版型、動線與配色">精靈</button>
       <ResetButton />
       <ProjectMenu />
+      {/if}
     </div>
   </header>
 
+  {#if !projects.current}
+    <!-- 還沒有任何專案：只顯示「新增設計」 -->
+    <section class="empty">
+      <button class="add-design" onclick={() => openProject('new')}>
+        <span class="plus">＋</span>
+        <strong>新增設計</strong>
+      </button>
+      <button class="link" onclick={() => openProject('file')}>或開啟專案檔（.json）</button>
+    </section>
+  {:else}
   <!-- 左側：這一步的設定（隨步驟改變） -->
   <aside class="left">
     <div class="step-title">
@@ -624,6 +635,7 @@
   <aside class="right-panel" class:collapsed={rightCollapsed}>
     <RightPanel {render} collapsed={rightCollapsed} ontoggle={toggleRight} />
   </aside>
+  {/if}
 </div>
 
 <ProjectDialog bind:open={projectOpen} bind:tab={projectTab} regions={layoutContext.regions} path={layoutContext.path} />
@@ -676,6 +688,43 @@
     display: flex;
     align-items: center;
     gap: 12px;
+  }
+  .empty {
+    grid-column: 1 / -1;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 14px;
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--canvas-dot) 1px, transparent 1.2px);
+    background-size: 22px 22px;
+  }
+  .add-design {
+    display: grid;
+    place-items: center;
+    gap: 10px;
+    width: 220px;
+    height: 220px;
+    border: 2px dashed var(--line-strong);
+    border-radius: 16px;
+    background: var(--panel);
+    font-size: 15px;
+  }
+  .add-design:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+  .add-design .plus {
+    font-size: 56px;
+    line-height: 1;
+    color: var(--accent);
+  }
+  .empty .link {
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-size: 13px;
+    text-decoration: underline;
   }
   .project-btn {
     display: flex;

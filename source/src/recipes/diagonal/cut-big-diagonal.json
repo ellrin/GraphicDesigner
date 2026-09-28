@@ -1,0 +1,53 @@
+{
+  "name": "斜切｜大斜切：色塊＋照片",
+  "description": "一刀對角切開，左上色塊放標題，右下放照片。",
+  "cut": "diagonal",
+  "order": 60,
+  "compositions": [
+    {
+      "template": "diagonal",
+      "params": {
+        "mode": "single"
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "標題色塊",
+      "role": "title",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "panel": "primary"
+    },
+    {
+      "name": "照片",
+      "role": "image",
+      "points": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0,
+          1
+        ]
+      ]
+    }
+  ]
+}

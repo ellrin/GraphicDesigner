@@ -1,0 +1,38 @@
+{
+  "name": "矩形｜大圖＋底部資訊條",
+  "description": "滿版大圖，底部深色資訊條。",
+  "cut": "rect",
+  "order": 57,
+  "compositions": [
+    {
+      "template": "bisect",
+      "params": {
+        "axis": "horizontal",
+        "ratio": 0.8
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "name": "照片",
+      "role": "image",
+      "rect": [
+        0,
+        0,
+        1,
+        0.8
+      ]
+    },
+    {
+      "name": "資訊條",
+      "role": "title",
+      "rect": [
+        0,
+        0.8,
+        1,
+        0.2
+      ],
+      "panel": "dark"
+    }
+  ]
+}

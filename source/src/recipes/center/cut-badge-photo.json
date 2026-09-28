@@ -1,0 +1,46 @@
+{
+  "name": "幾何｜滿版照片＋圓形徽章",
+  "description": "滿版背景照片，右下圓形徽章放醒目訊息。",
+  "cut": "geometric",
+  "order": 78,
+  "compositions": [
+    {
+      "template": "center"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "背景照片",
+      "role": "background",
+      "rect": [
+        0,
+        0,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "rect": [
+        0.06,
+        0.06,
+        0.62,
+        0.3
+      ]
+    },
+    {
+      "name": "徽章",
+      "role": "cta",
+      "rect": [
+        0.62,
+        0.6,
+        0.34,
+        0.36
+      ],
+      "square": true,
+      "shape": "ellipse",
+      "panel": "accent"
+    }
+  ]
+}

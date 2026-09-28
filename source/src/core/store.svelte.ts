@@ -8,7 +8,7 @@ import { objectTypeOf } from '../layers/4-objects/types'
 import { TEXT_DEFAULTS } from '../layers/4-objects/types/text/shape'
 import { IDENTITY, type Orientation } from './transform'
 import { CANVAS_FRAME, type FrameRef, type TemplateInstance } from './instances'
-import { resolveRecipe, toProjectBlocks, type Recipe } from './recipes'
+import { resolveRecipe, toProjectBlocks, type PanelTone, type Recipe, type ResolvedBlock } from './recipes'
 import type { ParamValues } from './params'
 import type { Template } from './registry'
 import { STEPS, type StepDef } from '../config/steps'
@@ -409,9 +409,25 @@ function backdropAt(p: Pt, below = project.objects.items.length): string {
   for (let i = below - 1; i >= 0; i--) {
     const o = project.objects.items[i]
     if (!o.visible || !o.fill || o.type === 'text' || o.type === 'line' || o.type === 'image') continue
-    if (p.x >= o.x && p.x <= o.x + o.w && p.y >= o.y && p.y <= o.y + o.h) return o.fill
+    if (covers(o, p)) return o.fill
   }
   return project.background.color
+}
+
+/** 物件是否蓋住某個位置（0–1）：色塊依實際形狀（橢圓、多邊形）判斷，其他物件看外框 */
+function covers(o: DesignObject, p: Pt): boolean {
+  if (p.x < o.x || p.x > o.x + o.w || p.y < o.y || p.y > o.y + o.h) return false
+  if (o.type !== 'panel') return true
+  const u = (p.x - o.x) / o.w
+  const v = (p.y - o.y) / o.h
+  if (o.props.shape === 'ellipse') return (u - 0.5) ** 2 + (v - 0.5) ** 2 <= 0.25
+  const pts = o.props.points as unknown as Pt[] | undefined
+  if (o.props.shape !== 'polygon' || !pts || pts.length < 3) return true
+  let hit = false
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    if (pts[i].y > v !== pts[j].y > v && u < ((pts[j].x - pts[i].x) * (v - pts[i].y)) / (pts[j].y - pts[i].y) + pts[i].x) hit = !hit
+  }
+  return hit
 }
 
 /** 某個位置底下是不是照片（背景照片或下層的圖片；Logo 不算，被填色圖形蓋住也不算） */
@@ -419,7 +435,7 @@ export function onPhotoAt(p: Pt, below = project.objects.items.length): boolean 
   for (let i = below - 1; i >= 0; i--) {
     const o = project.objects.items[i]
     if (!o.visible || o.type === 'text' || o.type === 'line') continue
-    if (!(p.x >= o.x && p.x <= o.x + o.w && p.y >= o.y && p.y <= o.y + o.h)) continue
+    if (!covers(o, p)) continue
     if (o.type === 'image') {
       if (!isContent(o)) return true
     } else if (o.fill) return false
@@ -460,6 +476,7 @@ export const applyPalette = discrete((id: string, mode: 'light' | 'dark') => {
   const items = project.objects.items
   items.forEach((o) => {
     if (o.type === 'line') o.stroke = r.primary
+    else if (o.type === 'panel' && o.props.tone) o.fill = panelColor(o.props.tone as PanelTone)
     else if (o.type !== 'text' && o.type !== 'image') {
       o.fill = colors[k++ % colors.length]
       if (o.stroke) o.stroke = r.dark
@@ -689,11 +706,56 @@ export const applyRecipe = discrete((recipe: Recipe, withCanvas: boolean = false
   project.compositions.items = r.compositions
   project.guides.items = r.guides
   project.blocks.items = toProjectBlocks(r.blocks, c)
+  placePanels(r.blocks.filter((b) => b.panel))
   ui.selectedComposition = r.compositions[0].uid
   ui.selectedGuide = null
   ui.selectedBlock = null
   unlockSteps()
 })
+
+/** 各色塊角色在沒有選配色時的顏色 */
+const PANEL_DEFAULT: Record<PanelTone, string> = { primary: '#2f6bff', accent: '#f0642a', dark: '#1f1f23', light: '#f2efe9' }
+
+export function panelColor(tone: PanelTone): string {
+  const p = paletteOf(project.palette)
+  if (!p) return PANEL_DEFAULT[tone]
+  const r = rolesOf(p)
+  return tone === 'primary' ? r.primary : tone === 'accent' ? r.accent : tone === 'dark' ? r.dark : r.light
+}
+
+/** 範本的色塊：換成實際的填色形狀，放在所有物件最下層（先移除上一個範本留下的色塊） */
+function placePanels(blocks: ResolvedBlock[]) {
+  const c = project.canvas
+  const kept = project.objects.items.filter((o) => o.type !== 'panel' || !o.props.fromTemplate)
+  const panels: DesignObject[] = blocks.map((b, i) => {
+    const t = objectTypeOf('panel')!
+    return {
+      uid: uid(),
+      type: 'panel',
+      name: b.name || `色塊 ${i + 1}`,
+      x: b.rect.x / c.w,
+      y: b.rect.y / c.h,
+      w: b.rect.w / c.w,
+      h: b.rect.h / c.h,
+      rotation: 0,
+      fill: panelColor(b.panel!),
+      stroke: '',
+      strokeWidth: 0,
+      opacity: 1,
+      visible: true,
+      props: {
+        ...structuredClone(t.defaults),
+        shape: b.shape,
+        // 多邊形頂點（物件框內 0–1）；屬性型別不含陣列，存成 unknown
+        points: (b.points?.map((q) => ({ x: (q.x - b.rect.x) / b.rect.w, y: (q.y - b.rect.y) / b.rect.h })) ?? []) as unknown as ParamValues[string],
+        tone: b.panel!,
+        fromTemplate: true,
+      },
+      mask: null,
+    }
+  })
+  project.objects.items = [...panels, ...kept]
+}
 
 // ── 線性流程 ────────────────────────────────────────────
 

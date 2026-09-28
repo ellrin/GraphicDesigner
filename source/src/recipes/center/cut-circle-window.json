@@ -1,0 +1,56 @@
+{
+  "name": "幾何｜深色底＋圓窗照片",
+  "description": "滿版深色，中間圓窗照片，下方文字。",
+  "cut": "geometric",
+  "order": 74,
+  "compositions": [
+    {
+      "template": "center"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "底色",
+      "role": "other",
+      "rect": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "panel": "dark"
+    },
+    {
+      "name": "照片",
+      "role": "image",
+      "rect": [
+        0.2,
+        0.08,
+        0.6,
+        0.54
+      ],
+      "square": true,
+      "shape": "ellipse"
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "rect": [
+        0.08,
+        0.66,
+        0.84,
+        0.15
+      ]
+    },
+    {
+      "name": "內文",
+      "role": "text",
+      "rect": [
+        0.08,
+        0.82,
+        0.84,
+        0.13
+      ]
+    }
+  ]
+}

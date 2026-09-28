@@ -1,0 +1,45 @@
+{
+  "name": "幾何｜圓形照片＋下方文字",
+  "description": "上方正圓照片，下方標題與內文。",
+  "cut": "geometric",
+  "order": 71,
+  "compositions": [
+    {
+      "template": "center"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "照片",
+      "role": "image",
+      "rect": [
+        0.1,
+        0.04,
+        0.8,
+        0.58
+      ],
+      "square": true,
+      "shape": "ellipse"
+    },
+    {
+      "name": "標題",
+      "role": "title",
+      "rect": [
+        0.08,
+        0.65,
+        0.84,
+        0.15
+      ]
+    },
+    {
+      "name": "內文",
+      "role": "text",
+      "rect": [
+        0.08,
+        0.81,
+        0.84,
+        0.15
+      ]
+    }
+  ]
+}
