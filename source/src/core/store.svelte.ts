@@ -508,6 +508,18 @@ export function setContentText(o: DesignObject, text: string) {
   delete o.props.contentText
 }
 
+/** 內容清單中上移（-1）或下移（1）一項：與相鄰的內容交換位置 */
+export const moveContent = discrete((id: string, dir: -1 | 1) => {
+  const items = project.objects.items
+  const content = items.map((o, i) => [o, i] as const).filter(([o]) => isContent(o))
+  const k = content.findIndex(([o]) => o.uid === id)
+  const other = content[k + dir]
+  if (k < 0 || !other) return
+  const a = content[k][1]
+  const b = other[1]
+  ;[items[a], items[b]] = [items[b], items[a]]
+})
+
 export const addContent = discrete((role: ContentRole) => {
   const def = roleDef(role)
   const n = project.objects.items.filter((o) => o.props.role === role).length + 1

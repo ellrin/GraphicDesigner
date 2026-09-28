@@ -7,10 +7,12 @@ import type { CanvasSpec } from './canvas'
 import type { Recipe } from './recipes'
 import { resetHistory } from './history.svelte'
 import { exportAssets, importAssets } from './assets'
+import { deleteProject as removeStored, newProjectId, projects, readProject, setCurrent, setThumb, writeProject } from './projects.svelte'
 
 const APP = 'GraphicDesigner'
 const VERSION = 1
-const AUTOSAVE_KEY = 'graphic-designer:autosave'
+/** 舊版的單一自動暫存（第一次載入時轉成「我的專案」中的一個專案） */
+const LEGACY_AUTOSAVE_KEY = 'graphic-designer:autosave'
 
 interface SaveFile {
   app: typeof APP
@@ -67,8 +69,78 @@ export function downloadProject() {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000)
 }
 
+/** 開啟專案檔：成為「我的專案」中的新專案（不覆蓋目前的作品） */
 export async function openProjectFile(file: File) {
-  load(parse(await file.text()))
+  const data = parse(await file.text())
+  saveNow()
+  setCurrent(newProjectId())
+  load(data)
+  saveNow()
+}
+
+// ── 我的專案 ─────────────────────────────────────────────
+
+let thumbRenderer: (() => string | undefined) | null = null
+let thumbTimer: ReturnType<typeof setTimeout> | undefined
+
+/** 由畫布登錄：產生專案縮圖用 */
+export function setThumbnailRenderer(fn: () => string | undefined) {
+  thumbRenderer = fn
+}
+
+/** 立即把目前的專案存到「我的專案」（還沒有編號時建立一個） */
+export function saveNow() {
+  if (!projects.current) setCurrent(newProjectId())
+  const c = project.canvas
+  writeProject(projects.current!, toFile(false), { name: project.name, w: c.w, h: c.h, unit: c.unit })
+  scheduleThumb()
+}
+
+function scheduleThumb() {
+  clearTimeout(thumbTimer)
+  thumbTimer = setTimeout(() => {
+    const id = projects.current
+    try {
+      const url = thumbRenderer?.()
+      if (id && url) setThumb(id, url)
+    } catch {
+      // 縮圖失敗不影響存檔
+    }
+  }, 1200)
+}
+
+/** 切換到「我的專案」中的另一個專案（先存好目前的） */
+export function openStoredProject(id: string): boolean {
+  if (id === projects.current) return true
+  const data = readProject<SaveFile>(id)
+  if (!data) return false
+  saveNow()
+  setCurrent(id)
+  load(data)
+  return true
+}
+
+/** 讀出某個專案的內容（沿用時使用） */
+export function storedProjectData(id: string): ProjectData | null {
+  if (id === projects.current) return $state.snapshot(project) as ProjectData
+  return readProject<SaveFile>(id)?.project ?? null
+}
+
+/** 刪除專案；刪的是目前的專案時，切換到清單中的下一個（沒有就開一個空白專案） */
+export function removeProject(id: string) {
+  removeStored(id)
+  if (id !== projects.current) return
+  const next = projects.list[0]
+  const data = next ? readProject<SaveFile>(next.id) : null
+  if (next && data) {
+    setCurrent(next.id)
+    load(data)
+  } else {
+    setCurrent(null)
+    replaceProject(newProject())
+    flow.current = flow.reached = 0
+    resetHistory()
+  }
 }
 
 /** 專案檔操作的結果訊息（顯示在右側「專案檔」區） */
@@ -86,32 +158,46 @@ export async function openProjectWithMessage(file: File): Promise<boolean> {
   }
 }
 
-export interface CreateOptions {
-  name?: string
-  /** 沿用目前專案的配色、背景色、Logo 與文字內容（系列作品換尺寸時使用） */
-  carry?: boolean
+/** 沿用：從某個專案帶過來的東西（系列作品換尺寸時使用） */
+export interface CarryOptions {
+  source: ProjectData
+  /** 配色與背景色 */
+  palette: boolean
+  logo: boolean
+  /** 要帶過來的文字（物件 uid） */
+  texts: string[]
 }
 
-/** 建立新專案：指定畫布尺寸，可選擇從版型範例開始（範例包含的步驟會一併解鎖） */
+export interface CreateOptions {
+  name?: string
+  carry?: CarryOptions
+}
+
+/** 建立新專案：加到「我的專案」（目前的作品先存好）；可選擇從版型範例開始、沿用其他專案的內容 */
 export function createProject(canvas: CanvasSpec, recipe: Recipe | null, opts: CreateOptions = {}) {
-  const prev = opts.carry ? ($state.snapshot(project) as ProjectData) : null
+  saveNow()
+  setCurrent(newProjectId())
   replaceProject(newProject())
   project.canvas = { ...canvas }
   project.name = opts.name ?? ''
   flow.current = flow.reached = 0
   Object.assign(ui, { selectedComposition: null, selectedGuide: null, selectedBlock: null, selectedObjects: [] })
   if (recipe) startFromRecipe(recipe)
-  if (prev) carryOver(prev)
+  if (opts.carry) carryOver(opts.carry)
   resetHistory()
+  saveNow()
 }
 
-/** 把上一個專案的配色、背景色、Logo 與文字搬到新畫布，並依新尺寸自動排版 */
-function carryOver(prev: ProjectData) {
-  project.palette = prev.palette
-  project.background.color = prev.background.color
+/** 把其他專案的配色、Logo 與選定的文字搬到新畫布，並依新尺寸自動排版 */
+function carryOver({ source: prev, palette, logo, texts }: CarryOptions) {
+  if (palette) {
+    project.palette = prev.palette
+    project.background.color = prev.background.color
+  }
   const c = project.canvas
   const k = Math.min(c.w, c.h) / Math.min(prev.canvas.w, prev.canvas.h)
-  for (const o of prev.objects.items.filter(isContent)) {
+  const wanted = prev.objects.items.filter((o) => isContent(o) && (o.type === 'image' ? logo : texts.includes(o.uid)))
+  for (const o of wanted) {
     const copy = structuredClone(o)
     copy.uid = uid()
     delete copy.props.autoRect
@@ -131,43 +217,63 @@ function carryOver(prev: ProjectData) {
   unlockSteps()
 }
 
-/** 重設：清除所有內容並回到第一步，畫布尺寸保留 */
+/** 重設：清除目前專案的所有內容並回到第一步（畫布尺寸與名稱保留） */
 export function resetProject() {
-  createProject({ ...project.canvas }, null, { name: project.name })
+  const { canvas, name } = project
+  replaceProject(newProject())
+  project.canvas = { ...canvas }
+  project.name = name
+  flow.current = flow.reached = 0
+  Object.assign(ui, { selectedComposition: null, selectedGuide: null, selectedBlock: null, selectedObjects: [] })
+  resetHistory()
+  saveNow()
 }
 
-/** 瀏覽器裡是否有上次的自動暫存（沒有 = 第一次使用） */
+/** 「我的專案」裡是否已經有專案（沒有 = 第一次使用） */
 export function hasAutosave() {
-  try {
-    return localStorage.getItem(AUTOSAVE_KEY) !== null
-  } catch {
-    return false
-  }
+  return projects.list.length > 0
 }
 
-/** 讀回上次的自動暫存（若有），並開始在每次變動後暫存。 */
+/** 讀回目前的專案（舊版暫存會先轉成「我的專案」），並開始在每次變動後自動儲存。 */
 export function initAutosave(): () => void {
   try {
-    const saved = localStorage.getItem(AUTOSAVE_KEY)
-    if (saved) load(parse(saved))
+    const legacy = localStorage.getItem(LEGACY_AUTOSAVE_KEY)
+    if (legacy && !projects.list.length) {
+      const data = parse(legacy)
+      const id = newProjectId()
+      const c = data.project.canvas
+      writeProject(id, data, { name: data.project.name ?? '', w: c.w, h: c.h, unit: c.unit })
+      setCurrent(id)
+    }
+    if (legacy) localStorage.removeItem(LEGACY_AUTOSAVE_KEY)
   } catch {
-    // 暫存損毀或無法存取時，直接以新專案開始
+    // 舊暫存損毀：略過
+  }
+  try {
+    const id = projects.current && readProject(projects.current) ? projects.current : projects.list[0]?.id
+    const data = id ? readProject<SaveFile>(id) : null
+    if (id && data) {
+      setCurrent(id)
+      load(data)
+    }
+  } catch {
+    // 專案損毀或無法存取時，直接以空白專案開始
   }
 
   let timer: ReturnType<typeof setTimeout> | undefined
+  let first = true
   return $effect.root(() => {
     $effect(() => {
       JSON.stringify(project)
       void flow.current
       void flow.reached
+      // 剛載入時不存（避免第一次打開就多出一個空白專案）
+      if (first) {
+        first = false
+        return
+      }
       clearTimeout(timer)
-      timer = setTimeout(() => {
-        try {
-          localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(toFile(false)))
-        } catch {
-          // 無痕模式或空間不足：略過
-        }
-      }, 500)
+      timer = setTimeout(saveNow, 500)
     })
   })
 }

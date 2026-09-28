@@ -21,8 +21,9 @@
     type Suggestion,
   } from './core/blocks'
   import { initHistory, redo, undo } from './core/history.svelte'
-  import { downloadProject, hasAutosave, initAutosave, openProjectWithMessage, projectMessage } from './core/persistence.svelte'
-  import ProjectDialog from './ui/ProjectDialog.svelte'
+  import { downloadProject, hasAutosave, initAutosave, openProjectWithMessage, projectMessage, setThumbnailRenderer } from './core/persistence.svelte'
+  import ProjectDialog, { type ProjectTab } from './ui/ProjectDialog.svelte'
+  import { projects } from './core/projects.svelte'
   import RightPanel from './ui/RightPanel.svelte'
   import Accordion from './ui/Accordion.svelte'
   import ResetButton from './ui/ResetButton.svelte'
@@ -65,8 +66,8 @@
 
   // 專案視窗：第一次使用（沒有暫存）時直接打開，先決定畫布與起點
   let projectOpen = $state(false)
-  let projectTab = $state<'new' | 'file'>('new')
-  function openProject(tab: 'new' | 'file') {
+  let projectTab = $state<ProjectTab>('new')
+  function openProject(tab: ProjectTab) {
     projectTab = tab
     projectOpen = true
   }
@@ -84,6 +85,8 @@
 
   onMount(() => {
     if (!hasAutosave()) openProject('new')
+    // 「我的專案」縮圖：用畫布輸出一張小圖
+    setThumbnailRenderer(() => view?.renderImage({ pixelWidth: 240, mime: 'image/jpeg', quality: 0.72 }))
     // 先讀回暫存，再開始記錄復原歷史；圖片另外從 IndexedDB 讀回
     const stopAutosave = initAutosave()
     const stopHistory = initHistory()
@@ -539,7 +542,7 @@
     </div>
     <Stepper />
     <div class="right">
-      <button class="project-btn" onclick={() => openProject('new')} title="新專案、開啟與儲存專案檔">
+      <button class="project-btn" onclick={() => openProject(projects.list.length ? 'projects' : 'new')} title="我的專案、新專案、專案檔">
         專案<small>{project.name ? `${project.name}・` : ''}{project.canvas.w} × {project.canvas.h} {project.canvas.unit}</small>
       </button>
       <ResetButton />

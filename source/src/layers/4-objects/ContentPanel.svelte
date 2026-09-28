@@ -4,7 +4,7 @@
   import { CONTENT_ROLES, proposeLayouts, type ContentRole, type SlotSource } from '../../core/autolayout'
   import { projectLayoutInput } from '../../core/layoutInput'
   import type { Pt } from '../../core/geometry'
-  import { addContent, addLogo, applyProposal, contentItems, contentText, contentUntouched, isContent, project, removeObject, setContentText, ui } from '../../core/store.svelte'
+  import { addContent, addLogo, applyProposal, moveContent, contentItems, contentText, contentUntouched, isContent, project, removeObject, setContentText, ui } from '../../core/store.svelte'
   import { getAssetUrl, importImageFile } from '../../core/assets'
   import { untrack } from 'svelte'
   import ProposalThumb from './ProposalThumb.svelte'
@@ -59,8 +59,12 @@
 <Section id="objects-content" title="文字內容（{items.length}）" help="先填好要放的文字，下方會依構圖與空間給出排版提案；點一下套用，之後可以直接在畫布上微調。">
   {#if items.length}
     <ul class="list">
-      {#each items as o (o.uid)}
+      {#each items as o, i (o.uid)}
         <li>
+          <span class="order">
+            <button onclick={() => moveContent(o.uid, -1)} disabled={i === 0} title="上移">↑</button>
+            <button onclick={() => moveContent(o.uid, 1)} disabled={i === items.length - 1} title="下移">↓</button>
+          </span>
           {#if o.type === 'image'}
             <span class="logo-label">Logo</span>
             <span class="logo-thumb">{#if getAssetUrl(String(o.props.assetId))}<img src={getAssetUrl(String(o.props.assetId))} alt="Logo" />{/if}</span>
@@ -108,7 +112,7 @@
   }
   li {
     display: grid;
-    grid-template-columns: 72px 1fr auto;
+    grid-template-columns: auto 64px 1fr auto;
     gap: 6px;
     align-items: start;
   }
@@ -136,6 +140,21 @@
     margin: 6px 0 0;
     font-size: 12px;
     color: var(--danger);
+  }
+  .order {
+    display: grid;
+    gap: 1px;
+  }
+  .order button {
+    border: none;
+    background: none;
+    padding: 0 2px;
+    font-size: 11px;
+    line-height: 1.2;
+    color: var(--muted);
+  }
+  .order button:disabled {
+    opacity: 0.25;
   }
   .del {
     border: none;
