@@ -6,9 +6,9 @@
 // 3. 字級：同一區內的文字依層級比例（標題 1、子標題 0.5…）一起放大，直到剛好放得下。
 
 import type { Pt, Rect } from './geometry'
-import { breakText, flowText, largestFitting, units, verticalColumns } from './textfit'
+import { breakText, flowText, largestFitting, priceUnits, setMeasureWeight, units, verticalColumns } from './textfit'
 
-export type ContentRole = 'title' | 'subtitle' | 'body' | 'list' | 'highlight'
+export type ContentRole = 'title' | 'subtitle' | 'body' | 'list' | 'price' | 'highlight' | 'logo'
 
 export interface ContentRoleDef {
   id: ContentRole
@@ -25,7 +25,10 @@ export const CONTENT_ROLES: ContentRoleDef[] = [
   { id: 'subtitle', label: '子標題', ratio: 0.5, lineHeight: 1.3, weight: 'bold', text: '子標題' },
   { id: 'body', label: '內文', ratio: 0.3, lineHeight: 1.6, weight: 'regular', text: '內文段落，按 Enter 可以分段。' },
   { id: 'list', label: '條列', ratio: 0.3, lineHeight: 1.6, weight: 'regular', text: '・第一項\n・第二項\n・第三項' },
+  { id: 'price', label: '價目', ratio: 0.3, lineHeight: 1.7, weight: 'regular', text: '美式咖啡 90\n拿鐵 120' },
   { id: 'highlight', label: '醒目', ratio: 0.42, lineHeight: 1.2, weight: 'bold', text: '限時優惠' },
+  // Logo 是圖片：ratio 為高度相對標題字級的比例
+  { id: 'logo', label: 'Logo', ratio: 1.6, lineHeight: 1, weight: 'regular', text: '' },
 ]
 
 export const roleDef = (id: string) => CONTENT_ROLES.find((r) => r.id === id) ?? CONTENT_ROLES[2]
@@ -35,7 +38,22 @@ export interface ContentItem {
   uid: string
   role: ContentRole
   text: string
+  /** Logo：圖片寬高比 */
+  aspect?: number
 }
+
+/** 量測字寬時使用的字重 */
+const weightOf = (role: string) => {
+  const w = roleDef(role).weight
+  return w === 'heavy' ? 900 : w === 'bold' ? 700 : 400
+}
+/** 以某個角色的字重量一行文字的寬度（字級為單位） */
+const lineUnits = (line: string, role: string) => {
+  setMeasureWeight(weightOf(role))
+  return units(line)
+}
+
+const isBodyLike = (i?: ContentItem) => !!i && (i.role === 'body' || i.role === 'list' || i.role === 'price')
 
 export type SlotShape = 'rect' | 'ellipse' | 'polygon'
 
@@ -53,6 +71,10 @@ interface Slot extends Required<Pick<SlotSource, 'rect'>> {
   role?: string
   order: number
   area: number
+  /** 整頁（空白畫布時提供，給「集中」使用） */
+  full?: boolean
+  /** 空白畫布時自動產生的區域 */
+  fallback?: boolean
 }
 
 export interface Placement {
@@ -146,12 +168,19 @@ function collectSlots(input: LayoutInput): Slot[] {
     slots.push(toSlot(r))
   }
   if (slots.length < 2) {
+    // 空白畫布：上方頁首帶、下方內容區，另外加一個整頁區域
     const m = Math.min(canvas.w, canvas.h) * 0.06
-    const bandH = (canvas.h - 2 * m) / 3
-    for (let i = 0; i < 3; i++) {
-      const rect = { x: m, y: m + i * bandH, w: canvas.w - 2 * m, h: bandH }
-      if (!blocked(rect) && !slots.some((s) => iou(s.rect, rect) > 0.5)) slots.push(toSlot({ rect }))
-    }
+    // 寬的畫布（招牌、橫幅）頁首帶較高
+    const split = m + (canvas.h - 2 * m) * (canvas.w / canvas.h >= 1.8 ? 0.62 : 0.3)
+    const bands = [
+      { x: m, y: m, w: canvas.w - 2 * m, h: split - m },
+      { x: m, y: split, w: canvas.w - 2 * m, h: canvas.h - m - split },
+    ]
+    bands.forEach((rect, i) => {
+      if (!blocked(rect) && !slots.some((s) => iou(s.rect, rect) > 0.5)) slots.push({ ...toSlot({ rect, role: i === 0 ? 'title' : 'text' }), fallback: true })
+    })
+    const whole = { x: m, y: m, w: canvas.w - 2 * m, h: canvas.h - 2 * m }
+    if (!blocked(whole)) slots.push({ ...toSlot({ rect: whole }), full: true, fallback: true })
   }
 
   // 順序：沿著視覺動線；沒有動線時由上而下、由左而右
@@ -221,11 +250,23 @@ interface StackResult {
   overflow: boolean
 }
 
-function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: number }, fixedBase?: number): StackResult {
+interface StackOptions {
+  fixedBase?: number
+  /** 不再內縮（呼叫端已經算好範圍） */
+  noPad?: boolean
+  /** 強制對齊 */
+  align?: Placement['align']
+}
+
+function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: number }, opts: StackOptions = {}): StackResult {
+  const { fixedBase } = opts
   const short = Math.min(canvas.w, canvas.h)
-  const pad = Math.min(slot.rect.w, slot.rect.h) * 0.08
+  const pad = opts.noPad ? 0 : Math.min(slot.rect.w, slot.rect.h) * 0.08
   const inner = inset(slot.rect, pad)
   const shaped = slot.shape !== 'rect'
+  const logo = items.find((i) => i.role === 'logo')
+  // 寬的矩形區域：Logo 在左、文字在右（招牌常見的橫式組合）
+  if (logo && items.length > 1 && !shaped && !opts.noPad && inner.w / inner.h >= 2.2) return layoutSide(items, logo, slot, inner, canvas)
   const raw = chordFn(slot, inner)
   // 形狀區域只在夠寬的範圍排字：寬度不到最寬處 35% 的尖端、圓頂不放文字
   let span = { top: inner.y, bottom: inner.y + inner.h }
@@ -263,14 +304,37 @@ function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: n
 
   const runFrom = (base: number, start: number) => {
     let y = start
-    const out: { item: ContentItem; lines: string[]; y: number; h: number; size: number }[] = []
+    const out: { item: ContentItem; lines: string[]; y: number; h: number; size: number; w?: number }[] = []
     items.forEach((item, k) => {
       const def = roleDef(item.role)
       const size = base * def.ratio
-      if (k > 0) y += size * 0.5
+      // 段落之間（子標題開始新的一段）多留一點距離
+      if (k > 0) y += item.role === 'subtitle' && isBodyLike(items[k - 1]) ? size * 1.1 : item.role === 'logo' ? 0 : size * 0.5
+      if (k > 0 && items[k - 1].role === 'logo') y += base * 0.3
+      if (item.role === 'logo') {
+        const maxW = shaped && Number.isFinite(boxWidth) ? boxWidth : inner.w
+        let h = size
+        let w = h * (item.aspect ?? 1)
+        if (w > maxW) {
+          w = maxW
+          h = w / (item.aspect ?? 1)
+        }
+        out.push({ item, lines: [], y, h, size, w })
+        y += h
+        return
+      }
+      if (item.role === 'price') {
+        // 價目：一行一個品項，不自動換行（放不下就縮小字級）
+        const lines = item.text.split('\n')
+        setMeasureWeight(400)
+        out.push({ item, lines, y, h: lines.length * size * def.lineHeight, size })
+        y += lines.length * size * def.lineHeight
+        return
+      }
       // 標題類：平均各行長度；在形狀中改用內接矩形的寬度（不擠進尖端或圓頂）
       // 內文、條列：沿著形狀逐行排（例如三角形中一行比一行長）
-      const titleLike = item.role !== 'body' && item.role !== 'list'
+      const titleLike = !isBodyLike(item)
+      setMeasureWeight(weightOf(item.role))
       const at = titleLike && shaped && Number.isFinite(boxWidth) ? () => boxWidth : widthAt
       const { lines, height } = flowText(item.text, size, def.lineHeight, y, at, titleLike ? 1 : 0)
       out.push({ item, lines, y, h: height, size })
@@ -297,14 +361,16 @@ function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: n
       r.out.every((o) =>
         o.lines.every((line, i) => {
           const c = lineChord(chord, o.y + i * o.size * roleDef(o.item.role).lineHeight, o.size)
-          return !!c && (!shaped || units(line) * o.size <= (c[1] - c[0]) * 1.001)
+          if (!c) return false
+          if (o.item.role === 'price') return priceUnits(line) * o.size <= (c[1] - c[0]) * 0.98
+          return !shaped || lineUnits(line, o.item.role) * o.size <= (c[1] - c[0]) * 1.001
         }),
       )
     )
   }
   // 字級上限：標題最大約畫布短邊的 22%；下限讓內文仍可閱讀
   const hi = (short * 0.22) / topRatio
-  const lo = (short * 0.012) / Math.min(...items.map((i) => roleDef(i.role).ratio))
+  const lo = (short * 0.012) / Math.min(...items.filter((i) => i.role !== 'logo').map((i) => roleDef(i.role).ratio), 1)
   const base = fixedBase ?? largestFitting(lo, hi, fits)
   const { out, bottom } = run(base)
 
@@ -315,7 +381,7 @@ function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: n
   const cx = center(slot.rect).x / canvas.w
   // 只有內文、條列的區域一律靠左（靠右或置中的長段文字不好讀）
   const textOnly = items.every((i) => i.role === 'body' || i.role === 'list')
-  let align: Placement['align'] = textOnly ? 'left' : cx < 0.38 ? 'left' : cx > 0.62 ? 'right' : 'center'
+  let align: Placement['align'] = opts.align ?? (textOnly ? 'left' : cx < 0.38 ? 'left' : cx > 0.62 ? 'right' : 'center')
   let frame = { x: inner.x, w: inner.w }
   let pads: ((line: string, y: number, size: number) => string) | undefined
 
@@ -344,7 +410,7 @@ function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: n
       pads = (line, y, size) => {
         const c = lineChord(chord, y, size)
         if (!c) return line
-        const offset = c[0] + (c[1] - c[0] - units(line) * size) / 2 - frame.x
+        const offset = c[0] + (c[1] - c[0] - units(line) * size) / 2 - frame.x // 字重已在排版時設定
         return '\u3000'.repeat(Math.max(0, Math.round(offset / size))) + line
       }
     }
@@ -353,8 +419,13 @@ function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: n
   return {
     base,
     overflow: bottom > inner.y + inner.h + 0.5,
-    placements: out.map(({ item, lines, y, h, size }) => {
+    placements: out.map(({ item, lines, y, h, size, w }) => {
       const lh = roleDef(item.role).lineHeight
+      if (item.role === 'logo') {
+        const lw = w ?? h
+        const x = align === 'left' ? frame.x : align === 'right' ? frame.x + frame.w - lw : frame.x + (frame.w - lw) / 2
+        return { uid: item.uid, role: item.role, rect: { x, y: y + dy, w: lw, h }, size, lineHeight: 1, align, direction: 'horizontal' as const, lines: [] }
+      }
       const shown = pads ? lines.map((l, i) => pads!(l, y + i * size * lh, size)) : lines
       return {
         uid: item.uid,
@@ -369,6 +440,38 @@ function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: n
         lines: shown,
       }
     }),
+  }
+}
+
+/** Logo 在左、文字在右：文字先在右側排好，Logo 高度配合文字，整組在區域內置中 */
+function layoutSide(items: ContentItem[], logo: ContentItem, slot: Slot, inner: Rect, canvas: { w: number; h: number }): StackResult {
+  const aspect = logo.aspect ?? 1
+  const gap = inner.h * 0.12
+  let logoW = Math.min(inner.h * aspect, inner.w * 0.35)
+  const textRect = { x: inner.x + logoW + gap, y: inner.y, w: Math.max(1, inner.w - logoW - gap), h: inner.h }
+  const text = layoutStack(
+    items.filter((i) => i !== logo),
+    { ...slot, rect: textRect, shape: 'rect', points: undefined, area: area(textRect) },
+    canvas,
+    { noPad: true, align: 'left' },
+  )
+  const ps = text.placements
+  const top = Math.min(...ps.map((p) => p.rect.y))
+  const bottom = Math.max(...ps.map((p) => p.rect.y + p.rect.h))
+  const textW = Math.max(...ps.map((p) => Math.max(...p.lines.map((l) => lineUnits(l, p.role))) * p.size))
+  const logoH = Math.min(inner.h, Math.max(bottom - top, inner.h * 0.55))
+  logoW = Math.min(logoH * aspect, inner.w * 0.35)
+  const total = logoW + gap + textW
+  const x0 = inner.x + Math.max(0, (inner.w - total) / 2)
+  const mid = inner.y + inner.h / 2
+  const shiftY = mid - (top + bottom) / 2
+  return {
+    base: text.base,
+    overflow: text.overflow,
+    placements: [
+      { uid: logo.uid, role: 'logo', rect: { x: x0, y: mid - logoH / 2, w: logoW, h: logoH }, size: logoH, lineHeight: 1, align: 'left', direction: 'horizontal', lines: [] },
+      ...ps.map((p) => ({ ...p, rect: { ...p.rect, x: x0 + logoW + gap, y: p.rect.y + shiftY, w: inner.x + inner.w - (x0 + logoW + gap) } })),
+    ],
   }
 }
 
@@ -405,27 +508,63 @@ function layoutVertical(item: ContentItem, slot: Slot, canvas: { w: number; h: n
 
 // ── 方案 ───────────────────────────────────────────────
 
-const ORDER: ContentRole[] = ['title', 'subtitle', 'highlight', 'body', 'list']
-const byRole = (items: ContentItem[]) => [...items].sort((a, b) => ORDER.indexOf(a.role) - ORDER.indexOf(b.role))
+/**
+ * 依輸入順序把內容分組（不重新排序）：
+ * - 頁首：開頭的 Logo、標題，以及緊跟在標題後、後面沒有接內文的子標題
+ * - 段落：子標題＋其後的內文、條列、價目（例如「咖啡」＋咖啡的品項）
+ * - 醒目：醒目訊息另外安排位置
+ */
+interface Split {
+  header: ContentItem[]
+  sections: ContentItem[][]
+  highlights: ContentItem[]
+}
+
+function splitContent(items: ContentItem[]): Split {
+  const header: ContentItem[] = []
+  const sections: ContentItem[][] = []
+  const highlights = items.filter((i) => i.role === 'highlight')
+  const flow = items.filter((i) => i.role !== 'highlight')
+  flow.forEach((it, k) => {
+    if (it.role === 'title' || it.role === 'logo' || (it.role === 'subtitle' && !isBodyLike(flow[k + 1]))) {
+      if (!sections.length) header.push(it)
+      else sections.push([it])
+    } else if (it.role === 'subtitle' || !sections.length) sections.push([it])
+    else sections[sections.length - 1].push(it)
+  })
+  return { header, sections, highlights }
+}
+
+/** 一個排版結果實際有文字（或圖片）的範圍：橫排文字逐行計算 */
+function inkRects(p: Placement): Rect[] {
+  if (p.role === 'logo' || p.direction === 'vertical' || p.role === 'price' || !p.lines.length) return [p.rect]
+  const step = p.size * p.lineHeight
+  return p.lines.map((line, i) => {
+    const w = Math.min(p.rect.w, lineUnits(line.replace(/^\u3000+/, ''), p.role) * p.size)
+    const lead = (line.length - line.replace(/^\u3000+/, '').length) * p.size
+    const x = p.align === 'right' ? p.rect.x + p.rect.w - w : p.align === 'center' ? p.rect.x + (p.rect.w - w) / 2 : p.rect.x + lead
+    return { x, y: p.rect.y + i * step + ((p.lineHeight - 1) * p.size) / 2, w, h: p.size }
+  })
+}
 
 /** 多個區域：以標題的字級為上限，讓其他文字維持層級（只縮小不放大） */
 /** 排版時要避開的形狀（每次 proposeLayouts 設定） */
 let avoid: SlotSource[] = []
 
-function assemble(groups: { items: ContentItem[]; slot: Slot; vertical?: boolean }[], canvas: { w: number; h: number }): { placements: Placement[]; overflow: boolean } {
-  const results = groups.map((g) => ({ g, r: g.vertical ? layoutVertical(g.items[0], g.slot, canvas) : layoutStack(g.items, g.slot, canvas) }))
+function assemble(groups: { items: ContentItem[]; slot: Slot; vertical?: boolean; base?: number }[], canvas: { w: number; h: number }): { placements: Placement[]; overflow: boolean } {
+  const results = groups.map((g) => ({ g, r: g.vertical ? layoutVertical(g.items[0], g.slot, canvas) : layoutStack(g.items, g.slot, canvas, { fixedBase: g.base }) }))
   const titleGroup = results.find(({ g }) => g.items.some((i) => i.role === 'title'))
   const cap = titleGroup?.r.base
-  const final = results.map(({ g, r }) => (!cap || g === titleGroup?.g || g.vertical || r.base <= cap ? r : layoutStack(g.items, g.slot, canvas, cap)))
+  const final = results.map(({ g, r }) => (!cap || g === titleGroup?.g || g.vertical || r.base <= cap ? r : layoutStack(g.items, g.slot, canvas, { fixedBase: cap })))
   const placements = final.flatMap((r) => r.placements)
   const outside = placements.some((p) => p.rect.x < -1 || p.rect.y < -1 || p.rect.x + p.rect.w > canvas.w + 1 || p.rect.y + p.rect.h > canvas.h + 1)
-  // 排好的文字壓到圖片、Logo 也算放不下
-  const covered = placements.some((p) => avoid.some((o) => coverage(p.rect, o) > 0.12))
+  // 排好的文字壓到圖片、Logo 也算放不下（逐行檢查實際文字範圍，而不是整個文字框）
+  const covered = placements.some((p) => inkRects(p).some((r) => avoid.some((o) => coverage(r, o) > 0.12)))
   return { placements, overflow: outside || covered || final.some((r) => r.overflow) }
 }
 
-export function proposeLayouts(input: LayoutInput): Proposal[] {
-  const items = input.items.filter((i) => i.text.trim())
+export function proposeLayouts(input: LayoutInput, all = false): Proposal[] {
+  const items = input.items.filter((i) => i.role === 'logo' || i.text.trim())
   if (!items.length) return []
   const slots = collectSlots(input)
   if (!slots.length) return []
@@ -433,70 +572,110 @@ export function proposeLayouts(input: LayoutInput): Proposal[] {
   avoid = input.obstacles
   const proposals: Proposal[] = []
 
-  const titles = items.filter((i) => i.role === 'title' || i.role === 'subtitle')
-  const bodies = items.filter((i) => i.role === 'body' || i.role === 'list')
-  const highlights = items.filter((i) => i.role === 'highlight')
+  const { header, sections, highlights } = splitContent(items)
+  const body = sections.flat()
   const largest = (list: Slot[]) => [...list].sort((a, b) => b.area - a.area)[0]
   /** 與已使用的區域不重疊的區域 */
   const clear = (list: Slot[], used: Slot[]) =>
     list.filter((s) => used.every((u) => u !== s && overlap(s.rect, u.rect) < Math.min(s.area, u.area) * 0.1))
-  const withRole = (role: string) => slots.find((s) => s.role === role)
+  const parts = slots.filter((s) => !s.full)
+  const withRole = (role: string) => parts.find((s) => s.role === role)
+  type Group = { items: ContentItem[]; slot: Slot; vertical?: boolean; base?: number }
 
-  // A｜沿動線：標題在動線前段、內文接著、醒目訊息放終點
+  // 頁首放的區域：有「標題」區塊就用它，否則動線前段最大的區域
+  const early = parts.slice(0, Math.max(1, Math.ceil(parts.length * 0.6)))
+  const titleSlot = parts.length ? (withRole('title') ?? largest(early)) : slots[0]
+  const afterTitle = clear(parts, [titleSlot])
+
+  // A｜沿動線：頁首在動線前段、段落依序接著、醒目訊息放終點
   {
-    const early = slots.slice(0, Math.max(1, Math.ceil(slots.length * 0.6)))
-    const titleSlot = withRole('title') ?? largest(early)
-    const rest = clear(slots, [titleSlot])
     const cta = withRole('cta')
-    const hlSlot = highlights.length ? (cta && rest.includes(cta) ? cta : rest.length > 1 ? rest[rest.length - 1] : undefined) : undefined
-    const bodySlots = hlSlot ? clear(rest, [hlSlot]) : rest
-    const groups: { items: ContentItem[]; slot: Slot; vertical?: boolean }[] = []
-    const main = [...titles]
-    const bodyCandidates = bodySlots.filter((s) => s !== titleSlot)
-    if (!bodySlots.length) main.push(...bodies)
-    if (!hlSlot && !bodySlots.length) main.push(...highlights)
-    // 標題區域是直長形時，標題改直排，其餘文字放到下一個區域
+    const hlSlot = highlights.length ? (cta && afterTitle.includes(cta) ? cta : afterTitle.length > 1 ? afterTitle[afterTitle.length - 1] : undefined) : undefined
+    const bodySlots = hlSlot ? clear(afterTitle, [hlSlot]) : afterTitle
+    const groups: Group[] = []
+    const main = [...header]
+    // 標題區域是直長形時，標題改直排，其餘頁首內容放到內文區域
     const titleItem = main.find((i) => i.role === 'title')
-    const tallTitle = titleItem && titleSlot.rect.h / titleSlot.rect.w >= 1.6 && bodyCandidates.length > 0
-    if (tallTitle) {
+    const lead: ContentItem[] = []
+    if (titleItem && main.length === 1 && titleSlot.rect.h / titleSlot.rect.w >= 1.6 && bodySlots.length) {
       groups.push({ items: [titleItem], slot: titleSlot, vertical: true })
-      main.splice(main.indexOf(titleItem), 1)
-      if (main.length) bodies.unshift(...main)
+      main.length = 0
+    } else if (titleItem && titleSlot.rect.h / titleSlot.rect.w >= 1.6 && bodySlots.length) {
+      groups.push({ items: [titleItem], slot: titleSlot, vertical: true })
+      lead.push(...main.filter((i) => i !== titleItem))
       main.length = 0
     }
-    if (main.length) groups.push({ items: byRole(main), slot: titleSlot })
-    if (bodySlots.length && bodies.length) {
-      const textSlot = bodyCandidates.find((s) => s.role === 'text') ?? bodyCandidates.find((s) => s.order > titleSlot.order) ?? bodyCandidates[0]
-      const others = hlSlot ? [] : highlights
-      groups.push({ items: byRole([...bodies, ...others]), slot: textSlot })
+    if (!bodySlots.length) main.push(...body, ...(hlSlot ? [] : highlights))
+    if (main.length) groups.push({ items: main, slot: titleSlot })
+    if (bodySlots.length && (body.length || lead.length)) {
+      const ordered = [...bodySlots].sort((a, b) => a.order - b.order)
+      if (sections.length > 1 && ordered.length >= sections.length && !lead.length) {
+        // 段落數量不多於剩下的區域：每一段放一個區域，依動線順序
+        sections.forEach((sec, i) => groups.push({ items: sec, slot: ordered[i] }))
+        if (!hlSlot && highlights.length) groups[groups.length - 1].items.push(...highlights)
+      } else {
+        const textSlot = ordered.find((s) => s.role === 'text') ?? ordered.find((s) => s.order > titleSlot.order) ?? ordered[0]
+        groups.push({ items: [...lead, ...body, ...(hlSlot ? [] : highlights)], slot: textSlot })
+      }
     } else if (bodySlots.length && !hlSlot && highlights.length) groups.push({ items: highlights, slot: bodySlots[0] })
     if (hlSlot && highlights.length) groups.push({ items: highlights, slot: hlSlot })
-    if (!groups.length) groups.push({ items: byRole(items), slot: titleSlot })
+    if (!groups.length) groups.push({ items, slot: titleSlot })
     let flow = assemble(groups, canvas)
-    // 分散後有放不下的，改成全部放在標題的區域
-    if (flow.overflow) flow = assemble([{ items: byRole(items), slot: titleSlot }], canvas)
+    // 分散後有放不下的，改成全部依序放在頁首的區域
+    if (flow.overflow) flow = assemble([{ items: [...header, ...highlights, ...body], slot: titleSlot }], canvas)
     proposals.push({ id: 'flow', name: '沿動線', ...flow })
   }
 
-  // B｜集中：所有文字集中在一區
+  // B｜集中：所有內容依序集中在一區（空白畫布時使用整頁）
   {
-    const slot = withRole('title') ?? withRole('text') ?? largest(slots)
-    proposals.push({ id: 'stack', name: '集中', ...assemble([{ items: byRole(items), slot }], canvas) })
+    const slot = slots.find((s) => s.full) ?? withRole('title') ?? withRole('text') ?? largest(slots)
+    proposals.push({ id: 'stack', name: '集中', ...assemble([{ items: [...header, ...highlights, ...body], slot }], canvas) })
   }
 
-  // C｜直排標題（有直長的區域時），否則大標題獨占最大區域
+  // C｜兩欄：有兩段以上時，頁首在上、段落平均分成左右兩欄
+  if (sections.length >= 2) {
+    const area2 = largest(afterTitle.length ? afterTitle : parts)
+    if (area2 && area2 !== titleSlot) {
+      const gap = area2.rect.w * 0.05
+      const colW = (area2.rect.w - gap) / 2
+      const col = (i: number): Slot => {
+        const rect = { x: area2.rect.x + i * (colW + gap), y: area2.rect.y, w: colW, h: area2.rect.h }
+        return { rect, shape: 'rect', order: area2.order + i * 0.001, area: area(rect) }
+      }
+      // 依內容長度把段落平均分到兩欄（保持順序）
+      const weight = (sec: ContentItem[]) => sec.reduce((n, i) => n + i.text.split('\n').length + 1, 0)
+      const total = sections.reduce((n, sec) => n + weight(sec), 0)
+      let acc = 0
+      const left: ContentItem[] = []
+      const right: ContentItem[] = []
+      for (const sec of sections) {
+        ;(acc < total / 2 && (acc + weight(sec) / 2 <= total / 2 || !left.length) ? left : right).push(...sec)
+        acc += weight(sec)
+      }
+      // 兩欄的字級一致（取較小者）
+      const base = Math.min(layoutStack(left, col(0), canvas).base, right.length ? layoutStack(right, col(1), canvas).base : Infinity)
+      const groups: Group[] = []
+      if (header.length || highlights.length) groups.push({ items: [...header, ...highlights], slot: titleSlot })
+      groups.push({ items: left, slot: col(0), base })
+      if (right.length) groups.push({ items: right, slot: col(1), base })
+      const r = assemble(groups, canvas)
+      proposals.push({ id: 'columns', name: '兩欄', ...r })
+    }
+  }
+
+  // D｜直排標題（有直長的區域時），否則大標題獨占最大區域
   {
     const title = items.find((i) => i.role === 'title')
-    const others = byRole(items.filter((i) => i !== title))
-    const tall = [...slots].sort((a, b) => b.rect.h / b.rect.w - a.rect.h / a.rect.w)[0]
-    if (title && tall.rect.h / tall.rect.w >= 1.1) {
-      const rest = clear(slots, [tall])
-      const groups: { items: ContentItem[]; slot: Slot; vertical?: boolean }[] = [{ items: [title], slot: tall, vertical: true }]
+    const others = [...header, ...highlights, ...body].filter((i) => i !== title)
+    const tall = [...parts].sort((a, b) => b.rect.h / b.rect.w - a.rect.h / a.rect.w)[0]
+    if (title && tall && tall.rect.h / tall.rect.w >= 1.1) {
+      const rest = clear(parts, [tall])
+      const groups: Group[] = [{ items: [title], slot: tall, vertical: true }]
       if (others.length) groups.push({ items: others, slot: rest.length ? largest(rest) : tall })
       if (rest.length || !others.length) proposals.push({ id: 'vertical', name: '直排標題', ...assemble(groups, canvas) })
-    } else if (title && others.length && slots.length > 1) {
-      const big = largest(slots)
-      const rest = clear(slots, [big])
+    } else if (title && others.length && parts.length > 1 && !parts.every((s) => s.fallback)) {
+      const big = largest(parts)
+      const rest = clear(parts, [big])
       if (rest.length)
         proposals.push({
           id: 'hero',
@@ -515,6 +694,7 @@ export function proposeLayouts(input: LayoutInput): Proposal[] {
   // 去掉結果相同的方案
   const key = (p: Proposal) => p.placements.map((x) => `${x.uid}:${Math.round(x.rect.x)}:${Math.round(x.rect.y)}:${Math.round(x.size)}`).join('|')
   const unique = proposals.filter((p, i) => p.placements.length && proposals.findIndex((q) => key(q) === key(p)) === i)
+  if (all) return unique
   // 放不下的方案不列出；全部都放不下時，保留一個讓使用者自己調整
   const fitting = unique.filter((p) => !p.overflow)
   if (fitting.length) return fitting
@@ -522,5 +702,5 @@ export function proposeLayouts(input: LayoutInput): Proposal[] {
   const m = Math.min(canvas.w, canvas.h) * 0.05
   const rect = { x: m, y: m, w: canvas.w - 2 * m, h: canvas.h - 2 * m }
   avoid = []
-  return [{ id: 'full', name: '全版', ...assemble([{ items: byRole(items), slot: { rect, shape: 'rect', order: 0, area: area(rect) } }], canvas) }]
+  return [{ id: 'full', name: '全版', ...assemble([{ items: [...header, ...highlights, ...body], slot: { rect, shape: 'rect', order: 0, area: area(rect) } }], canvas) }]
 }

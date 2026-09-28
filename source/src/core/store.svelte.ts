@@ -442,14 +442,31 @@ export const applyPalette = discrete((id: string, mode: 'light' | 'dark') => {
 // ── 文字內容與自動排版 ─────────────────────────────────
 
 /** 標了內容角色（標題、內文…）的文字物件 */
-export const isContent = (o: DesignObject) => o.type === 'text' && typeof o.props.role === 'string'
+export const isContent = (o: DesignObject) => (o.type === 'text' || o.type === 'image') && typeof o.props.role === 'string'
 
 /** 內容原文（依形狀分段時，畫布上的文字含有換行，原文另外保存） */
 export const contentText = (o: DesignObject) => String(o.props.contentText ?? o.props.text ?? '')
 
 export function contentItems(): ContentItem[] {
-  return project.objects.items.filter(isContent).map((o) => ({ uid: o.uid, role: o.props.role as ContentRole, text: contentText(o) }))
+  const c = project.canvas
+  return project.objects.items
+    .filter(isContent)
+    .map((o) =>
+      o.type === 'image'
+        ? { uid: o.uid, role: 'logo' as const, text: '', aspect: (o.w * c.w) / (o.h * c.h) }
+        : { uid: o.uid, role: o.props.role as ContentRole, text: contentText(o) },
+    )
 }
+
+/** 加入 Logo（圖片），也列入文字內容一起自動排版 */
+export const addLogo = discrete((assetId: string, width: number, height: number) => {
+  const c = project.canvas
+  const k = (Math.min(c.w, c.h) * 0.2) / Math.max(width, height)
+  const w = (width * k) / c.w
+  const h = (height * k) / c.h
+  addObject('image', { rect: { x: 0.5 - w / 2, y: 0.5 - h / 2, w, h } }, { assetId, role: 'logo' }, 'Logo')
+  ui.selectedObjects = []
+})
 
 /** 修改內容文字（清掉依形狀分段的結果） */
 export function setContentText(o: DesignObject, text: string) {
@@ -497,6 +514,11 @@ export const applyProposal = discrete((proposal: Proposal) => {
   for (const pl of proposal.placements) {
     const o = items.find((x) => x.uid === pl.uid)
     if (!o) continue
+    if (o.type === 'image') {
+      Object.assign(o, { x: pl.rect.x / c.w, y: pl.rect.y / c.h, w: pl.rect.w / c.w, h: pl.rect.h / c.h, rotation: 0 })
+      o.props.autoRect = rectKey(o)
+      continue
+    }
     const original = contentText(o)
     Object.assign(o, { x: pl.rect.x / c.w, y: pl.rect.y / c.h, w: pl.rect.w / c.w, h: pl.rect.h / c.h, rotation: 0 })
     Object.assign(o.props, {

@@ -4,7 +4,8 @@
   import { CONTENT_ROLES, proposeLayouts, type ContentRole, type SlotSource } from '../../core/autolayout'
   import { toCanvasPoints, toCanvasRect } from '../../core/blocks'
   import type { Pt } from '../../core/geometry'
-  import { addContent, applyProposal, contentItems, contentText, contentUntouched, isContent, project, removeObject, setContentText, ui } from '../../core/store.svelte'
+  import { addContent, addLogo, applyProposal, contentItems, contentText, contentUntouched, isContent, project, removeObject, setContentText, ui } from '../../core/store.svelte'
+  import { getAssetUrl, importImageFile } from '../../core/assets'
   import { untrack } from 'svelte'
   import ProposalThumb from './ProposalThumb.svelte'
 
@@ -21,7 +22,7 @@
 
   const proposals = $derived.by(() => {
     const blocks = project.blocks.items.filter((b) => b.visible)
-    return proposeLayouts({
+    const input = {
       canvas: c,
       items: contentItems(),
       blocks: blocks.map((b) => ({
@@ -36,9 +37,10 @@
         ...blocks
           .filter((b) => b.role === 'image' || b.role === 'logo')
           .map((b) => ({ rect: toCanvasRect(b, c), shape: b.shape, points: b.points ? toCanvasPoints(b.points, c) : undefined })),
-        ...project.objects.items.filter((o) => o.visible && o.type === 'image').map((o) => ({ rect: toCanvasRect(o, c) })),
+        ...project.objects.items.filter((o) => o.visible && o.type === 'image' && !isContent(o)).map((o) => ({ rect: toCanvasRect(o, c) })),
       ],
-    })
+    }
+    return proposeLayouts(input)
   })
 
   // 文字還沒手動調整過時，加入或修改內容後自動沿用上次選的提案重新排版
@@ -58,6 +60,21 @@
     return () => clearTimeout(timer)
   })
 
+  let logoInput: HTMLInputElement
+  let error = $state('')
+  async function onLogo() {
+    const file = logoInput.files?.[0]
+    logoInput.value = ''
+    if (!file) return
+    try {
+      const { id, width, height } = await importImageFile(file)
+      addLogo(id, width, height)
+      error = ''
+    } catch (e) {
+      error = e instanceof Error ? e.message : '無法讀取圖片'
+    }
+  }
+
   const rows = (t: string) => Math.min(6, t.split('\n').length + (t.length > 18 ? 1 : 0))
 </script>
 
@@ -66,12 +83,17 @@
     <ul class="list">
       {#each items as o (o.uid)}
         <li>
-          <select value={o.props.role} onchange={(e) => (o.props.role = e.currentTarget.value as ContentRole)} aria-label="用途">
-            {#each CONTENT_ROLES as r (r.id)}
-              <option value={r.id}>{r.label}</option>
-            {/each}
-          </select>
-          <textarea rows={rows(contentText(o))} value={contentText(o)} oninput={(e) => setContentText(o, e.currentTarget.value)}></textarea>
+          {#if o.type === 'image'}
+            <span class="logo-label">Logo</span>
+            <span class="logo-thumb">{#if getAssetUrl(String(o.props.assetId))}<img src={getAssetUrl(String(o.props.assetId))} alt="Logo" />{/if}</span>
+          {:else}
+            <select value={o.props.role} onchange={(e) => (o.props.role = e.currentTarget.value as ContentRole)} aria-label="用途">
+              {#each CONTENT_ROLES.filter((r) => r.id !== 'logo') as r (r.id)}
+                <option value={r.id}>{r.label}</option>
+              {/each}
+            </select>
+            <textarea rows={rows(contentText(o))} value={contentText(o)} oninput={(e) => setContentText(o, e.currentTarget.value)}></textarea>
+          {/if}
           <button class="del" onclick={() => removeObject(o.uid)} title="刪除">✕</button>
         </li>
       {/each}
@@ -80,9 +102,11 @@
 
   <div class="adds">
     {#each CONTENT_ROLES as r (r.id)}
-      <button onclick={() => addContent(r.id)}>＋{r.label}</button>
+      <button onclick={() => (r.id === 'logo' ? logoInput.click() : addContent(r.id))}>＋{r.label}</button>
     {/each}
   </div>
+  <input bind:this={logoInput} type="file" accept="image/*" hidden onchange={onLogo} />
+  {#if error}<p class="error" role="alert">{error}</p>{/if}
 
   {#if proposals.length}
     <div class="proposals">
@@ -118,6 +142,22 @@
     min-width: 0;
     font-size: 13px;
     resize: vertical;
+  }
+  .logo-label {
+    font-size: 12px;
+    padding: 5px 4px;
+    color: var(--muted);
+  }
+  .logo-thumb img {
+    display: block;
+    max-height: 40px;
+    max-width: 100%;
+    border-radius: 4px;
+  }
+  .error {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--danger);
   }
   .del {
     border: none;

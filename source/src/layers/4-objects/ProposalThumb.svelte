@@ -2,6 +2,8 @@
   // 排版提案的縮圖：畫出背景、其他物件的大致位置，以及文字實際排出來的樣子。
   import { roleDef, type Proposal } from '../../core/autolayout'
   import { contentColor, isContent, project } from '../../core/store.svelte'
+  import { getAssetUrl } from '../../core/assets'
+  import { splitPrice } from '../../core/textfit'
 
   let { proposal }: { proposal: Proposal } = $props()
 
@@ -34,7 +36,18 @@
     {/if}
   {/each}
   {#each texts as { pl, fill, family, weight } (pl.uid)}
-    {#if pl.direction === 'vertical'}
+    {#if pl.role === 'logo'}
+      {@const o = project.objects.items.find((x) => x.uid === pl.uid)}
+      {@const url = o ? getAssetUrl(String(o.props.assetId)) : undefined}
+      {#if url}<image href={url} x={pl.rect.x} y={pl.rect.y} width={pl.rect.w} height={pl.rect.h} preserveAspectRatio="xMidYMid meet" />{:else}<rect x={pl.rect.x} y={pl.rect.y} width={pl.rect.w} height={pl.rect.h} fill="#9aa0a8" />{/if}
+    {:else if pl.role === 'price'}
+      {#each pl.lines as line, i (i)}
+        {@const [name, price] = splitPrice(line)}
+        {@const y = pl.rect.y + i * pl.size * pl.lineHeight + pl.size * (0.88 + (pl.lineHeight - 1) / 2)}
+        <text x={pl.rect.x} {y} font-size={pl.size} font-family={family} {fill}>{name}</text>
+        {#if price}<text x={pl.rect.x + pl.rect.w} {y} font-size={pl.size} font-family={family} text-anchor="end" {fill}>{price}</text>{/if}
+      {/each}
+    {:else if pl.direction === 'vertical'}
       {#each pl.lines as line, i (i)}
         <text
           x={pl.rect.x + pl.rect.w - (i + 0.5) * pl.size * pl.lineHeight}

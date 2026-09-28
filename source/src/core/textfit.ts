@@ -1,11 +1,46 @@
 // 文字量測與換行（估算）：中文字接近正方形，寬度以「字」為單位計算。
 // 用來在排版時找出放得下的最大字級，以及把文字依形狀（三角形、圓形）逐行分段。
 
-/** 一個字元的寬度（以字級為 1）：中日韓全形字 1、英數約 0.55、空白 0.3 */
+// 實際量測字寬（瀏覽器中）：用預設的思源黑體量，比估算準確（粗體英文字母明顯較寬）
+let measureWeight = 400
+const measured = new Map<string, number>()
+let measureCtx: CanvasRenderingContext2D | null | undefined
+
+/** 之後的量測使用的字重（標題較粗、字也較寬） */
+export function setMeasureWeight(weight: number) {
+  measureWeight = weight
+}
+
+function measure(ch: string): number | undefined {
+  if (measureCtx === undefined) {
+    try {
+      measureCtx = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null
+    } catch {
+      measureCtx = null
+    }
+  }
+  if (!measureCtx) return undefined
+  const key = `${measureWeight}|${ch}`
+  let v = measured.get(key)
+  if (v === undefined) {
+    measureCtx.font = `${measureWeight} 100px "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif`
+    v = measureCtx.measureText(ch).width / 100
+    measured.set(key, v)
+  }
+  return v
+}
+
+/** 一個字元的寬度（以字級為 1）：優先實際量測；無法量測時用估算（全形字 1、英數約 0.6、空白 0.3） */
 export function charUnits(ch: string): number {
+  const m = measure(ch)
+  if (m !== undefined && m > 0) return m
+  return estimateUnits(ch)
+}
+
+function estimateUnits(ch: string): number {
   const code = ch.codePointAt(0) ?? 0
   if (ch === ' ') return 0.3
-  if (code < 0x2e80) return code < 0x7f ? 0.55 : 0.6
+  if (code < 0x2e80) return code < 0x7f ? 0.6 : 0.6
   if (code >= 0xff61 && code <= 0xff9f) return 0.55
   return 1
 }
@@ -126,4 +161,20 @@ export function largestFitting(lo: number, hi: number, fits: (size: number) => b
 export function verticalColumns(text: string, size: number, height: number): number {
   const perColumn = Math.max(1, Math.floor(height / size))
   return text.split('\n').reduce((n, para) => n + Math.max(1, Math.ceil([...para].length / perColumn)), 0)
+}
+
+/**
+ * 價目的一行：拆成品名與價格（行尾的數字，可帶 $、NT$、元）。
+ * 品名與價格之間打空白、全形空白、點或冒號都可以；沒有價格時整行當作品名。
+ */
+export function splitPrice(line: string): [string, string] {
+  const m = /^(.*?)[\s\u3000.…·・:：]*((?:NT\$|\$|＄)?\s?\d[\d,，.]*\s*(?:元|起)?)\s*$/.exec(line)
+  if (!m || !m[1].trim()) return [line.trim(), '']
+  return [m[1].replace(/[\s\u3000.…·・:：]+$/, '').trim(), m[2].trim()]
+}
+
+/** 價目一行需要的寬度（字級為單位）：品名 + 價格 + 至少兩個字寬的間隔 */
+export function priceUnits(line: string): number {
+  const [name, price] = splitPrice(line)
+  return units(name) + (price ? units(price) + 2 : 0)
 }
