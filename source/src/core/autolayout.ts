@@ -551,11 +551,11 @@ function inkRects(p: Placement): Rect[] {
 /** 排版時要避開的形狀（每次 proposeLayouts 設定） */
 let avoid: SlotSource[] = []
 
-function assemble(groups: { items: ContentItem[]; slot: Slot; vertical?: boolean; base?: number }[], canvas: { w: number; h: number }): { placements: Placement[]; overflow: boolean } {
-  const results = groups.map((g) => ({ g, r: g.vertical ? layoutVertical(g.items[0], g.slot, canvas) : layoutStack(g.items, g.slot, canvas, { fixedBase: g.base }) }))
+function assemble(groups: { items: ContentItem[]; slot: Slot; vertical?: boolean; base?: number; align?: Placement['align'] }[], canvas: { w: number; h: number }): { placements: Placement[]; overflow: boolean } {
+  const results = groups.map((g) => ({ g, r: g.vertical ? layoutVertical(g.items[0], g.slot, canvas) : layoutStack(g.items, g.slot, canvas, { fixedBase: g.base, align: g.align }) }))
   const titleGroup = results.find(({ g }) => g.items.some((i) => i.role === 'title'))
   const cap = titleGroup?.r.base
-  const final = results.map(({ g, r }) => (!cap || g === titleGroup?.g || g.vertical || r.base <= cap ? r : layoutStack(g.items, g.slot, canvas, { fixedBase: cap })))
+  const final = results.map(({ g, r }) => (!cap || g === titleGroup?.g || g.vertical || r.base <= cap ? r : layoutStack(g.items, g.slot, canvas, { fixedBase: cap, align: g.align })))
   const placements = final.flatMap((r) => r.placements)
   const outside = placements.some((p) => p.rect.x < -1 || p.rect.y < -1 || p.rect.x + p.rect.w > canvas.w + 1 || p.rect.y + p.rect.h > canvas.h + 1)
   // 排好的文字壓到圖片、Logo 也算放不下（逐行檢查實際文字範圍，而不是整個文字框）
@@ -580,7 +580,7 @@ export function proposeLayouts(input: LayoutInput, all = false): Proposal[] {
     list.filter((s) => used.every((u) => u !== s && overlap(s.rect, u.rect) < Math.min(s.area, u.area) * 0.1))
   const parts = slots.filter((s) => !s.full)
   const withRole = (role: string) => parts.find((s) => s.role === role)
-  type Group = { items: ContentItem[]; slot: Slot; vertical?: boolean; base?: number }
+  type Group = { items: ContentItem[]; slot: Slot; vertical?: boolean; base?: number; align?: Placement['align'] }
 
   // 頁首放的區域：有「標題」區塊就用它，否則動線前段最大的區域
   const early = parts.slice(0, Math.max(1, Math.ceil(parts.length * 0.6)))
@@ -656,8 +656,9 @@ export function proposeLayouts(input: LayoutInput, all = false): Proposal[] {
       const base = Math.min(layoutStack(left, col(0), canvas).base, right.length ? layoutStack(right, col(1), canvas).base : Infinity)
       const groups: Group[] = []
       if (header.length || highlights.length) groups.push({ items: [...header, ...highlights], slot: titleSlot })
-      groups.push({ items: left, slot: col(0), base })
-      if (right.length) groups.push({ items: right, slot: col(1), base })
+      // 欄內文字一律靠左（條列、說明置中不好讀）
+      groups.push({ items: left, slot: col(0), base, align: 'left' })
+      if (right.length) groups.push({ items: right, slot: col(1), base, align: 'left' })
       const r = assemble(groups, canvas)
       proposals.push({ id: 'columns', name: '兩欄', ...r })
     }

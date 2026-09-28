@@ -28,7 +28,7 @@
   /** 選取並跳到該圖層所屬的步驟（已解鎖時） */
   function focus(stepId: string, select: () => void) {
     const i = stepIndex(stepId)
-    if (i <= flow.reached && flow.current !== i && !(stepId === 'objects' && STEPS[flow.current].id === 'refine')) goToStep(i)
+    if (flow.current !== i && !(stepId === 'objects' && STEPS[flow.current].id === 'refine')) goToStep(i)
     select()
   }
 </script>

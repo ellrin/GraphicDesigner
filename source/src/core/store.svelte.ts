@@ -188,6 +188,17 @@ export const addComposition = discrete((templateId: string, frame: FrameRef = CA
   ui.selectedComposition = item.uid
 })
 
+/** 精靈：只用一個構圖（清掉區塊與引導） */
+export const chooseComposition = discrete((templateId: string) => {
+  const t = compositionTemplates.find((x) => x.id === templateId)
+  if (!t) return
+  const item = newInstance(t)
+  project.compositions.items = [item]
+  project.blocks.items = []
+  project.guides.items = []
+  ui.selectedComposition = item.uid
+})
+
 export const removeComposition = discrete((id: string) => {
   project.compositions.items = project.compositions.items.filter((g) => g.uid !== id)
   if (ui.selectedComposition === id) ui.selectedComposition = project.compositions.items.at(-1)?.uid ?? null
@@ -520,10 +531,10 @@ export const moveContent = discrete((id: string, dir: -1 | 1) => {
   ;[items[a], items[b]] = [items[b], items[a]]
 })
 
-export const addContent = discrete((role: ContentRole) => {
+export const addContent = discrete((role: ContentRole, text?: string) => {
   const def = roleDef(role)
   const n = project.objects.items.filter((o) => o.props.role === role).length + 1
-  addObject('text', {}, { text: def.text, role, lineHeight: def.lineHeight }, `${def.label} ${n}`)
+  addObject('text', {}, { text: text ?? def.text, role, lineHeight: def.lineHeight }, `${def.label} ${n}`)
   // 不切換到物件編輯區，留在內容清單繼續輸入
   ui.selectedObjects = []
 })
@@ -695,8 +706,10 @@ if (import.meta.env.DEV) {
   if (m) flow.current = flow.reached = Math.min(Number(m[1]), STEPS.length - 1)
 }
 
+/** 編輯器的步驟可以自由切換（建立設計的流程由精靈負責） */
 export function goToStep(i: number) {
-  if (i <= flow.reached) flow.current = i
+  flow.current = i
+  flow.reached = Math.max(flow.reached, i)
 }
 
 export function completeStep() {

@@ -178,3 +178,6 @@ export function priceUnits(line: string): number {
   const [name, price] = splitPrice(line)
   return units(name) + (price ? units(price) + 2 : 0)
 }
+
+/** 價目中的說明行：整行用括號包住，例如「（可選熱・冰）」 */
+export const isPriceNote = (line: string) => /^\s*[（(].*[）)]\s*$/.test(line)

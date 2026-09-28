@@ -545,6 +545,7 @@
       <button class="project-btn" onclick={() => openProject(projects.list.length ? 'projects' : 'new')} title="我的專案、新專案、專案檔">
         專案<small>{project.name ? `${project.name}・` : ''}{project.canvas.w} × {project.canvas.h} {project.canvas.unit}</small>
       </button>
+      <button onclick={() => openProject('wizard')} title="用精靈一步步重新調整文字、版型、動線與配色">精靈</button>
       <ResetButton />
       <ProjectMenu />
     </div>
@@ -625,7 +626,7 @@
   </aside>
 </div>
 
-<ProjectDialog bind:open={projectOpen} bind:tab={projectTab} />
+<ProjectDialog bind:open={projectOpen} bind:tab={projectTab} regions={layoutContext.regions} path={layoutContext.path} />
 
 <style>
   .app {

@@ -63,6 +63,11 @@ export async function importImageFile(file: File): Promise<{ id: string; width: 
     r.onerror = () => reject(r.error)
     r.readAsDataURL(file)
   })
+  return dataUrlToAsset(url, file.type)
+}
+
+/** 由 data URL 建立圖片（文字內容 JSON 中的 Logo 也用這個） */
+export async function dataUrlToAsset(url: string, type = url.slice(5, url.indexOf(';'))): Promise<{ id: string; width: number; height: number }> {
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const i = new Image()
     i.onload = () => resolve(i)
@@ -81,7 +86,7 @@ export async function importImageFile(file: File): Promise<{ id: string; width: 
     canvas.width = width
     canvas.height = height
     canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
-    finalUrl = file.type === 'image/png' ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.92)
+    finalUrl = type === 'image/png' ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.92)
   }
 
   const id = newId()

@@ -2,7 +2,7 @@ import Konva from 'konva'
 import type { ParamValues } from '../../../../core/params'
 import type { ShapeBuilder } from '../index'
 import { createVerticalText, type LatinMode } from './vertical'
-import { splitPrice } from '../../../../core/textfit'
+import { isPriceNote, splitPrice } from '../../../../core/textfit'
 
 /** 文字專屬、由文字編輯區（而非 params.json）控制的屬性預設值。 */
 export const TEXT_DEFAULTS: ParamValues = {
@@ -79,6 +79,11 @@ function priceLines(ctx: Parameters<ShapeBuilder>[0], size: number, family: stri
     .split('\n')
     .forEach((line, i) => {
       const y = -ctx.h / 2 + i * size * lh + ((lh - 1) * size) / 2
+      // 說明小字：整行括號，縮小、稍淡，放在品名下方
+      if (isPriceNote(line)) {
+        out.push(new Konva.Text({ ...common, x: -ctx.w / 2 + size * 0.2, y: y + size * 0.12, text: line, fontSize: size * 0.78, fontStyle: '400', opacity: 0.72, align: 'left' }))
+        return
+      }
       const [name, price] = splitPrice(line)
       const left = new Konva.Text({ ...common, x: -ctx.w / 2, y, text: name, align: 'left' })
       out.push(left)

@@ -3,9 +3,19 @@
   import { roleDef, type Proposal } from '../../core/autolayout'
   import { contentColor, isContent, project } from '../../core/store.svelte'
   import { getAssetUrl } from '../../core/assets'
-  import { splitPrice } from '../../core/textfit'
+  import { isPriceNote, splitPrice } from '../../core/textfit'
 
-  let { proposal }: { proposal: Proposal } = $props()
+  import type { ResolvedBlock } from '../../core/recipes'
+  import { roleOf } from '../../core/blocks'
+
+  interface Props {
+    proposal: Proposal
+    /** 範本預覽：先畫出範本的區塊（畫布座標） */
+    blocks?: ResolvedBlock[]
+    height?: number
+  }
+  let { proposal, blocks = [], height = 120 }: Props = $props()
+  const pts = (ps: { x: number; y: number }[]) => ps.map((p) => `${p.x},${p.y}`).join(' ')
 
   const c = $derived(project.canvas)
   const others = $derived(project.objects.items.filter((o) => o.visible && !isContent(o)))
@@ -23,9 +33,20 @@
   const xOf = (r: { x: number; w: number }, a: string) => (a === 'center' ? r.x + r.w / 2 : a === 'right' ? r.x + r.w : r.x)
 </script>
 
-<svg viewBox="0 0 {c.w} {c.h}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+<svg viewBox="0 0 {c.w} {c.h}" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style:max-height="{height}px">
   <rect width={c.w} height={c.h} fill={project.background.color} />
   {#if project.background.assetId}<rect width={c.w} height={c.h} fill="#8a8f98" opacity="0.5" />{/if}
+  {#each blocks as b, i (i)}
+    {@const color = b.role === 'image' ? '#9aa0a8' : roleOf(b.role).color}
+    {@const op = b.role === 'image' ? 0.55 : 0.12}
+    {#if b.shape === 'polygon' && b.points}
+      <polygon points={pts(b.points)} fill={color} fill-opacity={op} stroke={color} stroke-opacity="0.5" stroke-width={c.w / 300} />
+    {:else if b.shape === 'ellipse'}
+      <ellipse cx={b.rect.x + b.rect.w / 2} cy={b.rect.y + b.rect.h / 2} rx={b.rect.w / 2} ry={b.rect.h / 2} fill={color} fill-opacity={op} stroke={color} stroke-opacity="0.5" stroke-width={c.w / 300} />
+    {:else}
+      <rect x={b.rect.x} y={b.rect.y} width={b.rect.w} height={b.rect.h} fill={color} fill-opacity={op} stroke={color} stroke-opacity="0.5" stroke-width={c.w / 300} />
+    {/if}
+  {/each}
   {#each others as o (o.uid)}
     {#if o.type === 'image'}
       <rect x={o.x * c.w} y={o.y * c.h} width={o.w * c.w} height={o.h * c.h} fill="#9aa0a8" />
@@ -44,7 +65,7 @@
       {#each pl.lines as line, i (i)}
         {@const [name, price] = splitPrice(line)}
         {@const y = pl.rect.y + i * pl.size * pl.lineHeight + pl.size * (0.88 + (pl.lineHeight - 1) / 2)}
-        <text x={pl.rect.x} {y} font-size={pl.size} font-family={family} {fill}>{name}</text>
+        <text x={pl.rect.x + (isPriceNote(line) ? pl.size * 0.2 : 0)} {y} font-size={isPriceNote(line) ? pl.size * 0.78 : pl.size} opacity={isPriceNote(line) ? 0.72 : 1} font-family={family} {fill}>{name}</text>
         {#if price}<text x={pl.rect.x + pl.rect.w} {y} font-size={pl.size} font-family={family} text-anchor="end" {fill}>{price}</text>{/if}
       {/each}
     {:else if pl.direction === 'vertical'}
@@ -80,7 +101,6 @@
     display: block;
     width: 100%;
     aspect-ratio: auto;
-    max-height: 120px;
     border-radius: 3px;
     box-shadow: 0 0 0 1px var(--line);
   }

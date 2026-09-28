@@ -9,7 +9,6 @@
       <button
         class:current={i === flow.current}
         class:done={i < flow.reached && i !== flow.current}
-        disabled={i > flow.reached}
         onclick={() => goToStep(i)}
       >
         <span class="num">{String(i + 1).padStart(2, '0')}</span>
