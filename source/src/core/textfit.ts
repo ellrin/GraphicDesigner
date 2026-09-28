@@ -89,7 +89,8 @@ export const longestLine = (lines: string[]) => Math.max(0, ...lines.map(units))
  * 在可變寬度的區域內排一段文字：widthAt(y) 回傳高度 y 處可用的寬度（畫布單位）。
  * 回傳各行文字與總高度；每行取該行上下緣中較窄的寬度，確保不超出形狀。
  */
-export function flowText(text: string, size: number, lineHeight: number, top: number, widthAt: (y: number) => number, balance = false) {
+/** balance > 0 時平均各行長度，但每行不少於 balance 個字 */
+export function flowText(text: string, size: number, lineHeight: number, top: number, widthAt: (y: number) => number, balance = 0) {
   const step = size * lineHeight
   const avail = (i: number) => {
     const y0 = top + i * step
@@ -97,9 +98,9 @@ export function flowText(text: string, size: number, lineHeight: number, top: nu
   }
   let lines = breakText(text, avail)
   // 平均行長（標題類）：同樣行數下讓每行差不多長，避免最後一行很短
-  if (balance && lines.length > 1) {
+  if (balance > 0 && lines.length > 1) {
     const target = longestLine(lines) - 0.5
-    for (let w = Math.ceil(units(text.replace(/\n/g, '')) / lines.length); w <= target; w++) {
+    for (let w = Math.max(balance, Math.ceil(units(text.replace(/\n/g, '')) / lines.length)); w <= target; w++) {
       const tried = breakText(text, (i) => Math.min(avail(i), w + 0.5))
       if (tried.length <= lines.length) {
         lines = tried
