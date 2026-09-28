@@ -2,7 +2,7 @@
   // 文字內容：逐條填寫標題、子標題、內文…，下方直接給出排版提案，點一下套用，之後可自由微調。
   import Section from '../../ui/Section.svelte'
   import { CONTENT_ROLES, proposeLayouts, type ContentRole, type SlotSource } from '../../core/autolayout'
-  import { toCanvasPoints, toCanvasRect } from '../../core/blocks'
+  import { projectLayoutInput } from '../../core/layoutInput'
   import type { Pt } from '../../core/geometry'
   import { addContent, addLogo, applyProposal, contentItems, contentText, contentUntouched, isContent, project, removeObject, setContentText, ui } from '../../core/store.svelte'
   import { getAssetUrl, importImageFile } from '../../core/assets'
@@ -17,31 +17,9 @@
   }
   let { regions, path }: Props = $props()
 
-  const c = $derived(project.canvas)
   const items = $derived(project.objects.items.filter(isContent))
 
-  const proposals = $derived.by(() => {
-    const blocks = project.blocks.items.filter((b) => b.visible)
-    const input = {
-      canvas: c,
-      items: contentItems(),
-      blocks: blocks.map((b) => ({
-        rect: toCanvasRect(b, c),
-        shape: b.shape,
-        points: b.points ? toCanvasPoints(b.points, c) : undefined,
-        role: b.role,
-      })),
-      regions,
-      path,
-      obstacles: [
-        ...blocks
-          .filter((b) => b.role === 'image' || b.role === 'logo')
-          .map((b) => ({ rect: toCanvasRect(b, c), shape: b.shape, points: b.points ? toCanvasPoints(b.points, c) : undefined })),
-        ...project.objects.items.filter((o) => o.visible && o.type === 'image' && !isContent(o)).map((o) => ({ rect: toCanvasRect(o, c) })),
-      ],
-    }
-    return proposeLayouts(input)
-  })
+  const proposals = $derived(proposeLayouts(projectLayoutInput(regions, path)))
 
   // 文字還沒手動調整過時，加入或修改內容後自動沿用上次選的提案重新排版
   const key = $derived(JSON.stringify(contentItems()) + '|' + proposals.map((p) => p.id).join())

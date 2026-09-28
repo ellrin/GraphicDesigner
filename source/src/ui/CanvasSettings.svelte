@@ -12,15 +12,17 @@
     spec = p ? { presetId: p.id, w: p.w, h: p.h, unit: p.unit } : { ...spec, presetId: null }
   }
 
+  let hint = $state('')
+
   /**
    * 輸入完成（Enter 或離開欄位）才套用，打字途中的空白、0 或過大的中間值不會影響尺寸。
-   * 不合法的數字會還原成目前的尺寸。
+   * 不合法的數字會還原成目前的尺寸，並顯示提示。
    */
   function commit(axis: 'w' | 'h', input: HTMLInputElement) {
     const v = Number(input.value)
-    if (input.value.trim() !== '' && Number.isFinite(v) && v >= 1 && v <= MAX && v !== spec[axis]) {
-      spec = { ...spec, [axis]: v, presetId: null }
-    }
+    const valid = input.value.trim() !== '' && Number.isFinite(v) && v >= 1 && v <= MAX
+    hint = valid ? '' : `請輸入 1–${MAX} 之間的數字`
+    if (valid && v !== spec[axis]) spec = { ...spec, [axis]: v, presetId: null }
     input.value = String(spec[axis])
   }
 </script>
@@ -47,6 +49,7 @@
     </select>
     <button onclick={() => (spec = { ...spec, w: spec.h, h: spec.w })} title="直橫切換">⇄</button>
   </div>
+  {#if hint}<p class="hint" role="alert">{hint}</p>{/if}
 </div>
 
 <style>
@@ -59,6 +62,11 @@
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 62px auto;
     align-items: center;
     gap: 6px;
+  }
+  .hint {
+    margin: 0;
+    font-size: 12px;
+    color: var(--danger);
   }
   .dims input {
     min-width: 0;

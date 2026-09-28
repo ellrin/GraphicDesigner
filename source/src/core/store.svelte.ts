@@ -23,6 +23,8 @@ import { guideTemplates } from '../layers/2-guides/templates'
 export type GuideItem = TemplateInstance
 
 export interface ProjectData {
+  /** 專案名稱（也用在匯出與存檔的檔名） */
+  name: string
   canvas: CanvasSpec
   /** 第一層：可以有多個構圖，各自套用在整張畫布或某個範圍 */
   compositions: { items: TemplateInstance[] }
@@ -53,6 +55,7 @@ const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v))
 export function newProject(): ProjectData {
   const preset = CANVAS_PRESETS.find((p) => p.id === '16x9') ?? CANVAS_PRESETS[0]
   return {
+    name: '',
     canvas: { presetId: preset.id, w: preset.w, h: preset.h, unit: preset.unit },
     // 構圖由使用者在第一步自行選擇
     compositions: { items: [] },
@@ -86,6 +89,7 @@ export function replaceProject(data: ProjectData) {
 
   const size = (v: unknown, fallback: number) =>
     typeof v === 'number' && Number.isFinite(v) && v >= 1 && v <= CANVAS_MAX ? v : fallback
+  project.name = typeof data.name === 'string' ? data.name : ''
   project.canvas = {
     presetId: data.canvas?.presetId ?? null,
     unit: data.canvas?.unit === 'mm' ? 'mm' : 'px',
@@ -155,7 +159,12 @@ export function selectObject(id: string | null, additive = false) {
   else ui.selectedObjects = [...ui.selectedObjects, id]
 }
 
-function uid() {
+/** 匯出與存檔用的檔名（去掉不能用在檔名的字元） */
+export function fileBase(): string {
+  return project.name.trim().replace(/[\\/:*?"<>|]+/g, '-') || 'design'
+}
+
+export function uid() {
   return Math.random().toString(36).slice(2, 10)
 }
 
@@ -394,12 +403,25 @@ function backdropAt(p: Pt, below = project.objects.items.length): string {
   return project.background.color
 }
 
+/** 某個位置底下是不是照片（背景照片或下層的圖片；Logo 不算，被填色圖形蓋住也不算） */
+export function onPhotoAt(p: Pt, below = project.objects.items.length): boolean {
+  for (let i = below - 1; i >= 0; i--) {
+    const o = project.objects.items[i]
+    if (!o.visible || o.type === 'text' || o.type === 'line') continue
+    if (!(p.x >= o.x && p.x <= o.x + o.w && p.y >= o.y && p.y <= o.y + o.h)) continue
+    if (o.type === 'image') {
+      if (!isContent(o)) return true
+    } else if (o.fill) return false
+  }
+  return !!project.background.assetId
+}
+
 /** 新物件的預設顏色：依選用的配色（文字依底色自動選深或淺，圖形輪流使用鮮豔色） */
 function paletteColors(type: string, center: Pt): { fill?: string; stroke?: string } {
   const p = paletteOf(project.palette)
   if (!p) return {}
   const r = rolesOf(p)
-  if (type === 'text') return { fill: textOn(backdropAt(center), r) }
+  if (type === 'text') return { fill: onPhotoAt(center) ? '#ffffff' : textOn(backdropAt(center), r) }
   if (type === 'line') return { stroke: r.primary }
   const bg = backdropAt(center)
   const list = r.chromatic.filter((c) => contrast(c, bg) >= 1.3)
@@ -434,8 +456,11 @@ export const applyPalette = discrete((id: string, mode: 'light' | 'dark') => {
   })
   const texts = items.filter((o) => o.type === 'text').sort((a, b) => Number(b.props.fontSize) - Number(a.props.fontSize))
   texts.forEach((o, i) => {
-    const under = backdropAt({ x: o.x + o.w / 2, y: o.y + o.h / 2 }, items.indexOf(o))
-    o.fill = i === 0 && contrast(r.primary, under) >= 3 ? r.primary : textOn(under, r)
+    const at = { x: o.x + o.w / 2, y: o.y + o.h / 2 }
+    const photo = onPhotoAt(at, items.indexOf(o))
+    const under = backdropAt(at, items.indexOf(o))
+    o.fill = photo ? '#ffffff' : i === 0 && contrast(r.primary, under) >= 3 ? r.primary : textOn(under, r)
+    o.props.shadow = photo
   })
 })
 
@@ -453,9 +478,18 @@ export function contentItems(): ContentItem[] {
     .filter(isContent)
     .map((o) =>
       o.type === 'image'
-        ? { uid: o.uid, role: 'logo' as const, text: '', aspect: (o.w * c.w) / (o.h * c.h) }
+        ? { uid: o.uid, role: 'logo' as const, text: '', aspect: logoAspect(o, c) }
         : { uid: o.uid, role: o.props.role as ContentRole, text: contentText(o) },
     )
+}
+
+/**
+ * Logo 的寬高比：用加入時記下的圖片原始比例（固定不變）。
+ * 不能用目前的物件框算，否則每次排版後的微小誤差會被當成「內容改變」而不斷重新排版。
+ */
+function logoAspect(o: DesignObject, c: { w: number; h: number }): number {
+  const a = Number(o.props.aspect)
+  return Number.isFinite(a) && a > 0 ? a : Math.round(((o.w * c.w) / (o.h * c.h)) * 1000) / 1000
 }
 
 /** 加入 Logo（圖片），也列入文字內容一起自動排版 */
@@ -464,7 +498,7 @@ export const addLogo = discrete((assetId: string, width: number, height: number)
   const k = (Math.min(c.w, c.h) * 0.2) / Math.max(width, height)
   const w = (width * k) / c.w
   const h = (height * k) / c.h
-  addObject('image', { rect: { x: 0.5 - w / 2, y: 0.5 - h / 2, w, h } }, { assetId, role: 'logo' }, 'Logo')
+  addObject('image', { rect: { x: 0.5 - w / 2, y: 0.5 - h / 2, w, h } }, { assetId, role: 'logo', aspect: width / height }, 'Logo')
   ui.selectedObjects = []
 })
 
@@ -494,6 +528,8 @@ function weightFor(kind: 'heavy' | 'bold' | 'regular', family: string): number {
 export function contentColor(role: string, at: Pt, below?: number): string {
   const p = paletteOf(project.palette)
   const r = p ? rolesOf(p) : undefined
+  // 照片上：白字（另加陰影），避免深色字壓在照片上看不清
+  if (onPhotoAt(at, below)) return '#ffffff'
   const under = backdropAt(at, below)
   if (r && role === 'title' && contrast(r.primary, under) >= 3) return r.primary
   if (r && role === 'highlight' && contrast(r.accent, under) >= 3) return r.accent
@@ -534,7 +570,9 @@ export const applyProposal = discrete((proposal: Proposal) => {
       o.props.contentText = original
       o.props.text = pl.text
     } else setContentText(o, original)
-    o.fill = contentColor(pl.role, { x: o.x + o.w / 2, y: o.y + o.h / 2 }, items.indexOf(o))
+    const at = { x: o.x + o.w / 2, y: o.y + o.h / 2 }
+    o.fill = contentColor(pl.role, at, items.indexOf(o))
+    o.props.shadow = onPhotoAt(at, items.indexOf(o))
     o.stroke = ''
     o.props.autoRect = rectKey(o)
   }

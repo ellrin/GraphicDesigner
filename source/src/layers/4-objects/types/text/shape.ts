@@ -22,7 +22,7 @@ const build: ShapeBuilder = (ctx) => {
 
   if (p.direction === 'vertical') {
     return [
-      createVerticalText({
+      withShadow(p, size, createVerticalText({
         x: -ctx.w / 2,
         y: -ctx.h / 2,
         width: ctx.w,
@@ -37,12 +37,12 @@ const build: ShapeBuilder = (ctx) => {
         fill: ctx.fill || '#000000',
         stroke: ctx.stroke || undefined,
         strokeWidth: ctx.strokeWidth,
-      }),
+      })),
     ]
   }
 
   // 價目：每行拆成品名（靠左）與價格（靠右），中間以點線連接
-  if (p.role === 'price') return priceLines(ctx, size, family)
+  if (p.role === 'price') return priceLines(ctx, size, family).map((t) => withShadow(p, size, t))
 
   const text = new Konva.Text({
     x: -ctx.w / 2,
@@ -65,7 +65,7 @@ const build: ShapeBuilder = (ctx) => {
     wrap: 'word',
   })
   text.height(Math.max(ctx.h, text.height()))
-  return [text]
+  return [withShadow(p, size, text)]
 }
 export default build
 
@@ -101,4 +101,10 @@ function priceLines(ctx: Parameters<ShapeBuilder>[0], size: number, family: stri
       }
     })
   return out
+}
+
+/** 放在照片上的文字加淡淡的陰影，任何照片上都讀得清楚 */
+function withShadow<T extends Konva.Shape>(p: ParamValues, size: number, shape: T): T {
+  if (p.shadow) shape.setAttrs({ shadowColor: 'rgba(0,0,0,0.6)', shadowBlur: size * 0.3, shadowOffsetY: size * 0.04, shadowEnabled: true })
+  return shape
 }

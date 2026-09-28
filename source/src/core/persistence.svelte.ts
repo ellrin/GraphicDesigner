@@ -1,6 +1,8 @@
 // 存檔（下載 .json）、讀檔、瀏覽器自動暫存。
 
-import { flow, startFromRecipe, newProject, project, replaceProject, ui, unlockSteps, type ProjectData } from './store.svelte'
+import { applyProposal, fileBase, flow, isContent, startFromRecipe, newProject, project, replaceProject, ui, uid, unlockSteps, type ProjectData } from './store.svelte'
+import { proposeLayouts } from './autolayout'
+import { projectLayoutInput } from './layoutInput'
 import type { CanvasSpec } from './canvas'
 import type { Recipe } from './recipes'
 import { resetHistory } from './history.svelte'
@@ -60,8 +62,7 @@ export function downloadProject() {
   const blob = new Blob([JSON.stringify(toFile(true))], { type: 'application/json' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
-  const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '')
-  a.download = `design-${stamp}.gdesign.json`
+  a.download = `${fileBase()}.gdesign.json`
   a.click()
   setTimeout(() => URL.revokeObjectURL(a.href), 1000)
 }
@@ -85,19 +86,54 @@ export async function openProjectWithMessage(file: File): Promise<boolean> {
   }
 }
 
+export interface CreateOptions {
+  name?: string
+  /** 沿用目前專案的配色、背景色、Logo 與文字內容（系列作品換尺寸時使用） */
+  carry?: boolean
+}
+
 /** 建立新專案：指定畫布尺寸，可選擇從版型範例開始（範例包含的步驟會一併解鎖） */
-export function createProject(canvas: CanvasSpec, recipe: Recipe | null) {
+export function createProject(canvas: CanvasSpec, recipe: Recipe | null, opts: CreateOptions = {}) {
+  const prev = opts.carry ? ($state.snapshot(project) as ProjectData) : null
   replaceProject(newProject())
   project.canvas = { ...canvas }
+  project.name = opts.name ?? ''
   flow.current = flow.reached = 0
   Object.assign(ui, { selectedComposition: null, selectedGuide: null, selectedBlock: null, selectedObjects: [] })
   if (recipe) startFromRecipe(recipe)
+  if (prev) carryOver(prev)
   resetHistory()
+}
+
+/** 把上一個專案的配色、背景色、Logo 與文字搬到新畫布，並依新尺寸自動排版 */
+function carryOver(prev: ProjectData) {
+  project.palette = prev.palette
+  project.background.color = prev.background.color
+  const c = project.canvas
+  const k = Math.min(c.w, c.h) / Math.min(prev.canvas.w, prev.canvas.h)
+  for (const o of prev.objects.items.filter(isContent)) {
+    const copy = structuredClone(o)
+    copy.uid = uid()
+    delete copy.props.autoRect
+    if (copy.props.contentText !== undefined) {
+      copy.props.text = copy.props.contentText
+      delete copy.props.contentText
+    }
+    // 依短邊等比例換算大小，先放在中央，稍後自動排版
+    copy.w = Math.min(1, (o.w * prev.canvas.w * k) / c.w)
+    copy.h = Math.min(1, (o.h * prev.canvas.h * k) / c.h)
+    copy.x = 0.5 - copy.w / 2
+    copy.y = 0.5 - copy.h / 2
+    project.objects.items.push(copy)
+  }
+  const proposals = proposeLayouts(projectLayoutInput())
+  if (proposals.length) applyProposal(proposals[0])
+  unlockSteps()
 }
 
 /** 重設：清除所有內容並回到第一步，畫布尺寸保留 */
 export function resetProject() {
-  createProject({ ...project.canvas }, null)
+  createProject({ ...project.canvas }, null, { name: project.name })
 }
 
 /** 瀏覽器裡是否有上次的自動暫存（沒有 = 第一次使用） */

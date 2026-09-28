@@ -5,7 +5,7 @@
   import { CANVAS_PRESETS, type CanvasSpec } from '../core/canvas'
   import type { Recipe } from '../core/recipes'
   import { createProject } from '../core/persistence.svelte'
-  import { project } from '../core/store.svelte'
+  import { isContent, project } from '../core/store.svelte'
   import CanvasSettings from './CanvasSettings.svelte'
   import Help from './Help.svelte'
   import ProjectPanel from './ProjectPanel.svelte'
@@ -22,6 +22,9 @@
   let start = $state<'blank' | 'recipe'>('blank')
   let recipe = $state<Recipe | null>(null)
   let confirming = $state(false)
+  let name = $state('')
+  let carry = $state(false)
+  let useRecipeSize = $state(false)
 
   $effect(() => {
     if (open && !dialog.open) {
@@ -30,6 +33,9 @@
         start = 'blank'
         recipe = null
         confirming = false
+        name = ''
+        carry = false
+        useRecipeSize = false
       })
       dialog.showModal()
     } else if (!open && dialog.open) dialog.close()
@@ -44,13 +50,20 @@
       !!project.background.assetId,
   )
 
-  /** 選範例時，畫布改成範例建議的尺寸（之後仍可自行修改） */
+  /** 目前專案有可以沿用的配色、Logo 或文字 */
+  const canCarry = $derived(!!project.palette || project.objects.items.some(isContent))
+
+  /** 範例建議的畫布（與目前選的尺寸不同時才列出；預設不使用，避免蓋掉已選的尺寸） */
+  const recipeCanvas = $derived.by((): (CanvasSpec & { label: string }) | null => {
+    const p = recipe?.canvas ? CANVAS_PRESETS.find((q) => q.id === recipe!.canvas) : undefined
+    if (!p || !recipe) return null
+    const [w, h] = recipe.portrait ? [Math.min(p.w, p.h), Math.max(p.w, p.h)] : [p.w, p.h]
+    if (w === draft.w && h === draft.h && p.unit === draft.unit) return null
+    return { presetId: p.id, w, h, unit: p.unit, label: p.name }
+  })
+
   function pick(r: Recipe) {
     recipe = r
-    const p = r.canvas ? CANVAS_PRESETS.find((q) => q.id === r.canvas) : undefined
-    if (!p) return
-    const [w, h] = r.portrait ? [Math.min(p.w, p.h), Math.max(p.w, p.h)] : [p.w, p.h]
-    draft = { presetId: p.id, w, h, unit: p.unit }
   }
 
   const ready = $derived(start === 'blank' || recipe !== null)
@@ -61,7 +74,8 @@
       confirming = true
       return
     }
-    createProject(draft, start === 'recipe' ? recipe : null)
+    const canvas = useRecipeSize && recipeCanvas ? recipeCanvas : draft
+    createProject({ presetId: canvas.presetId, w: canvas.w, h: canvas.h, unit: canvas.unit }, start === 'recipe' ? recipe : null, { name: name.trim(), carry: canCarry && carry })
     open = false
   }
 </script>
@@ -77,6 +91,11 @@
 
   <div class="body">
     {#if tab === 'new'}
+      <section>
+        <h3>名稱</h3>
+        <input class="name" type="text" bind:value={name} placeholder="未命名設計" />
+      </section>
+
       <section>
         <h3>畫布尺寸 <Help text="畫布尺寸在建立專案時決定。" /></h3>
         <CanvasSettings bind:spec={draft} />
@@ -99,10 +118,23 @@
       {#if start === 'recipe'}
         <section>
           <RecipeGallery {aspect} selected={recipe} onpick={pick} />
+          {#if recipeCanvas}
+            <label class="check"><input type="checkbox" bind:checked={useRecipeSize} /> 改用範例的尺寸（{recipeCanvas.label}　{recipeCanvas.w} × {recipeCanvas.h} {recipeCanvas.unit}）</label>
+          {/if}
+        </section>
+      {/if}
+
+      {#if canCarry}
+        <section>
+          <label class="check"><input type="checkbox" bind:checked={carry} /> 沿用目前的配色、Logo 與文字</label>
         </section>
       {/if}
     {:else}
       <section>
+        <label class="field">
+          <span>專案名稱</span>
+          <input class="name" type="text" bind:value={project.name} placeholder="未命名設計" />
+        </label>
         <p class="current">目前畫布：{project.canvas.w} × {project.canvas.h} {project.canvas.unit}</p>
         <ProjectPanel onopened={() => (open = false)} />
       </section>
@@ -205,6 +237,25 @@
   .start.on {
     border-color: var(--accent);
     box-shadow: 0 0 0 1px var(--accent);
+  }
+  .name {
+    width: 100%;
+  }
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 13px;
+  }
+  .field {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+  .field > span {
+    color: var(--muted);
   }
   .current {
     margin: 0 0 12px;

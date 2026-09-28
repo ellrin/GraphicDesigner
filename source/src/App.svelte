@@ -98,6 +98,18 @@
   let imageStoreTick = $state(0)
 
   const step = $derived(STEPS[flow.current])
+  /** 這一步還沒有做任何事：底部按鈕顯示「略過」 */
+  const stepEmpty = $derived(
+    step.id === 'composition'
+      ? !project.compositions.items.length
+      : step.id === 'guides'
+        ? !project.guides.items.length
+        : step.id === 'blocks'
+          ? !project.blocks.items.length
+          : step.id === 'objects'
+            ? !project.objects.items.length
+            : false,
+  )
 
   type Computed = { inst: TemplateInstance; t: Template; frame: Rect; name: string; output: GuideOutput }
 
@@ -528,7 +540,7 @@
     <Stepper />
     <div class="right">
       <button class="project-btn" onclick={() => openProject('new')} title="新專案、開啟與儲存專案檔">
-        專案<small>{project.canvas.w} × {project.canvas.h} {project.canvas.unit}</small>
+        專案<small>{project.name ? `${project.name}・` : ''}{project.canvas.w} × {project.canvas.h} {project.canvas.unit}</small>
       </button>
       <ResetButton />
       <ProjectMenu />
@@ -561,7 +573,7 @@
     {#if flow.current < STEPS.length - 1}
       <div class="next-bar">
         <button class="primary next" onclick={completeStep}>
-          完成「{step.label}」<span>→ {STEPS[flow.current + 1].label}</span>
+          {stepEmpty ? '略過' : '完成'}「{step.label}」<span>→ {STEPS[flow.current + 1].label}</span>
         </button>
       </div>
     {/if}

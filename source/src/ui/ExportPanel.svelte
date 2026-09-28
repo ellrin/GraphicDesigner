@@ -3,7 +3,7 @@
   import exportConfig from '../config/export.json'
   import { exportPdf, exportPng, pngWidth, type Renderer } from '../core/exporter'
   import { downloadProject } from '../core/persistence.svelte'
-  import { project } from '../core/store.svelte'
+  import { fileBase, project } from '../core/store.svelte'
 
   let { render }: { render: Renderer } = $props()
 
@@ -15,7 +15,7 @@
   let cropMarks = $state(true)
   const outW = $derived(pngWidth(c, { dpi, scale }))
   const outH = $derived(Math.round((outW * c.h) / c.w))
-  const name = () => `design-${new Date().toISOString().slice(0, 10)}`
+  const name = () => fileBase()
 </script>
 
 <div class="export">
