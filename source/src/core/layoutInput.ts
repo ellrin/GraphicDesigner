@@ -21,5 +21,16 @@ export function projectLayoutInput(regions: SlotSource[] = [], path: Pt[] = []):
       ...blocks.filter((b) => b.role === 'image' || b.role === 'logo').map(shapeOf),
       ...project.objects.items.filter((o) => o.visible && o.type === 'image' && !isContent(o)).map((o) => ({ rect: toCanvasRect(o, c) })),
     ],
+    panels: project.objects.items
+      .filter((o) => o.visible && o.type === 'panel')
+      .map((o) => {
+        const rect = toCanvasRect(o, c)
+        const pts = o.props.points as unknown as { x: number; y: number }[] | undefined
+        return {
+          rect,
+          shape: o.props.shape === 'ellipse' ? ('ellipse' as const) : o.props.shape === 'polygon' ? ('polygon' as const) : ('rect' as const),
+          points: pts?.map((q) => ({ x: rect.x + q.x * rect.w, y: rect.y + q.y * rect.h })),
+        }
+      }),
   }
 }

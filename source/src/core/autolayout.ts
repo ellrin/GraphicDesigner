@@ -53,6 +53,12 @@ const lineUnits = (line: string, role: string) => {
   return units(line)
 }
 
+/** 判斷文字底色用的位置：第一行文字實際的中心（畫布座標），而不是整個文字框的中心 */
+export function inkCenter(p: Placement): Pt {
+  const r = inkRects(p)[0] ?? p.rect
+  return { x: r.x + r.w / 2, y: r.y + r.h / 2 }
+}
+
 const isBodyLike = (i?: ContentItem) => !!i && (i.role === 'body' || i.role === 'list' || i.role === 'price')
 
 export type SlotShape = 'rect' | 'ellipse' | 'polygon'
@@ -112,6 +118,8 @@ export interface LayoutInput {
   path: Pt[]
   /** 不要蓋到的地方：圖片、Logo（可以是圓形或多邊形） */
   obstacles: SlotSource[]
+  /** 色塊：文字要完全在色塊內或完全在色塊外，不能跨在邊緣 */
+  panels?: SlotSource[]
 }
 
 // 可以放文字的區塊用途（圖片、Logo、背景之外）
@@ -157,7 +165,12 @@ function coverage(r: Rect, s: SlotSource): number {
 function collectSlots(input: LayoutInput): Slot[] {
   const { canvas, obstacles } = input
   const total = canvas.w * canvas.h
-  const blocked = (r: Rect) => obstacles.some((o) => coverage(r, o) > 0.2)
+  const panels = input.panels ?? []
+  const straddles = (r: Rect) => panels.some((o) => {
+    const k = coverage(r, o)
+    return k > 0.2 && k < 0.8
+  })
+  const blocked = (r: Rect) => obstacles.some((o) => coverage(r, o) > 0.2) || straddles(r)
   const toSlot = (s: SlotSource): Slot => ({ rect: s.rect, shape: s.shape ?? 'rect', points: s.points, role: s.role, order: 0, area: area(s.rect) })
 
   const slots = input.blocks.filter((b) => TEXT_ROLES.has(b.role)).map(toSlot)
@@ -223,7 +236,12 @@ function chordFn(slot: Slot, inner: Rect): (y: number) => [number, number] | nul
         const q = pts[(i + 1) % pts.length]
         if ((p.y <= y && q.y > y) || (q.y <= y && p.y > y)) xs.push(p.x + ((y - p.y) / (q.y - p.y)) * (q.x - p.x))
       })
-      return xs.length >= 2 ? [Math.min(...xs), Math.max(...xs)] : null
+      if (xs.length < 2) return null
+      // 凹多邊形（例如中間有 V 形缺口）一行會切成好幾段：取最寬的一段
+      xs.sort((p, q) => p - q)
+      let best: [number, number] = [xs[0], xs[1]]
+      for (let i = 2; i + 1 < xs.length; i += 2) if (xs[i + 1] - xs[i] > best[1] - best[0]) best = [xs[i], xs[i + 1]]
+      return best
     }
   }
   return (y) => (y >= inner.y - 1e-6 && y <= inner.y + inner.h + 1e-6 ? [inner.x, inner.x + inner.w] : null)
@@ -256,6 +274,8 @@ interface StackOptions {
   noPad?: boolean
   /** 強制對齊 */
   align?: Placement['align']
+  /** 放不下時允許更小的字級（最後的退路） */
+  tight?: boolean
 }
 
 function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: number }, opts: StackOptions = {}): StackResult {
@@ -353,12 +373,34 @@ function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: n
     }
     return r
   }
+  // 每段文字中最長的英文單字寬度（字級為單位）：單字不能被切斷，放不下就縮小字級
+  const longestWord = new Map(
+    items.map((it) => [it.uid, Math.max(0, ...(it.text.match(/[A-Za-z0-9][A-Za-z0-9.'&$-]*/g) ?? []).map((w) => lineUnits(w, it.role)))]),
+  )
   const fits = (base: number) => {
     const r = run(base)
+    const wordsFit = r.out.every((o) => {
+      const word = (longestWord.get(o.item.uid) ?? 0) * o.size
+      if (!word || o.item.role === 'logo' || o.item.role === 'price') return true
+      const avail = !shaped ? inner.w : !isBodyLike(o.item) && Number.isFinite(boxWidth) ? boxWidth : Math.max(0, ...o.lines.map((_, i) => {
+        const c = lineChord(chord, o.y + i * o.size * roleDef(o.item.role).lineHeight, o.size)
+        return c ? c[1] - c[0] : 0
+      }))
+      // 與換行時使用的寬度（96%）一致
+      return word <= avail * 0.95
+    })
+    if (!wordsFit) return false
     // 每一行都要落在區域內（形狀區域另外檢查該行的實際寬度沒有超出形狀）
     return (
       r.bottom <= span.bottom + 0.5 &&
       r.out.every((o) =>
+        (o.item.role === 'logo'
+          ? (() => {
+              // Logo：它所在高度範圍內的可用寬度要放得下
+              const c = lineChord(chord, o.y, o.h)
+              return !!c && c[1] - c[0] >= (o.w ?? o.h) * 0.98
+            })()
+          : true) &&
         o.lines.every((line, i) => {
           const c = lineChord(chord, o.y + i * o.size * roleDef(o.item.role).lineHeight, o.size)
           if (!c) return false
@@ -370,7 +412,7 @@ function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: n
   }
   // 字級上限：標題最大約畫布短邊的 22%；下限讓內文仍可閱讀
   const hi = (short * 0.22) / topRatio
-  const lo = (short * 0.012) / Math.min(...items.filter((i) => i.role !== 'logo').map((i) => roleDef(i.role).ratio), 1)
+  const lo = (short * (opts.tight ? 0.004 : 0.012)) / Math.min(...items.filter((i) => i.role !== 'logo').map((i) => roleDef(i.role).ratio), 1)
   const base = fixedBase ?? largestFitting(lo, hi, fits)
   const { out, bottom } = run(base)
 
@@ -394,16 +436,17 @@ function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: n
     const lefts = chords.map((c) => c[0])
     const rights = chords.map((c) => c[1])
     const mids = chords.map((c) => (c[0] + c[1]) / 2)
-    if (chords.length && spread(mids) < tol) {
+    // 先看左、右邊是否是直的（直角三角形、梯形），最後才看是否對稱（圓形、等腰三角形）
+    if (chords.length && spread(lefts) < tol && spread(rights) >= tol) {
+      align = 'left'
+      frame = { x: Math.min(...lefts), w: Math.max(...rights) - Math.min(...lefts) }
+    } else if (chords.length && spread(rights) < tol && spread(lefts) >= tol) {
+      align = 'right'
+      frame = { x: Math.min(...lefts), w: Math.max(...rights) - Math.min(...lefts) }
+    } else if (chords.length && spread(mids) < tol) {
       align = 'center'
       const m = mids.reduce((a, b) => a + b, 0) / mids.length
       frame = { x: m - inner.w / 2, w: inner.w }
-    } else if (chords.length && spread(lefts) < tol) {
-      align = 'left'
-      frame = { x: Math.min(...lefts), w: Math.max(...rights) - Math.min(...lefts) }
-    } else if (chords.length && spread(rights) < tol) {
-      align = 'right'
-      frame = { x: Math.min(...lefts), w: Math.max(...rights) - Math.min(...lefts) }
     } else if (chords.length) {
       align = 'left'
       frame = { x: Math.min(...lefts), w: Math.max(...rights) - Math.min(...lefts) }
@@ -423,7 +466,10 @@ function layoutStack(items: ContentItem[], slot: Slot, canvas: { w: number; h: n
       const lh = roleDef(item.role).lineHeight
       if (item.role === 'logo') {
         const lw = w ?? h
-        const x = align === 'left' ? frame.x : align === 'right' ? frame.x + frame.w - lw : frame.x + (frame.w - lw) / 2
+        let x = align === 'left' ? frame.x : align === 'right' ? frame.x + frame.w - lw : frame.x + (frame.w - lw) / 2
+        // 形狀區域：放在所在高度的可用範圍中間
+        const c = shaped ? lineChord(chord, y, h) : null
+        if (c) x = (c[0] + c[1]) / 2 - lw / 2
         return { uid: item.uid, role: item.role, rect: { x, y: y + dy, w: lw, h }, size, lineHeight: 1, align, direction: 'horizontal' as const, lines: [] }
       }
       const shown = pads ? lines.map((l, i) => pads!(l, y + i * size * lh, size)) : lines
@@ -535,8 +581,56 @@ function splitContent(items: ContentItem[]): Split {
   return { header, sections, highlights }
 }
 
+/**
+ * 畫面上最大的幾塊空白矩形：把畫布切成格子，排除照片，並且同一塊只能全在某個色塊內或全在色塊外。
+ * 回傳每一種「底」（無色塊、各個色塊）中面積最大的矩形。
+ */
+function largestFreeRects(input: LayoutInput): Slot[] {
+  const { canvas } = input
+  const m = Math.min(canvas.w, canvas.h) * 0.05
+  const N = 24
+  const cw = (canvas.w - 2 * m) / N
+  const ch = (canvas.h - 2 * m) / N
+  const panels = input.panels ?? []
+  const label: number[][] = []
+  for (let j = 0; j < N; j++) {
+    label.push([])
+    for (let i = 0; i < N; i++) {
+      const p = { x: m + (i + 0.5) * cw, y: m + (j + 0.5) * ch }
+      if (input.obstacles.some((o) => inside(o, p))) label[j].push(-2)
+      else {
+        let k = -1
+        panels.forEach((o, n) => inside(o, p) && (k = n))
+        label[j].push(k)
+      }
+    }
+  }
+  const out: Slot[] = []
+  for (let lab = -1; lab < panels.length; lab++) {
+    // 最大矩形（直方圖法）
+    const hgt = new Array(N).fill(0)
+    let best = { a: 0, x: 0, y: 0, w: 0, h: 0 }
+    for (let j = 0; j < N; j++) {
+      for (let i = 0; i < N; i++) hgt[i] = label[j][i] === lab ? hgt[i] + 1 : 0
+      for (let i = 0; i < N; i++) {
+        let hmin = Infinity
+        for (let k = i; k < N && hgt[k] > 0; k++) {
+          hmin = Math.min(hmin, hgt[k])
+          const a = hmin * (k - i + 1)
+          if (a > best.a) best = { a, x: i, y: j - hmin + 1, w: k - i + 1, h: hmin }
+        }
+      }
+    }
+    if (best.a >= 4) {
+      const rect = { x: m + best.x * cw, y: m + best.y * ch, w: best.w * cw, h: best.h * ch }
+      out.push({ rect, shape: 'rect', order: 0, area: area(rect) })
+    }
+  }
+  return out
+}
+
 /** 一個排版結果實際有文字（或圖片）的範圍：橫排文字逐行計算 */
-function inkRects(p: Placement): Rect[] {
+export function inkRects(p: Placement): Rect[] {
   if (p.role === 'logo' || p.direction === 'vertical' || p.role === 'price' || !p.lines.length) return [p.rect]
   const step = p.size * p.lineHeight
   return p.lines.map((line, i) => {
@@ -550,6 +644,20 @@ function inkRects(p: Placement): Rect[] {
 /** 多個區域：以標題的字級為上限，讓其他文字維持層級（只縮小不放大） */
 /** 排版時要避開的形狀（每次 proposeLayouts 設定） */
 let avoid: SlotSource[] = []
+let panelShapes: SlotSource[] = []
+/** 範本指定的文字區塊：文字落在其中時，允許疊在照片上（區塊本來就設計成壓在照片上） */
+let textBlocks: SlotSource[] = []
+const inTextBlock = (r: Rect) => textBlocks.some((b) => coverage(r, b) > 0.9)
+
+/** 文字（逐行）是否跨在色塊邊緣 */
+const straddlesPanel = (p: Placement) =>
+  p.role !== 'logo' &&
+  inkRects(p).some((r) =>
+    panelShapes.some((o) => {
+      const k = coverage(r, o)
+      return k > 0.12 && k < 0.88
+    }),
+  )
 
 function assemble(groups: { items: ContentItem[]; slot: Slot; vertical?: boolean; base?: number; align?: Placement['align'] }[], canvas: { w: number; h: number }): { placements: Placement[]; overflow: boolean } {
   const results = groups.map((g) => ({ g, r: g.vertical ? layoutVertical(g.items[0], g.slot, canvas) : layoutStack(g.items, g.slot, canvas, { fixedBase: g.base, align: g.align }) }))
@@ -559,8 +667,15 @@ function assemble(groups: { items: ContentItem[]; slot: Slot; vertical?: boolean
   const placements = final.flatMap((r) => r.placements)
   const outside = placements.some((p) => p.rect.x < -1 || p.rect.y < -1 || p.rect.x + p.rect.w > canvas.w + 1 || p.rect.y + p.rect.h > canvas.h + 1)
   // 排好的文字壓到圖片、Logo 也算放不下（逐行檢查實際文字範圍，而不是整個文字框）
-  const covered = placements.some((p) => inkRects(p).some((r) => avoid.some((o) => coverage(r, o) > 0.12)))
-  return { placements, overflow: outside || covered || final.some((r) => r.overflow) }
+  const covered = placements.some((p) => inkRects(p).some((r) => !inTextBlock(r) && avoid.some((o) => coverage(r, o) > 0.12)))
+  const straddle = placements.some(straddlesPanel)
+  // 不同區域的文字互相重疊
+  const inks = final.map((r) => r.placements.flatMap(inkRects))
+  let clash = false
+  for (let a = 0; a < inks.length && !clash; a++)
+    for (let b = a + 1; b < inks.length && !clash; b++)
+      clash = inks[a].some((x) => inks[b].some((y) => overlap(x, y) > Math.min(area(x), area(y)) * 0.05))
+  return { placements, overflow: outside || covered || straddle || clash || final.some((r) => r.overflow) }
 }
 
 export function proposeLayouts(input: LayoutInput, all = false): Proposal[] {
@@ -570,6 +685,9 @@ export function proposeLayouts(input: LayoutInput, all = false): Proposal[] {
   if (!slots.length) return []
   const { canvas } = input
   avoid = input.obstacles
+  panelShapes = input.panels ?? []
+  // 只有明確放字的區塊（標題、內文、行動呼籲）才算；裝飾色塊（滿版底色、外框）不算
+  textBlocks = input.blocks.filter((b) => b.role === 'title' || b.role === 'text' || b.role === 'cta')
   const proposals: Proposal[] = []
 
   const { header, sections, highlights } = splitContent(items)
@@ -611,7 +729,12 @@ export function proposeLayouts(input: LayoutInput, all = false): Proposal[] {
       const ordered = [...bodySlots].sort((a, b) => a.order - b.order)
       if (sections.length > 1 && ordered.length >= sections.length && !lead.length) {
         // 段落數量不多於剩下的區域：每一段放一個區域，依動線順序
-        sections.forEach((sec, i) => groups.push({ items: sec, slot: ordered[i] }))
+        // 依序挑互不重疊的區域
+        const used: Slot[] = [titleSlot, ...(hlSlot ? [hlSlot] : [])]
+        const picks: Slot[] = []
+        for (const s of ordered) if (picks.length < sections.length && clear([s], [...used, ...picks]).length) picks.push(s)
+        if (picks.length === sections.length) sections.forEach((sec, i) => groups.push({ items: sec, slot: picks[i] }))
+        else groups.push({ items: [...lead, ...body], slot: largest(ordered) })
         if (!hlSlot && highlights.length) groups[groups.length - 1].items.push(...highlights)
       } else {
         const textSlot = ordered.find((s) => s.role === 'text') ?? ordered.find((s) => s.order > titleSlot.order) ?? ordered[0]
@@ -699,9 +822,17 @@ export function proposeLayouts(input: LayoutInput, all = false): Proposal[] {
   // 放不下的方案不列出；全部都放不下時，保留一個讓使用者自己調整
   const fitting = unique.filter((p) => !p.overflow)
   if (fitting.length) return fitting
-  // 文字多到每個方案都放不下：改用整張畫布（留邊距）排，確保文字完整留在畫面內
-  const m = Math.min(canvas.w, canvas.h) * 0.05
-  const rect = { x: m, y: m, w: canvas.w - 2 * m, h: canvas.h - 2 * m }
-  avoid = []
-  return [{ id: 'full', name: '全版', ...assemble([{ items: [...header, ...highlights, ...body], slot: { rect, shape: 'rect', order: 0, area: area(rect) } }], canvas) }]
+  // 文字多到每個方案都放不下：找畫面上最大的空白處（不壓照片、不跨色塊），縮小字級依序放入
+  const all3 = [...header, ...highlights, ...body]
+  const candidates = [...largestFreeRects(input), ...slots]
+  // 優先選放得下的；都放不下時選字最大的（字級可以縮得更小，但不出界、不壓照片、不跨色塊）
+  let best: { placements: Placement[]; overflow: boolean; score: number } | null = null
+  for (const s of candidates) {
+    const r = layoutStack(all3, s, canvas, { tight: true })
+    const inCanvas = r.placements.every((p) => p.rect.x >= -1 && p.rect.y >= -1 && p.rect.x + p.rect.w <= canvas.w + 1 && p.rect.y + p.rect.h <= canvas.h + 1)
+    const ok = inCanvas && !r.placements.some(straddlesPanel) && !r.placements.some((p) => inkRects(p).some((q) => !inTextBlock(q) && avoid.some((o) => coverage(q, o) > 0.12)))
+    const score = (ok ? 1e9 : 0) + (r.overflow ? 0 : 1e6) + r.base
+    if (!best || score > best.score) best = { placements: r.placements, overflow: r.overflow, score }
+  }
+  return best ? [{ id: 'full', name: '緊湊', placements: best.placements, overflow: best.overflow }] : []
 }

@@ -14,7 +14,7 @@ import type { Template } from './registry'
 import { STEPS, type StepDef } from '../config/steps'
 import { contrast } from './color'
 import { paletteOf, rolesOf, textOn } from './palettes'
-import { roleDef, type ContentItem, type ContentRole, type Proposal } from './autolayout'
+import { inkCenter, roleDef, type ContentItem, type ContentRole, type Proposal } from './autolayout'
 import { FONT_GROUPS } from './fonts'
 import { compositionTemplates } from '../layers/1-composition/templates'
 import { guideTemplates } from '../layers/2-guides/templates'
@@ -610,7 +610,8 @@ export const applyProposal = discrete((proposal: Proposal) => {
       o.props.contentText = original
       o.props.text = pl.text
     } else setContentText(o, original)
-    const at = { x: o.x + o.w / 2, y: o.y + o.h / 2 }
+    const ink = inkCenter(pl)
+    const at = { x: ink.x / c.w, y: ink.y / c.h }
     o.fill = contentColor(pl.role, at, items.indexOf(o))
     o.props.shadow = onPhotoAt(at, items.indexOf(o))
     o.stroke = ''

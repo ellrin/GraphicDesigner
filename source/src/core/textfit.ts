@@ -135,7 +135,9 @@ export function flowText(text: string, size: number, lineHeight: number, top: nu
   // 平均行長（標題類）：同樣行數下讓每行差不多長，避免最後一行很短
   if (balance > 0 && lines.length > 1) {
     const target = longestLine(lines) - 0.5
-    for (let w = Math.max(balance, Math.ceil(units(text.replace(/\n/g, '')) / lines.length)); w <= target; w++) {
+    // 平均行長時，行寬不能窄於最長的英文單字（避免單字被切斷）
+    const word = Math.max(0, ...(text.match(/[A-Za-z0-9][A-Za-z0-9.'&$-]*/g) ?? []).map(units))
+    for (let w = Math.max(balance, Math.ceil(word), Math.ceil(units(text.replace(/\n/g, '')) / lines.length)); w <= target; w++) {
       const tried = breakText(text, (i) => Math.min(avail(i), w + 0.5))
       if (tried.length <= lines.length) {
         lines = tried

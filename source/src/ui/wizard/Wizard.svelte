@@ -106,7 +106,9 @@
   let group = $state<string>('all')
   let chosenRecipe = $state<string | null>(null)
   let onlyComposition = $state(false)
-  const shown = $derived(group === 'all' ? RECIPES : RECIPES.filter((r) => cutOf(r) === group))
+  // 切割類型要依展開後的形狀判斷，所以用固定比例先展開一次
+  const cutKinds = new Map(RECIPES.map((r) => [r.id, cutOf(r, resolveRecipe(r, { w: 100, h: 100 }, compositionTemplates, guideTemplates).blocks)]))
+  const shown = $derived(group === 'all' ? RECIPES : RECIPES.filter((r) => cutKinds.get(r.id) === group))
   const previews = $derived.by(() => {
     if (step !== 3) return []
     const c = project.canvas
@@ -122,10 +124,12 @@
             regions: r.outputs.flatMap((o) => (o.regions ?? []).map((g) => ({ rect: g, shape: g.points ? ('polygon' as const) : g.shape === 'ellipse' ? ('ellipse' as const) : ('rect' as const), points: g.points, role: g.role }))),
             path: r.guides.length ? r.outputs.slice(r.compositions.length).flatMap((o) => o.anchors) : [],
             obstacles: r.blocks.filter((b) => b.role === 'image' || b.role === 'logo').map(slot),
+            panels: r.blocks.filter((b) => b.panel).map(slot),
           })[0]
         : undefined
-      return { recipe, blocks: r.blocks, proposal: proposal ?? { id: 'empty', name: '', placements: [] } }
-    })
+      // 內容放不下這個範本（只剩縮小字級的退路）：排到後面並提示
+      return { recipe, blocks: r.blocks, proposal: proposal ?? { id: 'empty', name: '', placements: [] }, tight: proposal?.id === 'full' }
+    }).sort((a, b) => Number(a.tight) - Number(b.tight))
   })
   function useRecipe(r: Recipe) {
     applyRecipe(r)
@@ -294,6 +298,7 @@
               <button class="card" class:on={chosenRecipe === p.recipe.id} onclick={() => useRecipe(p.recipe)} title={p.recipe.description}>
                 <ProposalThumb proposal={p.proposal} blocks={p.blocks} height={150} />
                 <span>{p.recipe.name}</span>
+                {#if p.tight}<small class="tight">內容較多，字會偏小</small>{/if}
               </button>
             {/each}
           </div>
@@ -542,6 +547,10 @@
     font-size: 12px;
     text-align: left;
     align-content: start;
+  }
+  .card .tight {
+    font-size: 11px;
+    color: var(--highlight);
   }
   .card em {
     margin-left: 6px;

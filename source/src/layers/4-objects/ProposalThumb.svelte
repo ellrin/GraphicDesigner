@@ -1,12 +1,13 @@
 <script lang="ts">
   // 排版提案的縮圖：畫出背景、其他物件的大致位置，以及文字實際排出來的樣子。
-  import { roleDef, type Proposal } from '../../core/autolayout'
+  import { inkCenter, roleDef, type Proposal } from '../../core/autolayout'
   import { contentColor, isContent, panelColor, project } from '../../core/store.svelte'
   import { getAssetUrl } from '../../core/assets'
   import { isPriceNote, splitPrice } from '../../core/textfit'
 
   import type { ResolvedBlock } from '../../core/recipes'
   import { roleOf } from '../../core/blocks'
+  import { readableOn } from '../../core/color'
 
   interface Props {
     proposal: Proposal
@@ -19,14 +20,36 @@
 
   const c = $derived(project.canvas)
   const others = $derived(project.objects.items.filter((o) => o.visible && !isContent(o)))
+  // 範本預覽：文字顏色依範本的色塊與照片判斷（專案裡還沒有這些色塊）
+  function insideBlock(b: ResolvedBlock, p: { x: number; y: number }): boolean {
+    const r = b.rect
+    if (p.x < r.x || p.x > r.x + r.w || p.y < r.y || p.y > r.y + r.h) return false
+    if (b.shape === 'ellipse') return ((p.x - r.x - r.w / 2) / (r.w / 2)) ** 2 + ((p.y - r.y - r.h / 2) / (r.h / 2)) ** 2 <= 1
+    if (b.shape === 'polygon' && b.points) {
+      let hit = false
+      const ps = b.points
+      for (let i = 0, j = ps.length - 1; i < ps.length; j = i++)
+        if (ps[i].y > p.y !== ps[j].y > p.y && p.x < ((ps[j].x - ps[i].x) * (p.y - ps[i].y)) / (ps[j].y - ps[i].y) + ps[i].x) hit = !hit
+      return hit
+    }
+    return true
+  }
+  function colorAt(role: string, at: { x: number; y: number }, index: number): string {
+    const under = [...blocks].reverse().find((b) => (b.panel || b.role === 'image' || b.role === 'background') && insideBlock(b, at))
+    if (under?.panel) return readableOn(panelColor(under.panel))
+    if (under) return '#ffffff'
+    return contentColor(role, { x: at.x / c.w, y: at.y / c.h }, index)
+  }
+
   const texts = $derived(
     proposal.placements.map((pl) => {
       const index = project.objects.items.findIndex((o) => o.uid === pl.uid)
       const o = project.objects.items[index]
-      const cx = (pl.rect.x + pl.rect.w / 2) / c.w
-      const cy = (pl.rect.y + pl.rect.h / 2) / c.h
+      const ink = inkCenter(pl)
+      const cx = ink.x / c.w
+      const cy = ink.y / c.h
       const weight = roleDef(pl.role).weight === 'regular' ? 400 : roleDef(pl.role).weight === 'bold' ? 700 : 900
-      return { pl, fill: contentColor(pl.role, { x: cx, y: cy }, index), family: String(o?.props.fontFamily ?? 'Noto Sans TC'), weight }
+      return { pl, fill: blocks.length ? colorAt(pl.role, ink, index) : contentColor(pl.role, { x: cx, y: cy }, index), family: String(o?.props.fontFamily ?? 'Noto Sans TC'), weight }
     }),
   )
   const anchorOf = (a: string) => (a === 'center' ? 'middle' : a === 'right' ? 'end' : 'start')

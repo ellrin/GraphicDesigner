@@ -221,10 +221,12 @@ export function toProjectBlocks(blocks: ResolvedBlock[], canvas: Frame): Block[]
 const files = import.meta.glob<Omit<Recipe, 'id' | 'group'>>('../recipes/*/*.json', { eager: true, import: 'default' })
 
 /** 範本的切割類型：有指定就用指定的，否則有多邊形 → 斜切、有橢圓 → 幾何、其他 → 矩形 */
-export function cutOf(r: Recipe): CutKind {
+export function cutOf(r: Recipe, resolved?: ResolvedBlock[]): CutKind {
   if (r.cut) return r.cut
-  if (r.blocks.some((b) => b.points)) return 'diagonal'
-  if (r.blocks.some((b) => b.shape === 'ellipse')) return 'geometric'
+  // 依展開後的實際形狀判斷（區塊可能來自構圖的多邊形或橢圓區域）
+  const blocks: { shape?: BlockShape; points?: unknown }[] = resolved ?? r.blocks
+  if (blocks.some((b) => b.shape === 'polygon' || b.points)) return 'diagonal'
+  if (blocks.some((b) => b.shape === 'ellipse')) return 'geometric'
   return 'rect'
 }
 
