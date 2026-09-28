@@ -65,6 +65,11 @@ const SNAP_PX = 8
 export class ObjectLayer {
   readonly group = new Konva.Group()
   private body = new Konva.Group()
+
+  /** 物件只顯示在畫布（或出血）範圍內，超出的部分裁掉；選取框不受影響 */
+  clipTo(rect: { x: number; y: number; width: number; height: number }) {
+    this.body.clip(rect)
+  }
   private transformer: Konva.Transformer
   private sizeSnap: SizeSnapper
   private nodes = new Map<string, Konva.Group>()

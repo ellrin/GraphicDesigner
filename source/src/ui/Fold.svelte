@@ -42,9 +42,9 @@
 
 <div class="fold" class:open>
   <button class="fold-head" onclick={toggle} aria-expanded={open}>
-    <span class="caret" aria-hidden="true">▸</span>
     {title}
     {#if count !== undefined}<small>{count}</small>{/if}
+    <span class="caret" aria-hidden="true">{open ? '−' : '+'}</span>
   </button>
   {#if open}
     <div class="fold-body">{@render children()}</div>
@@ -76,11 +76,21 @@
     color: var(--text);
   }
   .caret {
-    font-size: 10px;
-    transition: transform 0.15s;
+    margin-left: auto;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--line-strong);
+    border-radius: 5px;
+    background: var(--surface);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1;
   }
+  .fold-head:hover .caret,
   .open .caret {
-    transform: rotate(90deg);
+    border-color: var(--accent);
     color: var(--accent);
   }
   small {

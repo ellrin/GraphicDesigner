@@ -65,10 +65,12 @@
 </script>
 
 <section class="sec" class:closed={!open}>
-  <h3>
-    <button class="head" onclick={toggle} aria-expanded={open}>{title}</button>
-    {#if help}<Help text={help} />{/if}
-    <button class="chev" onclick={toggle} aria-label={open ? '收合' : '展開'} tabindex="-1">{open ? '−' : '+'}</button>
+  <!-- 整列都可以點：點標題、空白處或右邊的按鈕都會開合；問號只顯示說明 -->
+  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+  <h3 class="bar" onclick={toggle}>
+    <button class="head" onclick={(e) => (e.stopPropagation(), toggle())} aria-expanded={open}>{title}</button>
+    {#if help}<span class="help-wrap" onclick={(e) => e.stopPropagation()} role="presentation"><Help text={help} /></span>{/if}
+    <span class="chev" aria-hidden="true">{open ? '−' : '+'}</span>
   </h3>
   {#if open}
     {@render children()}
@@ -78,6 +80,18 @@
 <style>
   h3 {
     align-items: center;
+    cursor: pointer;
+    user-select: none;
+  }
+  h3:hover .head,
+  h3:hover .chev {
+    color: var(--accent);
+  }
+  h3:hover .chev {
+    border-color: var(--accent);
+  }
+  .help-wrap {
+    display: inline-flex;
   }
   .head {
     display: flex;
@@ -94,20 +108,21 @@
     background: none;
     color: var(--accent);
   }
+    /* 右邊的開合按鈕：有邊框的方形，看得出是按鈕 */
   .chev {
     margin-left: auto;
-    border: none;
-    background: none;
-    padding: 0 2px;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    flex: none;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    background: var(--surface);
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 16px;
+    line-height: 1;
     color: var(--muted);
-    width: 20px;
-    text-align: center;
-  }
-  .chev:hover:not(:disabled) {
-    background: none;
-    color: var(--accent);
   }
   .closed :global(h3) {
     margin-bottom: 0;

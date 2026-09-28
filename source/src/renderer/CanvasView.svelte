@@ -231,6 +231,7 @@
     paper.scale({ x: view.s, y: view.s })
     paperBg.size({ width: canvas.w, height: canvas.h })
     content.clip({ x: 0, y: 0, width: canvas.w, height: canvas.h })
+    objectLayer.clipTo({ x: 0, y: 0, width: canvas.w, height: canvas.h })
 
     const ids = new Set(layers.map((l) => l.id))
     for (const [id, g] of layerGroups) {
@@ -331,6 +332,7 @@
     const full = { x: -b, y: -b, width: canvas.w + 2 * b, height: canvas.h + 2 * b }
     paperBg.setAttrs(full)
     bgGroup.clip(full)
+    objectLayer.clipTo(full)
     if (bgImage && background.assetId) {
       const r = fitImage(bgImage.naturalWidth, bgImage.naturalHeight, full.width, full.height, background.fit, background)
       bgImageNode.position({ x: r.x - b, y: r.y - b }).size({ width: r.w, height: r.h })
@@ -349,6 +351,7 @@
     // 還原
     paperBg.setAttrs({ x: 0, y: 0, width: canvas.w, height: canvas.h })
     paperBg.shadowEnabled(true)
+    objectLayer.clipTo({ x: 0, y: 0, width: canvas.w, height: canvas.h })
     restoreObjects()
     for (const [n, v] of hidden) n.visible(v)
     imageTick++ // 讓 $effect 重新套用背景圖位置

@@ -64,6 +64,8 @@
   }
 
   const short = $derived(Math.min(c.w, c.h))
+  /** 以線條為主的物件（線段、波浪、鋸齒、曲線…）：外觀顯示「線條」而不是「框線」 */
+  const lineLike = $derived(!!selected && (selected.type === 'line' || objectTypeOf(selected.type)?.meta.fill === ''))
 
   /** 放進區塊：物件框 = 區塊外框；圖片同時用區塊形狀裁切 */
   function moveToBlock(id: string) {
@@ -211,21 +213,22 @@
             <label><input type="checkbox" checked={!!selected.fill} onchange={(e) => updateObject(selected.uid, { fill: e.currentTarget.checked ? '#2f6bff' : '' })} /> {selected.type === 'text' ? '文字色' : '填色'}</label>
             {#if selected.fill}<input type="color" bind:value={selected.fill} aria-label="填色" />{/if}
           {/if}
-          <label><input type="checkbox" checked={!!selected.stroke} onchange={(e) => updateObject(selected.uid, { stroke: e.currentTarget.checked ? '#25221e' : '' })} /> {selected.type === 'line' ? '線條' : '框線'}</label>
-          {#if selected.stroke}
-            <input type="color" bind:value={selected.stroke} aria-label="框線顏色" />
-            <input
-              class="num"
-              type="number"
-              min="0"
-              step="0.1"
-              value={round(selected.strokeWidth * short, 2)}
-              onchange={(e) => updateObject(selected.uid, { strokeWidth: Math.max(0, Number(e.currentTarget.value)) / short })}
-              title="粗細（{c.unit}）"
-              aria-label="框線粗細"
-            />
-          {/if}
+          <label><input type="checkbox" checked={!!selected.stroke} onchange={(e) => updateObject(selected.uid, { stroke: e.currentTarget.checked ? '#25221e' : '' })} /> {lineLike ? '線條' : '框線'}</label>
+          {#if selected.stroke}<input type="color" bind:value={selected.stroke} aria-label="線條顏色" />{/if}
         </div>
+        {#if selected.stroke}
+          <label class="row">
+            <span>{lineLike ? '線條' : '框線'}粗細 {round(selected.strokeWidth * short, 2)} {c.unit}</span>
+            <input
+              type="range"
+              min="0"
+              max={round(short * 0.05, 2)}
+              step={round(short * 0.0005, 3) || 0.01}
+              value={selected.strokeWidth * short}
+              oninput={(e) => updateObject(selected.uid, { strokeWidth: Math.max(0, Number(e.currentTarget.value)) / short })}
+            />
+          </label>
+        {/if}
         {#if selected.fill && selected.type !== 'line' && selected.type !== 'image'}
           <Swatches value={selected.fill} onpick={(c) => updateObject(selected.uid, { fill: c })} />
         {:else if selected.stroke}
@@ -332,9 +335,6 @@
     padding: 5px 9px;
     font: inherit;
     resize: vertical;
-  }
-  .num {
-    width: 64px;
   }
   .two {
     display: grid;
