@@ -123,10 +123,49 @@
 
   const PAD = 48
   const HS = theme.guides.handle
+  // 縮放：zoom = 相對「符合視窗」的倍率；pan = 畫布中心相對視窗中心的位移（螢幕像素）
+  const ZOOM_MIN = 0.25
+  const ZOOM_MAX = 8
+  let zoom = $state(1)
+  let pan = $state({ x: 0, y: 0 })
+  const fit = $derived(Math.max(0.0001, Math.min((size.w - PAD * 2) / canvas.w, (size.h - PAD * 2) / canvas.h)))
   const view = $derived.by(() => {
-    const s = Math.max(0.0001, Math.min((size.w - PAD * 2) / canvas.w, (size.h - PAD * 2) / canvas.h))
-    return { s, x: (size.w - canvas.w * s) / 2, y: (size.h - canvas.h * s) / 2 }
+    const s = fit * zoom
+    return { s, x: (size.w - canvas.w * s) / 2 + pan.x, y: (size.h - canvas.h * s) / 2 + pan.y }
   })
+
+  // 換畫布尺寸（換專案）時回到符合視窗
+  $effect(() => {
+    void canvas.w
+    void canvas.h
+    zoom = 1
+    pan = { x: 0, y: 0 }
+  })
+
+  /** 平移限制：畫布至少有一部分留在視窗內 */
+  function clampPan(p: { x: number; y: number }, s: number) {
+    const mx = Math.max(0, (canvas.w * s - size.w) / 2) + size.w * 0.4
+    const my = Math.max(0, (canvas.h * s - size.h) / 2) + size.h * 0.4
+    return { x: Math.min(mx, Math.max(-mx, p.x)), y: Math.min(my, Math.max(-my, p.y)) }
+  }
+
+  /** 以螢幕上的某一點為中心縮放（那一點下的畫布位置不動） */
+  function zoomAt(next: number, at = { x: size.w / 2, y: size.h / 2 }) {
+    const z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next))
+    const u = (at.x - view.x) / view.s
+    const v = (at.y - view.y) / view.s
+    const s = fit * z
+    zoom = z
+    pan = clampPan({ x: at.x - u * s - (size.w - canvas.w * s) / 2, y: at.y - v * s - (size.h - canvas.h * s) / 2 }, s)
+  }
+
+  function onWheel(e: WheelEvent) {
+    e.preventDefault()
+    const r = host.getBoundingClientRect()
+    // 觸控板雙指縮放（瀏覽器會帶 ctrlKey）或按住 ⌘／Ctrl 滾輪：縮放；其他：平移
+    if (e.ctrlKey || e.metaKey) zoomAt(zoom * Math.exp(-e.deltaY * 0.01), { x: e.clientX - r.left, y: e.clientY - r.top })
+    else pan = clampPan({ x: pan.x - e.deltaX, y: pan.y - e.deltaY }, view.s)
+  }
 
   onMount(() => {
     stage = new Konva.Stage({ container: host, width: host.clientWidth, height: host.clientHeight })
@@ -359,11 +398,47 @@
   }
 </script>
 
-<div class="host" bind:this={host}></div>
+<div class="host" bind:this={host} onwheel={onWheel}></div>
+
+<!-- 縮放條：拖曳縮放；點百分比回到符合視窗 -->
+<div class="zoom">
+  <input
+    type="range"
+    min={Math.log2(ZOOM_MIN)}
+    max={Math.log2(ZOOM_MAX)}
+    step="0.01"
+    value={Math.log2(zoom)}
+    oninput={(e) => zoomAt(2 ** Number(e.currentTarget.value))}
+    aria-label="縮放"
+  />
+  <button onclick={() => ((zoom = 1), (pan = { x: 0, y: 0 }))} title="符合視窗">{Math.round(zoom * 100)}%</button>
+</div>
 
 <style>
   .host {
     position: absolute;
     inset: 0;
+  }
+  .zoom {
+    position: absolute;
+    right: 16px;
+    bottom: 12px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--panel);
+  }
+  .zoom input {
+    width: 160px;
+  }
+  .zoom button {
+    min-width: 52px;
+    padding: 2px 8px;
+    font-family: var(--mono);
+    font-size: 12px;
   }
 </style>
