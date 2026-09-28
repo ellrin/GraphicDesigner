@@ -2,7 +2,7 @@
 // - 程式本體：先取網路上的最新版，離線時用快取；圖示等檔案先用快取、背景更新
 // - Google Fonts：用過的字型會被快取，離線時仍能顯示
 
-const VERSION = 'v2'
+const VERSION = 'v3'
 const APP_CACHE = `gd-app-${VERSION}`
 const FONT_CACHE = 'gd-fonts'
 const APP_FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png']
@@ -38,7 +38,8 @@ function staleWhileRevalidate(cacheName, request) {
 /** 先向網路取最新版，離線時才用快取（程式本體用這個，更新後打開就是新版） */
 function networkFirst(cacheName, request) {
   return caches.open(cacheName).then((cache) =>
-    fetch(request)
+    // 不經過瀏覽器的 HTTP 快取（GitHub Pages 會快取 10 分鐘），確保拿到剛部署的版本
+    fetch(request, { cache: 'no-store' })
       .then((res) => {
         if (res.ok) cache.put(request, res.clone())
         return res
