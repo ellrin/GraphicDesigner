@@ -20,6 +20,7 @@ export interface BlockView {
   filled: boolean
   opacity: number
   visible: boolean
+  radius?: number
 }
 
 export interface GhostView {
@@ -70,7 +71,7 @@ function shapeScene(ctx: Konva.Context, shape: Konva.Shape) {
   const kind = shape.getAttr('blockShape') as BlockShape
   const norm = shape.getAttr('normPoints') as Pt[] | undefined
   ctx.beginPath()
-  traceShape(ctx, kind, { x: 0, y: 0, w, h }, norm?.map((p) => ({ x: p.x * w, y: p.y * h })))
+  traceShape(ctx, kind, { x: 0, y: 0, w, h }, norm?.map((p) => ({ x: p.x * w, y: p.y * h })), shape.getAttr('blockRadius') ?? 0)
   ctx.fillStrokeShape(shape)
 }
 
@@ -395,6 +396,7 @@ export class BlockLayer {
       n.shape.setAttrs({
         blockShape: b.shape,
         normPoints: norm,
+        blockRadius: b.radius ?? 0,
         stroke: b.color,
         strokeWidth: b.uid === state.selected ? 2 : 1.5,
         dash: b.filled ? undefined : [6, 4],

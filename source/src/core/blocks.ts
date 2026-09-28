@@ -40,6 +40,8 @@ export interface Block {
   color: string
   opacity: number
   visible: boolean
+  /** 圓角（矩形），以區塊短邊的比例表示 0–0.5 */
+  radius?: number
 }
 
 export const toCanvasRect = (b: Rect, c: Frame): Rect => ({ x: b.x * c.w, y: b.y * c.h, w: b.w * c.w, h: b.h * c.h })
@@ -60,11 +62,32 @@ export { boundsOfPoints }
  * 在區塊形狀的路徑上作畫（畫布座標）。用於區塊的繪製與物件的裁切遮罩。
  */
 export function traceShape(
-  ctx: { beginPath(): void; rect(x: number, y: number, w: number, h: number): void; ellipse(x: number, y: number, rx: number, ry: number, rot: number, s: number, e: number): void; moveTo(x: number, y: number): void; lineTo(x: number, y: number): void; closePath(): void },
+  ctx: {
+    beginPath(): void
+    rect(x: number, y: number, w: number, h: number): void
+    ellipse(x: number, y: number, rx: number, ry: number, rot: number, s: number, e: number): void
+    moveTo(x: number, y: number): void
+    lineTo(x: number, y: number): void
+    arcTo(x1: number, y1: number, x2: number, y2: number, r: number): void
+    closePath(): void
+  },
   shape: BlockShape,
   r: Rect,
   points?: Pt[],
+  /** 矩形圓角（短邊比例 0–0.5） */
+  radius = 0,
 ) {
+  const rr = shape === 'rect' ? Math.min(Math.abs(r.w), Math.abs(r.h)) * Math.min(Math.max(radius, 0), 0.5) : 0
+  if (rr > 0) {
+    const { x, y, w, h } = r
+    ctx.moveTo(x + rr, y)
+    ctx.arcTo(x + w, y, x + w, y + h, rr)
+    ctx.arcTo(x + w, y + h, x, y + h, rr)
+    ctx.arcTo(x, y + h, x, y, rr)
+    ctx.arcTo(x, y, x + w, y, rr)
+    ctx.closePath()
+    return
+  }
   if (shape === 'ellipse') ctx.ellipse(r.x + r.w / 2, r.y + r.h / 2, Math.max(0, r.w / 2), Math.max(0, r.h / 2), 0, 0, Math.PI * 2)
   else if (shape === 'polygon' && points && points.length >= 3) {
     ctx.moveTo(points[0].x, points[0].y)

@@ -182,6 +182,7 @@
       filled: b.filled,
       opacity: b.opacity,
       visible: b.visible,
+      radius: b.radius,
     })),
   )
 

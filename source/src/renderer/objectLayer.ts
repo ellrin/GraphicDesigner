@@ -15,6 +15,7 @@ export interface MaskShape {
   shape: BlockShape
   rect: { x: number; y: number; w: number; h: number }
   points?: { x: number; y: number }[]
+  radius?: number
 }
 
 export interface ObjectLayerState {
@@ -314,7 +315,7 @@ export class ObjectLayer {
         mask
           ? (ctx) => {
               ctx.beginPath()
-              traceShape(ctx, mask.shape, mask.rect, mask.points)
+              traceShape(ctx, mask.shape, mask.rect, mask.points, mask.radius)
             }
           : undefined,
       )

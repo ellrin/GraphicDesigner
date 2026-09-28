@@ -90,6 +90,12 @@
             {/each}
           </select>
         </label>
+        {#if selected.shape === 'rect'}
+          <label class="row">
+            <span>圓角 {Math.round((selected.radius ?? 0) * 200)}%</span>
+            <input type="range" min="0" max="0.5" step="0.01" value={selected.radius ?? 0} oninput={(e) => updateBlock(selected.uid, { radius: Number(e.currentTarget.value) })} />
+          </label>
+        {/if}
         <span class="inline">
           <label><input type="checkbox" bind:checked={selected.filled} /> 填色</label>
           <input type="color" bind:value={selected.color} aria-label="顏色" />

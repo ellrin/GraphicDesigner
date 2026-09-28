@@ -273,7 +273,7 @@
     stage.container().style.cursor = picking ? 'crosshair' : ''
     objectLayer.update({
       objects,
-      masks: new Map(blocks.map((b) => [b.uid, { shape: b.shape, rect: b.rect, points: b.points }])),
+      masks: new Map(blocks.map((b) => [b.uid, { shape: b.shape, rect: b.rect, points: b.points, radius: b.radius }])),
       selected: selectedObjects,
       interactive: objectsInteractive,
       visible: objectsVisible,
