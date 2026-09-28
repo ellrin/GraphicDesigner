@@ -14,7 +14,7 @@
   import { CUT_KINDS, cutOf, RECIPES, resolveRecipe, type Recipe } from '../../core/recipes'
   import {
     addGuide,
-    addObject,
+    placePhotoInBlock,
     applyPalette,
     applyProposal,
     applyRecipe,
@@ -173,14 +173,7 @@
     const b = project.blocks.items.find((x) => x.uid === slotTarget)
     if (!file || !b) return
     const { id } = await importImageFile(file)
-    // 照片放進區塊：物件框 = 區塊外框，並用區塊形狀裁切
-    project.objects.items = project.objects.items.filter((o) => !(o.type === 'image' && o.mask === b.uid))
-    addObject('image', { rect: { x: b.x, y: b.y, w: b.w, h: b.h }, block: b.uid }, { assetId: id })
-    // 照片放在色塊之上、文字之下
-    const img = project.objects.items.pop()!
-    const at = project.objects.items.filter((o) => o.type === 'panel').length
-    project.objects.items.splice(at, 0, img)
-    ui.selectedObjects = []
+    placePhotoInBlock(b.uid, id)
   }
   const proposals = $derived(step === 5 ? proposeLayouts(projectLayoutInput(regions, path)) : [])
 

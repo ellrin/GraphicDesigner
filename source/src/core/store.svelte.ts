@@ -147,6 +147,8 @@ export const ui = $state({
   editBackground: false,
   /** 等待使用者在照片上點一下標記主體：'bg' 或圖片物件 uid */
   pickSubject: null as string | null,
+  /** 正在畫的自由多邊形：已點的頂點（畫布座標）與對應的物件（兩點以上才建立） */
+  drawPolygon: null as { uid: string | null; pts: Pt[] } | null,
   /** 上次套用的排版提案（加入或修改文字時沿用） */
   layoutPref: 'flow',
 })
@@ -708,7 +710,8 @@ export const applyRecipe = discrete((recipe: Recipe, withCanvas: boolean = false
   project.compositions.items = r.compositions
   project.guides.items = r.guides
   project.blocks.items = toProjectBlocks(r.blocks, c)
-  placePanels(r.blocks.filter((b) => b.panel))
+  // 範本色塊與對應的區塊連結（「區塊」清單會顯示已填色）
+  placePanels(r.blocks.map((b, i) => ({ b, block: project.blocks.items[i]?.uid })).filter(({ b }) => b.panel))
   ui.selectedComposition = r.compositions[0].uid
   ui.selectedGuide = null
   ui.selectedBlock = null
@@ -725,11 +728,73 @@ export function panelColor(tone: PanelTone): string {
   return tone === 'primary' ? r.primary : tone === 'accent' ? r.accent : tone === 'dark' ? r.dark : r.light
 }
 
+/** 區塊用途對應的預設色塊顏色 */
+export function toneForRole(role: string): PanelTone {
+  return role === 'title' ? 'primary' : role === 'cta' ? 'accent' : role === 'background' ? 'dark' : 'light'
+}
+
+/** 某個區塊裡已經放了什麼：照片（用區塊裁切的圖片）、色塊 */
+export function blockFill(uid: string) {
+  const items = project.objects.items
+  return {
+    photo: items.find((o) => o.type === 'image' && o.mask === uid && !isContent(o)),
+    panel: items.find((o) => o.type === 'panel' && o.props.block === uid),
+  }
+}
+
+/** 照片放進區塊：物件框 = 區塊外框，用區塊形狀裁切；放在色塊之上、文字之下（同一區塊的舊照片會被取代） */
+export const placePhotoInBlock = discrete((uid: string, assetId: string) => {
+  const b = project.blocks.items.find((x) => x.uid === uid)
+  if (!b) return
+  project.objects.items = project.objects.items.filter((o) => !(o.type === 'image' && o.mask === uid && !isContent(o)))
+  addObject('image', { rect: { x: b.x, y: b.y, w: b.w, h: b.h }, block: uid }, { assetId }, b.name || '照片')
+  const img = project.objects.items.pop()!
+  const at = project.objects.items.filter((o) => o.type === 'panel').length
+  project.objects.items.splice(at, 0, img)
+  ui.selectedObjects = []
+})
+
+/** 區塊填色：依區塊形狀建立色塊（顏色取自配色），放在最下層 */
+export const fillBlock = discrete((blockId: string) => {
+  const b = project.blocks.items.find((x) => x.uid === blockId)
+  if (!b) return
+  const c = project.canvas
+  const tone = toneForRole(b.role)
+  const rect = { x: b.x * c.w, y: b.y * c.h, w: b.w * c.w, h: b.h * c.h }
+  const t = objectTypeOf('panel')!
+  const panel: DesignObject = {
+    uid: uid(),
+    type: 'panel',
+    name: `${b.name || '區塊'}（色塊）`,
+    x: b.x,
+    y: b.y,
+    w: b.w,
+    h: b.h,
+    rotation: 0,
+    fill: panelColor(tone),
+    stroke: '',
+    strokeWidth: 0,
+    opacity: 1,
+    visible: true,
+    props: {
+      ...structuredClone(t.defaults),
+      shape: b.shape,
+      radius: b.radius ?? 0,
+      points: (b.points?.map((q) => ({ x: (q.x * c.w - rect.x) / rect.w, y: (q.y * c.h - rect.y) / rect.h })) ?? []) as unknown as ParamValues[string],
+      tone,
+      block: blockId,
+    },
+    mask: null,
+  }
+  project.objects.items = [panel, ...project.objects.items.filter((o) => !(o.type === 'panel' && o.props.block === blockId))]
+})
+
+
 /** 範本的色塊：換成實際的填色形狀，放在所有物件最下層（先移除上一個範本留下的色塊） */
-function placePanels(blocks: ResolvedBlock[]) {
+function placePanels(list: { b: ResolvedBlock; block?: string }[]) {
   const c = project.canvas
   const kept = project.objects.items.filter((o) => o.type !== 'panel' || !o.props.fromTemplate)
-  const panels: DesignObject[] = blocks.map((b, i) => {
+  const panels: DesignObject[] = list.map(({ b, block }, i) => {
     const t = objectTypeOf('panel')!
     return {
       uid: uid(),
@@ -752,6 +817,7 @@ function placePanels(blocks: ResolvedBlock[]) {
         points: (b.points?.map((q) => ({ x: (q.x - b.rect.x) / b.rect.w, y: (q.y - b.rect.y) / b.rect.h })) ?? []) as unknown as ParamValues[string],
         tone: b.panel!,
         fromTemplate: true,
+        ...(block ? { block } : {}),
       },
       mask: null,
     }

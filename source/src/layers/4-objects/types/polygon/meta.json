@@ -1,1 +1,1 @@
-{ "name": "多邊形", "category": "shape", "order": 40, "size": [0.3, 0.3], "fill": "#7c5cff", "keepRatio": true }
+{"name": "正多邊形", "category": "shape", "order": 40, "size": [0.3, 0.3], "fill": "#7c5cff", "keepRatio": true}

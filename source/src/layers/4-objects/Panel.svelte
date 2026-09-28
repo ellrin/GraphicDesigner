@@ -15,6 +15,7 @@
   } from '../../core/store.svelte'
   import ObjectEditor from './ObjectEditor.svelte'
   import ContentPanel from './ContentPanel.svelte'
+  import BlockFill from './BlockFill.svelte'
   import type { SlotSource } from '../../core/autolayout'
   import type { Pt } from '../../core/geometry'
   import Help from '../../ui/Help.svelte'
@@ -52,6 +53,11 @@
   }
 
   function add(type: string) {
+    if (type === 'freeform') {
+      ui.selectedObjects = []
+      ui.drawPolygon = { uid: null, pts: [] }
+      return
+    }
     if (type === 'image') {
       imageInput.click()
       return
@@ -94,6 +100,8 @@
 
 <ContentPanel regions={layout.regions} path={layout.path} />
 
+<BlockFill />
+
 <Section id="objects-1" title="新增物件">
   <label class="row">
     <span>放置位置</span>
@@ -120,6 +128,15 @@
       <button onclick={() => add(t.id)}>{t.id === 'image' ? '＋ 圖片…' : `＋ ${t.meta.name}`}</button>
     {/each}
   </div>
+  {#if ui.drawPolygon}
+    <div class="drawing" role="status">
+      <span>在畫布上逐點點出形狀，點回第一個點完成（Enter 完成、Esc 取消）</span>
+      <span class="tools">
+        <button class="primary" disabled={ui.drawPolygon.pts.length < 3} onclick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))}>完成</button>
+        <button onclick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))}>取消</button>
+      </span>
+    </div>
+  {/if}
   <div class="decor">
     <Fold id="objects-decor" title="裝飾圖形" count={objectTypes.filter((t) => t.meta.category === 'decor').length}>
       <div class="types">
@@ -236,5 +253,18 @@
   }
   .decor {
     margin-top: 8px;
+  }
+  .drawing {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    font-size: 12px;
+  }
+  .drawing .tools {
+    display: flex;
+    gap: 6px;
   }
 </style>

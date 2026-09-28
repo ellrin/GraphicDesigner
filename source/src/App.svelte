@@ -29,7 +29,9 @@
   import ResetButton from './ui/ResetButton.svelte'
   import { uiTheme } from './ui/theme.svelte'
   import { paletteOf } from './core/palettes'
+  import type { ParamValues } from './core/params'
   import {
+    addObject,
     addBlock,
     completeStep,
     duplicateBlock,
@@ -355,22 +357,67 @@
     return { key: `img:${o.uid}`, box: objectBox(o, c), size, fit: o.props.fit as ImageFit, framing: o.props as unknown as ImageFraming, obj: o }
   })
 
-  /** 單選的三角形：三個頂點可以直接在畫布上拖曳 */
-  const triangleTarget = $derived.by(() => {
-    if (!(step.id === 'objects' || step.id === 'refine') || ui.selectedObjects.length !== 1) return null
-    const o = project.objects.items.find((x) => x.uid === ui.selectedObjects[0])
-    return o?.type === 'triangle' && o.visible ? o : null
-  })
+  // ── 可拖曳頂點的物件（三角形、自由多邊形）──────────────
+  /** 物件的頂點（物件框內 0–1）；不是這類物件時回傳 null */
+  function verticesOf(o: DesignObject): Pt[] | null {
+    if (o.type === 'triangle') return TRIANGLE_VERTICES.map((k) => o.props[k] as Pt)
+    if (o.type === 'freeform') return (o.props.points as unknown as Pt[] | undefined) ?? []
+    return null
+  }
+  function setVertices(o: DesignObject, rel: Pt[]) {
+    if (o.type === 'triangle') TRIANGLE_VERTICES.forEach((k, i) => (o.props[k] = rel[i]))
+    else o.props.points = rel as unknown as ParamValues[string]
+  }
+  /** 以畫布座標的頂點更新物件：物件框貼齊頂點 */
+  function placeVertices(o: DesignObject, corners: Pt[]) {
+    const { box, rel } = fitBoxToPoints(o.rotation, corners)
+    const c = project.canvas
+    updateObject(o.uid, { x: box.x / c.w, y: box.y / c.h, w: box.w / c.w, h: box.h / c.h })
+    setVertices(o, rel)
+  }
 
-  const triangleCorners = (o: DesignObject) =>
-    TRIANGLE_VERTICES.map((k) => toCanvas(objectBox(o, project.canvas), o.props[k] as Pt))
+  /** 單選且可調頂點的物件 */
+  const vertexTarget = $derived.by(() => {
+    if (ui.drawPolygon || !(step.id === 'objects' || step.id === 'refine') || ui.selectedObjects.length !== 1) return null
+    const o = project.objects.items.find((x) => x.uid === ui.selectedObjects[0])
+    return o && o.visible && verticesOf(o) ? o : null
+  })
+  const cornersOf = (o: DesignObject) => (verticesOf(o) ?? []).map((q) => toCanvas(objectBox(o, project.canvas), q))
+
+  // ── 畫自由多邊形：點畫布加頂點，點回第一點（或 Enter）完成，Esc 取消 ──
+  function drawPoint(p: Pt) {
+    const d = ui.drawPolygon
+    if (!d) return
+    const close = Math.min(project.canvas.w, project.canvas.h) * 0.02
+    if (d.pts.length >= 3 && Math.hypot(p.x - d.pts[0].x, p.y - d.pts[0].y) <= close) return finishPolygon()
+    d.pts.push(p)
+    if (d.pts.length < 2) return
+    const o = d.uid ? project.objects.items.find((x) => x.uid === d.uid) : undefined
+    if (o) placeVertices(o, d.pts)
+    else {
+      const { box, rel } = fitBoxToPoints(0, d.pts)
+      const c = project.canvas
+      d.uid = addObject('freeform', { rect: { x: box.x / c.w, y: box.y / c.h, w: box.w / c.w, h: box.h / c.h } }, { points: rel as unknown as ParamValues[string] })
+      ui.selectedObjects = []
+    }
+  }
+  function finishPolygon() {
+    const d = ui.drawPolygon
+    if (!d) return
+    ui.drawPolygon = null
+    if (d.uid && d.pts.length < 3) removeObject(d.uid)
+    else if (d.uid) ui.selectedObjects = [d.uid]
+  }
+  function cancelPolygon() {
+    const d = ui.drawPolygon
+    ui.drawPolygon = null
+    if (d?.uid) removeObject(d.uid)
+  }
 
   const handles = $derived.by((): Handle[] => {
     if (editing) return instanceHandles(editing.t, editing.inst, editing.frame)
-    if (triangleTarget) {
-      const corners = triangleCorners(triangleTarget)
-      return TRIANGLE_VERTICES.map((k, i) => ({ key: `tri:${k}`, label: `頂點 ${i + 1}`, pos: corners[i] }))
-    }
+    if (ui.drawPolygon) return ui.drawPolygon.pts.map((pos, i) => ({ key: `draw:${i}`, label: i === 0 && ui.drawPolygon!.pts.length >= 3 ? '點這裡完成' : `頂點 ${i + 1}`, pos }))
+    if (vertexTarget) return cornersOf(vertexTarget).map((pos, i) => ({ key: `vtx:${i}`, label: `頂點 ${i + 1}`, pos }))
     const f = framingTarget
     if (!f || f.fit === 'stretch') return []
     return [{ key: f.key, label: '主體', pos: subjectOnCanvas(f.size, f.box, f.fit, f.framing) }]
@@ -388,15 +435,18 @@
       editing.inst.params[key] = instancePointFromCanvas(editing.t, editing.inst, key, p, editing.frame)
       return
     }
-    // 拖曳三角形頂點：物件框跟著頂點調整
-    if (triangleTarget && key.startsWith('tri:')) {
-      const o = triangleTarget
-      const corners = triangleCorners(o)
-      corners[TRIANGLE_VERTICES.indexOf(key.slice(4) as (typeof TRIANGLE_VERTICES)[number])] = p
-      const { box, rel } = fitBoxToPoints(o.rotation, corners)
-      const c = project.canvas
-      updateObject(o.uid, { x: box.x / c.w, y: box.y / c.h, w: box.w / c.w, h: box.h / c.h })
-      TRIANGLE_VERTICES.forEach((k, i) => (o.props[k] = rel[i]))
+    // 拖曳頂點：物件框跟著頂點調整
+    if (vertexTarget && key.startsWith('vtx:')) {
+      const corners = cornersOf(vertexTarget)
+      corners[Number(key.slice(4))] = p
+      placeVertices(vertexTarget, corners)
+      return
+    }
+    // 畫多邊形時拖曳已點的頂點
+    if (ui.drawPolygon && key.startsWith('draw:')) {
+      ui.drawPolygon.pts[Number(key.slice(5))] = p
+      const o = ui.drawPolygon.uid ? project.objects.items.find((x) => x.uid === ui.drawPolygon!.uid) : undefined
+      if (o) placeVertices(o, ui.drawPolygon.pts)
       return
     }
     // 拖曳主體標記：照片跟著移動，讓主體落在標記位置（會吸附到錨點）
@@ -409,6 +459,7 @@
 
   /** 「點照片標記主體」模式：點一下的位置就是主體，照片不動 */
   function onPick(p: Pt) {
+    if (ui.drawPolygon) return drawPoint(p)
     const id = ui.pickSubject
     ui.pickSubject = null
     const c = project.canvas
@@ -464,6 +515,11 @@
     if (target.matches('input[type="text"], input[type="number"], input:not([type]), textarea, select')) return
     const mod = e.metaKey || e.ctrlKey
     const key = e.key.toLowerCase()
+    if (ui.drawPolygon) {
+      if (key === 'enter') finishPolygon()
+      else if (key === 'escape') cancelPolygon()
+      return
+    }
 
     if (mod && key === 'z' && !e.shiftKey) {
       e.preventDefault()
@@ -616,12 +672,12 @@
       {blockEvents}
       objects={project.objects.items}
       selectedObjects={ui.selectedObjects}
-      objectsInteractive={editingObjects && !ui.pickSubject}
+      objectsInteractive={editingObjects && !ui.pickSubject && !ui.drawPolygon}
       objectsVisible={project.visibility.objects}
       background={project.background}
       fontVersion={fontVersion + imageStoreTick}
       {objectEvents}
-      picking={!!ui.pickSubject}
+      picking={!!ui.pickSubject || !!ui.drawPolygon}
       onpick={onPick}
       guidesOnTop={project.visibility.guidesOnTop}
       guideOpacity={project.visibility.guideOpacity}
