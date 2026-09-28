@@ -22,7 +22,8 @@
 
   // 文字還沒手動調整過時，加入或修改內容後自動沿用上次選的提案重新排版
   const key = $derived(JSON.stringify(contentItems()) + '|' + proposals.map((p) => p.id).join())
-  let lastKey = untrack(() => key)
+  // 有文字從來沒排過版（例如精靈中途關閉）：進來時先排一次
+  let lastKey = untrack(() => (project.objects.items.some((o) => isContent(o) && o.props.autoRect === undefined) ? '' : key))
   let timer: ReturnType<typeof setTimeout> | undefined
   $effect(() => {
     const k = key
@@ -39,6 +40,6 @@
 </script>
 
 <Section id="objects-content" title="文字內容（{count}）" help="先填好要放的文字，下方會依構圖與空間給出排版提案；點一下套用，之後可以直接在畫布上微調。">
-  <ContentList />
+  <ContentList editable />
   <ProposalPicker {proposals} />
 </Section>
