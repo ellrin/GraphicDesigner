@@ -1,0 +1,16 @@
+{
+  "category": "食物",
+  "order": 4,
+  "palettes": [
+    { "id": "macaron", "name": "馬卡龍", "colors": ["#6b5b73", "#f7a8b8", "#fbc4ab", "#ffe5a5", "#c5e8b7", "#a8dadc", "#b8c0ff", "#e4c1f9", "#fff5f7", "#ffffff"] },
+    { "id": "coffee", "name": "咖啡", "colors": ["#1c120c", "#3b2618", "#5c3d2e", "#7f5539", "#9c6644", "#b08968", "#ddb892", "#ede0d4", "#f8f1ea", "#ffffff"] },
+    { "id": "candy", "name": "糖果", "colors": ["#40234a", "#ff5d8f", "#ff97b7", "#ffc2d4", "#9ef01a", "#70e000", "#00bbf9", "#fee440", "#fff0f6", "#ffffff"] },
+    { "id": "matcha", "name": "抹茶", "colors": ["#1f2a1c", "#3a4d2c", "#5a7a3a", "#7fa04c", "#a7c46a", "#cfe0a0", "#eef3dc", "#8a6a4a", "#d8c7a8", "#ffffff"] },
+    { "id": "berry", "name": "莓果", "colors": ["#2a0a1f", "#4d0f33", "#7a1747", "#a61e4d", "#d6336c", "#f06595", "#6741d9", "#9775fa", "#fce4ec", "#ffffff"] },
+    { "id": "citrus", "name": "柑橘", "colors": ["#2b2d1f", "#fb8b24", "#f9a03f", "#fcbf49", "#ffd60a", "#e9ff70", "#80b918", "#55a630", "#fffbe6", "#ffffff"] },
+    { "id": "chocolate", "name": "巧克力", "colors": ["#1a0f0a", "#2e1a12", "#4a2c20", "#6b3e2e", "#8d5a44", "#b07d62", "#d4a88c", "#f0dcc8", "#e05a47", "#ffffff"] },
+    { "id": "peach", "name": "蜜桃", "colors": ["#5a3a3a", "#e76f51", "#f4a261", "#f7b58c", "#ffcdb2", "#ffe5d9", "#fff1e6", "#b5838d", "#e9c46a", "#ffffff"] },
+    { "id": "mint", "name": "薄荷", "colors": ["#12372a", "#1b5e4a", "#2d936c", "#3ec1a4", "#80e0c1", "#b7f0dc", "#e3fcf4", "#f4f9f4", "#ff8c94", "#ffffff"] },
+    { "id": "wine", "name": "酒紅", "colors": ["#1a0508", "#3a0b12", "#5c0f1d", "#7d1128", "#9e1f3a", "#c05167", "#d9a5b3", "#f2e1e5", "#c9a227", "#ffffff"] }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "category": "自然",
+  "order": 2,
+  "palettes": [
+    { "id": "forest", "name": "森林", "colors": ["#1b2a1e", "#2d4a32", "#3f6b45", "#5b8c5a", "#8fb573", "#c9d6a3", "#6b4f33", "#9c7a54", "#d8c3a0", "#f4efe3"] },
+    { "id": "ocean", "name": "海洋", "colors": ["#051923", "#003554", "#006494", "#0582ca", "#00a6fb", "#7fc8f8", "#c9e8f5", "#8d99ae", "#d9dde3", "#ffffff"] },
+    { "id": "desert", "name": "沙漠", "colors": ["#3d2817", "#6e4a2b", "#a0673d", "#c98b55", "#e0b07b", "#efd4a8", "#f7ead3", "#c65d3b", "#7c8f6d", "#fffaf2"] },
+    { "id": "autumn", "name": "秋日", "colors": ["#2a1a12", "#5a2e1a", "#8c3b1f", "#c4551f", "#e07a2f", "#f0a64a", "#f7d08a", "#7a7d3a", "#a59c7a", "#faf3e6"] },
+    { "id": "spring", "name": "春日", "colors": ["#3b5a3b", "#6da36b", "#a8d5a2", "#f7c6d9", "#f49ac1", "#ffe08a", "#bde0fe", "#fff4e6", "#ffffff", "#5c5470"] },
+    { "id": "summer", "name": "盛夏", "colors": ["#003049", "#006d77", "#00b4d8", "#90e0ef", "#ffd166", "#ffb703", "#fb8500", "#ef476f", "#fdfcdc", "#ffffff"] },
+    { "id": "winter", "name": "冬雪", "colors": ["#1b2432", "#2e3b4e", "#4a6078", "#7d93ad", "#a9bcd0", "#d6e2ee", "#eef3f8", "#ffffff", "#b5c7d3", "#8c2f39"] },
+    { "id": "aurora", "name": "極光", "colors": ["#040b1c", "#0b1d3a", "#123a5c", "#1dbf8e", "#43f5b8", "#7afcff", "#9d4edd", "#c77dff", "#e0f7ff", "#ffffff"] },
+    { "id": "night-sky", "name": "星夜", "colors": ["#03040b", "#0b1026", "#1a2250", "#2e3a87", "#4c5fd7", "#9fb3ff", "#f2d388", "#fff3c4", "#e8ecff", "#ffffff"] },
+    { "id": "tropical", "name": "熱帶", "colors": ["#073b3a", "#0b6e4f", "#08a045", "#6bbf59", "#ffd23f", "#ff9f1c", "#ff5e5b", "#00cecb", "#fffcf2", "#1a1a1a"] },
+    { "id": "coral-reef", "name": "珊瑚海", "colors": ["#0b2545", "#13315c", "#1b998b", "#2ec4b6", "#ff9f80", "#ff6b6b", "#ffd6a5", "#fdffb6", "#f7fff7", "#ffffff"] },
+    { "id": "mountain", "name": "山嵐", "colors": ["#1f2a30", "#34454d", "#50666d", "#6f8b8f", "#98adab", "#c4d1cc", "#e5ebe6", "#8a7560", "#c9b79c", "#ffffff"] },
+    { "id": "earth", "name": "大地", "colors": ["#2b211b", "#4a3728", "#6b4f3a", "#8e6b4f", "#b08d6b", "#d2b48c", "#e8d8bd", "#6b705c", "#a5a58d", "#f8f4ec"] },
+    { "id": "sakura", "name": "櫻花", "colors": ["#4a3b47", "#7d5a6c", "#b5838d", "#e5989b", "#ffb4a2", "#ffcdb2", "#ffe5ec", "#fff5f8", "#9bb59b", "#ffffff"] }
+  ]
+}

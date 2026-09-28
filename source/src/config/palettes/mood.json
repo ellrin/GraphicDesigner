@@ -1,0 +1,16 @@
+{
+  "category": "情緒",
+  "order": 3,
+  "palettes": [
+    { "id": "fantasy", "name": "魔幻", "colors": ["#10002b", "#240046", "#3c096c", "#5a189a", "#7b2cbf", "#9d4edd", "#c77dff", "#e0aaff", "#ffd6ff", "#f9f871", "#ffffff"] },
+    { "id": "gentle", "name": "溫柔", "colors": ["#5f5b6b", "#8e8aa0", "#b8b5c9", "#e2d4ec", "#f4dfe3", "#fbe8dc", "#fdf1e6", "#e6efe9", "#d6e4f0", "#ffffff"] },
+    { "id": "energetic", "name": "活力", "colors": ["#1a1a2e", "#ff006e", "#fb5607", "#ffbe0b", "#8338ec", "#3a86ff", "#06d6a0", "#ffffff", "#f1f1f1", "#2b2d42"] },
+    { "id": "calm", "name": "沉穩", "colors": ["#14213d", "#1f3a5f", "#34557a", "#5b7aa0", "#8fa6c1", "#c5d2e0", "#e9eef4", "#b08968", "#ddb892", "#ffffff"] },
+    { "id": "romantic", "name": "浪漫", "colors": ["#3d0c1e", "#6d1a36", "#a4133c", "#c9184a", "#ff4d6d", "#ff8fa3", "#ffb3c1", "#ffccd5", "#fff0f3", "#ffffff"] },
+    { "id": "mystery", "name": "神秘", "colors": ["#0d0d12", "#1b1b2f", "#2c2c54", "#474787", "#706fd3", "#aaa9e0", "#34ace0", "#33d9b2", "#f7f1e3", "#ffffff"] },
+    { "id": "warm", "name": "溫暖", "colors": ["#3b1f16", "#6f2f1e", "#a8442a", "#d9693a", "#f29e4c", "#f6c177", "#fbe0b0", "#fff4e0", "#7a5c48", "#ffffff"] },
+    { "id": "fresh", "name": "清新", "colors": ["#1f4e5f", "#2a9d8f", "#52b69a", "#99d98c", "#d9ed92", "#e9f5db", "#caf0f8", "#90e0ef", "#f8fdff", "#ffffff"] },
+    { "id": "melancholy", "name": "憂鬱", "colors": ["#1b1f2a", "#2b3240", "#3e4a5c", "#58677d", "#7a879b", "#a3adbd", "#cfd5de", "#eef1f5", "#6d597a", "#ffffff"] },
+    { "id": "kids", "name": "童趣", "colors": ["#2d3047", "#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#6a4c93", "#ff924c", "#c5ca30", "#fffffc", "#ffffff"] }
+  ]
+}

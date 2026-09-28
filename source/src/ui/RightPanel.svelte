@@ -4,6 +4,7 @@
   import type { Renderer } from '../core/exporter'
   import ExportPanel from './ExportPanel.svelte'
   import LayerList from './LayerList.svelte'
+  import PaletteSection from './PaletteSection.svelte'
   import Section from './Section.svelte'
   import Accordion from './Accordion.svelte'
   import { setOpen } from './accordionState.svelte'
@@ -19,6 +20,7 @@
 
   const RAIL = [
     { id: 'right-view', icon: '視', label: '檢視' },
+    { id: 'right-palette', icon: '配', label: '配色' },
     { id: 'right-layers', icon: '層', label: '圖層與排序' },
     { id: 'right-export', icon: '出', label: '匯出' },
     { id: 'right-theme', icon: '色', label: '介面主題' },
@@ -51,6 +53,11 @@
     <div id="right-view">
       <Section id="right-view" title="檢視" help="{mod}; 一鍵切換全部輔助線。輔助線可以放在物件上層（方便對位）或下層（接近成品）。">
         <ViewSettings />
+      </Section>
+    </div>
+    <div id="right-palette">
+      <Section id="right-palette" title="配色" help="選一組配色後，新物件會自動使用這組顏色，文字會依底色自動選深或淺；也可以一鍵替整個設計上色。">
+        <PaletteSection />
       </Section>
     </div>
     <div id="right-layers">

@@ -1,6 +1,7 @@
 <script lang="ts">
   import Section from '../../ui/Section.svelte'
   import Fold from '../../ui/Fold.svelte'
+  import Swatches from '../../ui/Swatches.svelte'
   import { importImageFile } from '../../core/assets'
   import type { AnchorOption } from '../../core/objects'
   import {
@@ -124,6 +125,7 @@
       <button onclick={() => (project.background.assetId = null)}>移除圖片</button>
     {/if}
   </div>
+  <div class="bg-swatches"><Swatches value={project.background.color} onpick={(c) => (project.background.color = c)} /></div>
   {#if project.background.assetId}
     <Fold id="bg-photo" title="背景照片設定">
     <label class="row">
@@ -212,5 +214,8 @@
   .bg-subject button.on {
     border-color: var(--accent);
     color: var(--accent);
+  }
+  .bg-swatches {
+    margin: 8px 0 4px;
   }
 </style>

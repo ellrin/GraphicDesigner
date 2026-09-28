@@ -12,6 +12,7 @@
   import { objectTypeOf } from './types'
   import Help from '../../ui/Help.svelte'
   import Fold from '../../ui/Fold.svelte'
+  import Swatches from '../../ui/Swatches.svelte'
   import { objectBox, targetFromCanvas } from '../../core/framing'
   import { BLOCK_SHAPES } from '../../core/blocks'
 
@@ -225,6 +226,11 @@
             />
           {/if}
         </div>
+        {#if selected.fill && selected.type !== 'line' && selected.type !== 'image'}
+          <Swatches value={selected.fill} onpick={(c) => updateObject(selected.uid, { fill: c })} />
+        {:else if selected.stroke}
+          <Swatches value={selected.stroke} onpick={(c) => updateObject(selected.uid, { stroke: c })} />
+        {/if}
         <label class="row">
           <span>不透明度 {Math.round(selected.opacity * 100)}%</span>
           <input type="range" min="0" max="1" step="0.05" bind:value={selected.opacity} />

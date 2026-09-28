@@ -1,6 +1,7 @@
 <script lang="ts">
   import Section from '../../ui/Section.svelte'
   import Fold from '../../ui/Fold.svelte'
+  import Swatches from '../../ui/Swatches.svelte'
   import { BLOCK_ROLES, BLOCK_SHAPES, roleOf, type BlockShape, type Suggestion } from '../../core/blocks'
   import {
     addBlock,
@@ -100,6 +101,7 @@
           <label><input type="checkbox" bind:checked={selected.filled} /> 填色</label>
           <input type="color" bind:value={selected.color} aria-label="顏色" />
         </span>
+        <Swatches value={selected.color} onpick={(c) => updateBlock(selected.uid, { color: c })} />
         {#if selected.filled}
           <label class="row">
             <span>不透明度 {Math.round(selected.opacity * 100)}%</span>

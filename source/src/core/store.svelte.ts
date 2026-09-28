@@ -12,6 +12,8 @@ import { resolveRecipe, toProjectBlocks, type Recipe } from './recipes'
 import type { ParamValues } from './params'
 import type { Template } from './registry'
 import { STEPS, type StepDef } from '../config/steps'
+import { contrast } from './color'
+import { paletteOf, rolesOf, textOn } from './palettes'
 import { compositionTemplates } from '../layers/1-composition/templates'
 import { guideTemplates } from '../layers/2-guides/templates'
 
@@ -27,6 +29,8 @@ export interface ProjectData {
   /** 陣列順序 = 疊放順序（後面的在上層） */
   objects: { items: DesignObject[] }
   background: Background
+  /** 選用的配色（色彩庫 id）；物件的預設顏色與色票都取自這組配色 */
+  palette: string | null
   visibility: {
     composition: boolean
     anchors: boolean
@@ -54,6 +58,7 @@ export function newProject(): ProjectData {
     blocks: { items: [] },
     objects: { items: [] },
     background: structuredClone(DEFAULT_BACKGROUND),
+    palette: null,
     visibility: {
       composition: true,
       anchors: true,
@@ -115,6 +120,7 @@ export function replaceProject(data: ProjectData) {
       .map((o) => ({ ...o, props: { ...objectDefaultProps(o.type), ...o.props } })),
   }
   project.background = { ...structuredClone(DEFAULT_BACKGROUND), ...data.background }
+  project.palette = typeof data.palette === 'string' && paletteOf(data.palette) ? data.palette : null
   project.visibility = { ...base.visibility, ...data.visibility }
 }
 
@@ -349,6 +355,7 @@ export const addObject = discrete((type: string, placement: Placement = {}, prop
     y = ctr.y - h / 2
   }
   const n = project.objects.items.filter((o) => o.type === type).length + 1
+  const colors = paletteColors(type, { x: x + w / 2, y: y + h / 2 })
   const o: DesignObject = {
     uid: uid(),
     type,
@@ -358,8 +365,8 @@ export const addObject = discrete((type: string, placement: Placement = {}, prop
     w,
     h,
     rotation: 0,
-    fill: t.meta.fill ?? '#2f6bff',
-    stroke: t.meta.stroke ?? '',
+    fill: colors.fill ?? t.meta.fill ?? '#2f6bff',
+    stroke: t.meta.stroke ? (colors.stroke ?? t.meta.stroke) : '',
     strokeWidth: t.meta.strokeWidth ?? 0.004,
     opacity: 1,
     visible: true,
@@ -369,6 +376,61 @@ export const addObject = discrete((type: string, placement: Placement = {}, prop
   project.objects.items.push(o)
   ui.selectedObjects = [o.uid]
   return o.uid
+})
+
+// ── 配色 ───────────────────────────────────────────────
+
+/** 某個位置（0–1）底下看得到的顏色：最上層蓋住該點的填色圖形，沒有就是背景色 */
+function backdropAt(p: Pt, below = project.objects.items.length): string {
+  for (let i = below - 1; i >= 0; i--) {
+    const o = project.objects.items[i]
+    if (!o.visible || !o.fill || o.type === 'text' || o.type === 'line' || o.type === 'image') continue
+    if (p.x >= o.x && p.x <= o.x + o.w && p.y >= o.y && p.y <= o.y + o.h) return o.fill
+  }
+  return project.background.color
+}
+
+/** 新物件的預設顏色：依選用的配色（文字依底色自動選深或淺，圖形輪流使用鮮豔色） */
+function paletteColors(type: string, center: Pt): { fill?: string; stroke?: string } {
+  const p = paletteOf(project.palette)
+  if (!p) return {}
+  const r = rolesOf(p)
+  if (type === 'text') return { fill: textOn(backdropAt(center), r) }
+  if (type === 'line') return { stroke: r.primary }
+  const bg = backdropAt(center)
+  const list = r.chromatic.filter((c) => contrast(c, bg) >= 1.3)
+  const pool = list.length ? list : [r.primary]
+  const n = project.objects.items.filter((o) => o.type !== 'text' && o.type !== 'image').length
+  return { fill: pool[n % pool.length], stroke: r.dark }
+}
+
+/**
+ * 一鍵上色：背景取配色中最淺（或最深）的顏色，圖形輪流使用鮮豔色，
+ * 最大的文字用主色（對比足夠時），其他文字依底色自動選深或淺。
+ */
+export const applyPalette = discrete((id: string, mode: 'light' | 'dark') => {
+  const p = paletteOf(id)
+  if (!p) return
+  project.palette = id
+  const r = rolesOf(p)
+  const bg = mode === 'light' ? r.light : r.dark
+  project.background.color = bg
+  const pool = r.chromatic.filter((c) => contrast(c, bg) >= 1.3)
+  const colors = pool.length ? pool : [r.primary]
+  let k = 0
+  const items = project.objects.items
+  items.forEach((o) => {
+    if (o.type === 'line') o.stroke = r.primary
+    else if (o.type !== 'text' && o.type !== 'image') {
+      o.fill = colors[k++ % colors.length]
+      if (o.stroke) o.stroke = r.dark
+    }
+  })
+  const texts = items.filter((o) => o.type === 'text').sort((a, b) => Number(b.props.fontSize) - Number(a.props.fontSize))
+  texts.forEach((o, i) => {
+    const under = backdropAt({ x: o.x + o.w / 2, y: o.y + o.h / 2 }, items.indexOf(o))
+    o.fill = i === 0 && contrast(r.primary, under) >= 3 ? r.primary : textOn(under, r)
+  })
 })
 
 export function updateObject(id: string, patch: Partial<DesignObject>) {

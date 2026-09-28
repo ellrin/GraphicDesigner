@@ -1,0 +1,24 @@
+{
+  "category": "風格",
+  "order": 1,
+  "palettes": [
+    { "id": "cyberpunk", "name": "賽博龐克", "colors": ["#0b0221", "#1a0b3d", "#2d1b69", "#ff2a6d", "#ff6ec7", "#05d9e8", "#00fff5", "#d1f7ff", "#f9f871", "#ff9f1c", "#7b2ff7", "#ffffff"] },
+    { "id": "vaporwave", "name": "蒸汽波", "colors": ["#1b1b3a", "#693668", "#a74482", "#f84aa7", "#ff9de2", "#ffcef3", "#01cdfe", "#05ffa1", "#b967ff", "#fffb96", "#fdfdfd", "#2b1055"] },
+    { "id": "neon-night", "name": "霓虹夜", "colors": ["#0d0d0d", "#1f1f2e", "#39ff14", "#fe019a", "#00f0ff", "#ffe600", "#ff5f1f", "#bc13fe", "#f5f5f5", "#2e2e48"] },
+    { "id": "retro-80s", "name": "復古八零", "colors": ["#241734", "#2e2157", "#fd3777", "#f706cf", "#fd1d53", "#ffb238", "#f9c80e", "#43bccd", "#ffffff", "#0e0b16"] },
+    { "id": "pop-art", "name": "普普藝術", "colors": ["#111111", "#ffffff", "#ffde00", "#ff3c38", "#0a64ff", "#00c2a8", "#ff8fb1", "#ff7a00", "#f2f2f2", "#3d1e6d"] },
+    { "id": "bauhaus", "name": "包浩斯", "colors": ["#1d1d1b", "#f4efe6", "#e63b2e", "#f5c518", "#1f4e9c", "#e8e0d0", "#7f7f7f", "#ffffff"] },
+    { "id": "minimal-mono", "name": "極簡黑白", "colors": ["#0a0a0a", "#262626", "#404040", "#737373", "#a3a3a3", "#d4d4d4", "#ededed", "#ffffff", "#ff4d2e"] },
+    { "id": "luxury-gold", "name": "典雅黑金", "colors": ["#0c0c0c", "#1c1a17", "#2f2a22", "#8a6d3b", "#b8934a", "#d4af37", "#e8d8a8", "#f7f2e7", "#ffffff"] },
+    { "id": "morandi", "name": "莫蘭迪", "colors": ["#5e5a57", "#8a8078", "#a89f91", "#c9b8a8", "#d8cbc7", "#b5c4b1", "#9aa5b1", "#c3b3c5", "#e7e2dc", "#f6f3ef"] },
+    { "id": "memphis", "name": "孟菲斯", "colors": ["#1b1b1b", "#fffaf0", "#ff6f91", "#ffc75f", "#00c9a7", "#845ec2", "#4d8bf8", "#f9f871", "#ff9671", "#ffffff"] },
+    { "id": "art-deco", "name": "裝飾藝術", "colors": ["#0f1a20", "#1d3a3a", "#285f5b", "#c9a227", "#e0c068", "#f2e3b3", "#8c2f39", "#fffaf0", "#2b2b2b"] },
+    { "id": "industrial", "name": "工業風", "colors": ["#1e2124", "#2f3337", "#4a4f55", "#6c7278", "#9aa0a6", "#c8ccd0", "#e7e9eb", "#ff6a13", "#f5b700", "#ffffff"] },
+    { "id": "chinese-classic", "name": "中國風", "colors": ["#1c1a1a", "#3b2a26", "#8e1b1b", "#c0392b", "#d9a441", "#e9d5a1", "#2f4f4f", "#5b8a72", "#f4ece1", "#ffffff"] },
+    { "id": "ink-wash", "name": "水墨", "colors": ["#101010", "#2a2a2a", "#4a4a48", "#6f6e69", "#9a988f", "#c4c1b8", "#e2ded4", "#f5f2ea", "#a33b2b"] },
+    { "id": "nordic", "name": "北歐", "colors": ["#2e3440", "#3b4252", "#4c566a", "#88c0d0", "#81a1c1", "#a3be8c", "#ebcb8b", "#d08770", "#e5e9f0", "#eceff4"] },
+    { "id": "y2k", "name": "千禧年", "colors": ["#0e0e2c", "#c0c0d8", "#e6e6fa", "#a9d6ff", "#ff9ce6", "#c6ff00", "#7df9ff", "#b388ff", "#ffffff", "#5b5b8f"] },
+    { "id": "retro-print", "name": "復古印刷", "colors": ["#2b2a28", "#f1e9d8", "#e8dcc2", "#d9534f", "#2d6a8e", "#f0b429", "#3c8d5a", "#8b6f47", "#fffdf7"] },
+    { "id": "tech-blue", "name": "科技藍", "colors": ["#050b1a", "#0a1a3a", "#0f2d6b", "#1f4fd8", "#2f80ff", "#4dc3ff", "#8fe3ff", "#e6f4ff", "#00e5a0", "#ffffff"] }
+  ]
+}
