@@ -1,0 +1,6 @@
+{
+  "cols": { "type": "int", "label": "欄數", "min": 3, "max": 60, "default": 16 },
+  "gradient": { "type": "select", "label": "漸層", "options": [{ "value": "none", "label": "無" }, { "value": "x", "label": "左到右" }, { "value": "y", "label": "上到下" }, { "value": "radial", "label": "由中心向外" }], "default": "x" },
+  "min": { "type": "number", "label": "最小點", "min": 0, "max": 1, "step": 0.01, "default": 0.1 },
+  "shape": { "type": "select", "label": "點的形狀", "options": [{ "value": "circle", "label": "圓點" }, { "value": "square", "label": "方點" }], "default": "circle" }
+}

@@ -1,0 +1,6 @@
+{
+  "seed": { "type": "int", "label": "樣式（種子）", "min": 1, "max": 999, "default": 7 },
+  "roughness": { "type": "number", "label": "不規則", "min": 0, "max": 1, "step": 0.01, "default": 0.5 },
+  "splash": { "type": "number", "label": "噴濺", "min": 0, "max": 1, "step": 0.01, "default": 0.5 },
+  "drops": { "type": "int", "label": "墨點", "min": 0, "max": 40, "default": 12 }
+}

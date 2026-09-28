@@ -1,0 +1,5 @@
+{
+  "a": { "type": "int", "label": "橫向頻率", "min": 1, "max": 9, "default": 3 },
+  "b": { "type": "int", "label": "縱向頻率", "min": 1, "max": 9, "default": 2 },
+  "delta": { "type": "number", "label": "相位", "min": 0, "max": 1, "step": 0.01, "default": 0.5 }
+}

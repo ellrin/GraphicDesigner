@@ -27,6 +27,7 @@
   import Accordion from './ui/Accordion.svelte'
   import ResetButton from './ui/ResetButton.svelte'
   import { uiTheme } from './ui/theme.svelte'
+  import { paletteOf } from './core/palettes'
   import {
     addBlock,
     completeStep,
@@ -598,6 +599,7 @@
       guidesOnTop={project.visibility.guidesOnTop}
       guideOpacity={project.visibility.guideOpacity}
       uiThemeId={uiTheme.id}
+      palette={paletteOf(project.palette)?.colors ?? []}
     />
     {#if toast}<div class="toast" role="status">{toast}</div>{/if}
   </main>

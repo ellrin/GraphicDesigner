@@ -1,0 +1,4 @@
+{
+  "n": { "type": "int", "label": "花瓣參數 n", "min": 1, "max": 12, "default": 5 },
+  "d": { "type": "int", "label": "花瓣參數 d", "min": 1, "max": 9, "default": 1 }
+}

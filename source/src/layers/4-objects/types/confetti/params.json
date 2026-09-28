@@ -1,0 +1,7 @@
+{
+  "seed": { "type": "int", "label": "樣式（種子）", "min": 1, "max": 999, "default": 3 },
+  "count": { "type": "int", "label": "數量", "min": 5, "max": 300, "default": 70 },
+  "size": { "type": "number", "label": "大小", "min": 0.1, "max": 1, "step": 0.01, "default": 0.4 },
+  "mix": { "type": "select", "label": "形狀", "options": [{ "value": "mixed", "label": "混合" }, { "value": "strip", "label": "紙條" }, { "value": "dot", "label": "圓點" }, { "value": "triangle", "label": "三角" }], "default": "mixed" },
+  "multicolor": { "type": "boolean", "label": "多色（使用配色）", "default": true }
+}

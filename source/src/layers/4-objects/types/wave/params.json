@@ -1,0 +1,8 @@
+{
+  "periods": { "type": "number", "label": "波數", "min": 0.5, "max": 12, "step": 0.5, "default": 3 },
+  "amplitude": { "type": "number", "label": "振幅", "min": 0, "max": 1, "step": 0.01, "default": 0.8 },
+  "lines": { "type": "int", "label": "條數", "min": 1, "max": 8, "default": 1 },
+  "shift": { "type": "number", "label": "每條錯開", "min": 0, "max": 1, "step": 0.01, "default": 0.15 },
+  "phase": { "type": "number", "label": "起點", "min": 0, "max": 1, "step": 0.01, "default": 0 },
+  "multicolor": { "type": "boolean", "label": "多色（使用配色）", "default": false }
+}

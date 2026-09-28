@@ -63,6 +63,8 @@
     guideOpacity?: number
     /** 介面主題 id；改變時重繪以套用選取框顏色 */
     uiThemeId?: string
+    /** 目前配色（裝飾圖形的多色效果使用） */
+    palette?: string[]
     /** 「點一下選位置」模式（例如標記照片主體） */
     picking?: boolean
     onpick?: (p: Pt) => void
@@ -91,6 +93,7 @@
     guidesOnTop = true,
     guideOpacity = 1,
     uiThemeId = '',
+    palette = [],
     picking = false,
     onpick,
   }: Props = $props()
@@ -281,6 +284,7 @@
       canvas,
       scale: view.s,
       fontVersion,
+      palette,
     })
 
     blockLayer.update({

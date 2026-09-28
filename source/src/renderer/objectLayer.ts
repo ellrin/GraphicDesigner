@@ -33,6 +33,8 @@ export interface ObjectLayerState {
   scale: number
   /** 字型載入後遞增，用來觸發重繪 */
   fontVersion: number
+  /** 目前配色 */
+  palette: string[]
 }
 
 /** 畫布座標下的物件框：x、y 為未旋轉時的左上角 */
@@ -268,6 +270,7 @@ export class ObjectLayer {
       stroke: o.stroke,
       strokeWidth: o.strokeWidth * Math.min(s.canvas.w, s.canvas.h),
       canvasH: s.canvas.h,
+      palette: s.palette,
       image: o.type === 'image' ? this.imageFor(o) : undefined,
     })
     for (const shape of shapes) g.add(shape)

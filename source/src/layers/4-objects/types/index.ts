@@ -22,13 +22,15 @@ export interface ShapeContext {
   canvasH: number
   /** 圖片物件：已載入的圖片 */
   image?: HTMLImageElement
+  /** 目前配色（沒有選用配色時為空陣列） */
+  palette: string[]
 }
 
 export type ShapeBuilder = (ctx: ShapeContext) => Konva.Shape[]
 
 export interface ObjectTypeMeta {
   name: string
-  category: 'shape' | 'text' | 'image'
+  category: 'shape' | 'text' | 'image' | 'decor'
   order?: number
   /** 預設尺寸，單位是「畫布短邊」 */
   size: [number, number]

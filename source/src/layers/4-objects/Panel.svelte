@@ -116,9 +116,18 @@
     </select>
   </label>
   <div class="types">
-    {#each objectTypes as t (t.id)}
+    {#each objectTypes.filter((t) => t.meta.category !== 'decor') as t (t.id)}
       <button onclick={() => add(t.id)}>{t.id === 'image' ? '＋ 圖片…' : `＋ ${t.meta.name}`}</button>
     {/each}
+  </div>
+  <div class="decor">
+    <Fold id="objects-decor" title="裝飾圖形" count={objectTypes.filter((t) => t.meta.category === 'decor').length}>
+      <div class="types">
+        {#each objectTypes.filter((t) => t.meta.category === 'decor') as t (t.id)}
+          <button onclick={() => add(t.id)}>＋ {t.meta.name}</button>
+        {/each}
+      </div>
+    </Fold>
   </div>
   <input bind:this={imageInput} type="file" accept="image/*" hidden onchange={onImage} />
   {#if error}<p class="error" role="alert">{error}</p>{/if}
@@ -224,5 +233,8 @@
   }
   .bg-swatches {
     margin: 8px 0 4px;
+  }
+  .decor {
+    margin-top: 8px;
   }
 </style>

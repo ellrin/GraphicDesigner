@@ -369,7 +369,7 @@ export const addObject = discrete((type: string, placement: Placement = {}, prop
     w,
     h,
     rotation: 0,
-    fill: colors.fill ?? t.meta.fill ?? '#2f6bff',
+    fill: t.meta.fill === '' ? '' : (colors.fill ?? t.meta.fill ?? '#2f6bff'),
     stroke: t.meta.stroke ? (colors.stroke ?? t.meta.stroke) : '',
     strokeWidth: t.meta.strokeWidth ?? 0.004,
     opacity: 1,
@@ -405,7 +405,9 @@ function paletteColors(type: string, center: Pt): { fill?: string; stroke?: stri
   const list = r.chromatic.filter((c) => contrast(c, bg) >= 1.3)
   const pool = list.length ? list : [r.primary]
   const n = project.objects.items.filter((o) => o.type !== 'text' && o.type !== 'image').length
-  return { fill: pool[n % pool.length], stroke: r.dark }
+  // 線條型（預設沒有填色）的圖形：保持不填色，線條改用配色中的鮮豔色
+  const lineOnly = objectTypeOf(type)?.meta.fill === ''
+  return lineOnly ? { stroke: pool[n % pool.length] } : { fill: pool[n % pool.length], stroke: r.dark }
 }
 
 /**

@@ -1,0 +1,5 @@
+{
+  "count": { "type": "int", "label": "圈數", "min": 1, "max": 30, "default": 6 },
+  "inner": { "type": "number", "label": "內圈大小", "min": 0, "max": 0.95, "step": 0.01, "default": 0.15 },
+  "multicolor": { "type": "boolean", "label": "多色（使用配色）", "default": false }
+}
