@@ -14,6 +14,8 @@ import type { Template } from './registry'
 import { STEPS, type StepDef } from '../config/steps'
 import { contrast } from './color'
 import { paletteOf, rolesOf, textOn } from './palettes'
+import { roleDef, type ContentItem, type ContentRole, type Proposal } from './autolayout'
+import { FONT_GROUPS } from './fonts'
 import { compositionTemplates } from '../layers/1-composition/templates'
 import { guideTemplates } from '../layers/2-guides/templates'
 
@@ -141,6 +143,8 @@ export const ui = $state({
   editBackground: false,
   /** 等待使用者在照片上點一下標記主體：'bg' 或圖片物件 uid */
   pickSubject: null as string | null,
+  /** 上次套用的排版提案（加入或修改文字時沿用） */
+  layoutPref: 'flow',
 })
 
 /** 點選物件：additive（按住 Shift）時切換加入／移除，否則只選這一個；null = 取消全部。 */
@@ -431,6 +435,85 @@ export const applyPalette = discrete((id: string, mode: 'light' | 'dark') => {
     const under = backdropAt({ x: o.x + o.w / 2, y: o.y + o.h / 2 }, items.indexOf(o))
     o.fill = i === 0 && contrast(r.primary, under) >= 3 ? r.primary : textOn(under, r)
   })
+})
+
+// ── 文字內容與自動排版 ─────────────────────────────────
+
+/** 標了內容角色（標題、內文…）的文字物件 */
+export const isContent = (o: DesignObject) => o.type === 'text' && typeof o.props.role === 'string'
+
+/** 內容原文（依形狀分段時，畫布上的文字含有換行，原文另外保存） */
+export const contentText = (o: DesignObject) => String(o.props.contentText ?? o.props.text ?? '')
+
+export function contentItems(): ContentItem[] {
+  return project.objects.items.filter(isContent).map((o) => ({ uid: o.uid, role: o.props.role as ContentRole, text: contentText(o) }))
+}
+
+/** 修改內容文字（清掉依形狀分段的結果） */
+export function setContentText(o: DesignObject, text: string) {
+  o.props.text = text
+  delete o.props.contentText
+}
+
+export const addContent = discrete((role: ContentRole) => {
+  const def = roleDef(role)
+  const n = project.objects.items.filter((o) => o.props.role === role).length + 1
+  addObject('text', {}, { text: def.text, role, lineHeight: def.lineHeight }, `${def.label} ${n}`)
+  // 不切換到物件編輯區，留在內容清單繼續輸入
+  ui.selectedObjects = []
+})
+
+/** 字重：heavy = 字型最粗、bold ≈ 700、regular ≈ 400（依字型實際提供的字重） */
+function weightFor(kind: 'heavy' | 'bold' | 'regular', family: string): number {
+  const ws = FONT_GROUPS.flatMap((g) => g.fonts).find((f) => f.family === family)?.weights ?? [400, 700]
+  if (kind === 'heavy') return Math.max(...ws)
+  const target = kind === 'bold' ? 700 : 400
+  return ws.reduce((a, b) => (Math.abs(b - target) < Math.abs(a - target) ? b : a), ws[0])
+}
+
+/** 內容文字在某個位置的顏色：標題用主色、醒目用強調色（對比足夠時），其他依底色選深或淺 */
+export function contentColor(role: string, at: Pt, below?: number): string {
+  const p = paletteOf(project.palette)
+  const r = p ? rolesOf(p) : undefined
+  const under = backdropAt(at, below)
+  if (r && role === 'title' && contrast(r.primary, under) >= 3) return r.primary
+  if (r && role === 'highlight' && contrast(r.accent, under) >= 3) return r.accent
+  return textOn(under, r)
+}
+
+const rectKey = (o: DesignObject) => [o.x, o.y, o.w, o.h].map((v) => v.toFixed(4)).join(',')
+
+/** 內容文字都還在自動排版的位置（沒有手動移動、縮放過） */
+export function contentUntouched(): boolean {
+  return project.objects.items.filter(isContent).every((o) => o.props.autoRect === undefined || o.props.autoRect === rectKey(o))
+}
+
+export const applyProposal = discrete((proposal: Proposal) => {
+  ui.layoutPref = proposal.id
+  const c = project.canvas
+  const items = project.objects.items
+  for (const pl of proposal.placements) {
+    const o = items.find((x) => x.uid === pl.uid)
+    if (!o) continue
+    const original = contentText(o)
+    Object.assign(o, { x: pl.rect.x / c.w, y: pl.rect.y / c.h, w: pl.rect.w / c.w, h: pl.rect.h / c.h, rotation: 0 })
+    Object.assign(o.props, {
+      fontSize: pl.size / c.h,
+      lineHeight: pl.lineHeight,
+      align: pl.align,
+      verticalAlign: 'top',
+      direction: pl.direction,
+      letterSpacing: 0,
+      fontWeight: weightFor(roleDef(pl.role).weight, String(o.props.fontFamily)),
+    })
+    if (pl.text !== undefined && pl.text !== original) {
+      o.props.contentText = original
+      o.props.text = pl.text
+    } else setContentText(o, original)
+    o.fill = contentColor(pl.role, { x: o.x + o.w / 2, y: o.y + o.h / 2 }, items.indexOf(o))
+    o.stroke = ''
+    o.props.autoRect = rectKey(o)
+  }
 })
 
 export function updateObject(id: string, patch: Partial<DesignObject>) {

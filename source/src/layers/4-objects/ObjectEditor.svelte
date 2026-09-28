@@ -5,7 +5,7 @@
   import { FONT_GROUPS } from '../../core/fonts'
   import { fontSizeFromDisplay, fontSizeToDisplay, fontUnitLabel, type AnchorOption } from '../../core/objects'
   import type { ParamValues } from '../../core/params'
-  import { duplicateObject, moveObject, project, removeObject, ui, updateObject } from '../../core/store.svelte'
+  import { duplicateObject, moveObject, project, removeObject, setContentText, contentText, ui, updateObject } from '../../core/store.svelte'
   import FontLibrary from '../../ui/FontLibrary.svelte'
   import FontSelect from '../../ui/FontSelect.svelte'
   import ParamPanel from '../../ui/ParamPanel.svelte'
@@ -118,7 +118,7 @@
     {#if selected.type === 'text'}
       <label class="row">
         <span class="with-help">文字內容 <Help text="在畫布上雙擊文字也可以直接跳到這裡編輯。" /></span>
-        <textarea bind:this={textArea} rows="3" value={String(selected.props.text ?? '')} oninput={(e) => setProp('text', e.currentTarget.value)}></textarea>
+        <textarea bind:this={textArea} rows="3" value={contentText(selected)} oninput={(e) => setContentText(selected, e.currentTarget.value)}></textarea>
       </label>
     {/if}
 

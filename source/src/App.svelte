@@ -238,6 +238,20 @@
   /** 物件的吸附：區塊的吸附再加上區塊的邊與中線 */
   const objectSnap = $derived({ ...blockSnap, ...objectSnapLines })
 
+  /** 自動排版：構圖與引導切出的區域、視覺引導的動線（依順序） */
+  const layoutContext = $derived({
+    regions: activeOutputs.flatMap(({ output }) =>
+      (output.regions ?? []).map((r) => ({
+        rect: { x: r.x, y: r.y, w: r.w, h: r.h },
+        shape: r.points ? ('polygon' as const) : r.shape === 'ellipse' ? ('ellipse' as const) : ('rect' as const),
+        points: r.points,
+        role: r.role,
+        label: r.label,
+      })),
+    ),
+    path: (project.visibility.guides ? guideOutputs.filter(({ inst }) => inst.visible) : []).flatMap(({ output }) => output.anchors),
+  })
+
   /** 可作為放置目標的錨點（依來源命名、去除重複） */
   const anchorOptions = $derived.by((): AnchorOption[] => {
     const out: AnchorOption[] = []
@@ -536,7 +550,7 @@
     {:else if step.id === 'blocks'}
       <BlocksPanel {suggestions} onadopt={adopt} />
     {:else if step.id === 'objects'}
-      <ObjectsPanel anchors={anchorOptions} {focusText} />
+      <ObjectsPanel anchors={anchorOptions} {focusText} layout={layoutContext} />
     {:else if step.id === 'refine'}
       <RefinePanel anchors={anchorOptions} />
     {/if}

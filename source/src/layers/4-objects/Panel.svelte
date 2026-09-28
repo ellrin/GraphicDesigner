@@ -14,6 +14,9 @@
     type Placement,
   } from '../../core/store.svelte'
   import ObjectEditor from './ObjectEditor.svelte'
+  import ContentPanel from './ContentPanel.svelte'
+  import type { SlotSource } from '../../core/autolayout'
+  import type { Pt } from '../../core/geometry'
   import Help from '../../ui/Help.svelte'
   import { objectTypeOf, objectTypes } from './types'
 
@@ -21,8 +24,10 @@
     anchors: AnchorOption[]
     /** 遞增時聚焦文字輸入框（在畫布上雙擊文字） */
     focusText: number
+    /** 自動排版用：構圖與引導切出的區域、視覺動線 */
+    layout: { regions: SlotSource[]; path: Pt[] }
   }
-  let { anchors, focusText }: Props = $props()
+  let { anchors, focusText, layout }: Props = $props()
 
   const items = $derived(project.objects.items)
   const c = $derived(project.canvas)
@@ -86,6 +91,8 @@
 
 <!-- 選取物件時，編輯區自動展開並放在最上面 -->
 <ObjectEditor {anchors} {focusText} />
+
+<ContentPanel regions={layout.regions} path={layout.path} />
 
 <Section id="objects-1" title="新增物件">
   <label class="row">
