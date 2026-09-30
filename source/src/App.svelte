@@ -50,6 +50,7 @@
   import { canvasBox, fitBoxToPoints, markSubject, objectBox, subjectOnCanvas, targetFromCanvas, toCanvas, type ImageSize } from './core/framing'
   import { TRIANGLE_VERTICES } from './layers/4-objects/types/triangle/shape'
   import { RECT_CORNERS } from './layers/4-objects/types/rect/shape'
+  import { TRAPEZOID_CORNERS } from './layers/4-objects/types/trapezoid/shape'
   import { parseTable } from './core/dataTable'
   import { insertFromFile, insertFromText, kindName, replaceData } from './layers/4-objects/chart/insert'
   import type { ImageFit, ImageFraming } from './core/objects'
@@ -363,17 +364,19 @@
     return { key: `img:${o.uid}`, box: objectBox(o, c), size, fit: o.props.fit as ImageFit, framing: o.props as unknown as ImageFraming, obj: o }
   })
 
-  // ── 可拖曳頂點的物件（矩形、三角形、自由多邊形）──────────
+  // ── 可拖曳頂點的物件（矩形、梯形、三角形、自由多邊形）──────
+  /** 頂點存在固定參數名稱裡的物件 */
+  const VERTEX_KEYS: Record<string, readonly string[]> = { triangle: TRIANGLE_VERTICES, rect: RECT_CORNERS, trapezoid: TRAPEZOID_CORNERS }
   /** 物件的頂點（物件框內 0–1）；不是這類物件時回傳 null */
   function verticesOf(o: DesignObject): Pt[] | null {
-    if (o.type === 'triangle') return TRIANGLE_VERTICES.map((k) => o.props[k] as Pt)
-    if (o.type === 'rect') return RECT_CORNERS.map((k) => o.props[k] as Pt)
+    const keys = VERTEX_KEYS[o.type]
+    if (keys) return keys.map((k) => o.props[k] as Pt)
     if (o.type === 'freeform') return (o.props.points as unknown as Pt[] | undefined) ?? []
     return null
   }
   function setVertices(o: DesignObject, rel: Pt[]) {
-    if (o.type === 'triangle') TRIANGLE_VERTICES.forEach((k, i) => (o.props[k] = rel[i]))
-    else if (o.type === 'rect') RECT_CORNERS.forEach((k, i) => (o.props[k] = rel[i]))
+    const keys = VERTEX_KEYS[o.type]
+    if (keys) keys.forEach((k, i) => (o.props[k] = rel[i]))
     else o.props.points = rel as unknown as ParamValues[string]
   }
   /** 以畫布座標的頂點更新物件：物件框貼齊頂點 */

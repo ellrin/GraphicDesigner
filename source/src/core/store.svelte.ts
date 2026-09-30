@@ -8,6 +8,7 @@ import { objectTypeOf } from '../layers/4-objects/types'
 import { TEXT_DEFAULTS } from '../layers/4-objects/types/text/shape'
 import { CHART_DEFAULTS } from '../layers/4-objects/types/chart/shape'
 import { TABLE_DEFAULTS } from '../layers/4-objects/types/table/shape'
+import { trapezoidCorners } from '../layers/4-objects/types/trapezoid/shape'
 import { IDENTITY, type Orientation } from './transform'
 import { CANVAS_FRAME, type FrameRef, type TemplateInstance } from './instances'
 import { resolveRecipe, toProjectBlocks, type PanelTone, type Recipe, type ResolvedBlock } from './recipes'
@@ -125,7 +126,7 @@ export function replaceProject(data: ProjectData) {
   project.objects = {
     items: (data.objects?.items ?? [])
       .filter((o) => objectTypeOf(o.type))
-      .map((o) => ({ ...o, props: { ...objectDefaultProps(o.type), ...o.props } })),
+      .map((o) => ({ ...o, props: { ...objectDefaultProps(o.type), ...(o.type === 'trapezoid' && !('tl' in o.props) ? trapezoidCorners(o.props) : {}), ...o.props } })),
   }
   project.background = { ...structuredClone(DEFAULT_BACKGROUND), ...data.background }
   project.palette = typeof data.palette === 'string' && paletteOf(data.palette) ? data.palette : null
