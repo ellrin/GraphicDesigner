@@ -6,6 +6,8 @@ import type { Pt, Rect } from './geometry'
 import { DEFAULT_BACKGROUND, type Background, type DesignObject } from './objects'
 import { objectTypeOf } from '../layers/4-objects/types'
 import { TEXT_DEFAULTS } from '../layers/4-objects/types/text/shape'
+import { CHART_DEFAULTS } from '../layers/4-objects/types/chart/shape'
+import { TABLE_DEFAULTS } from '../layers/4-objects/types/table/shape'
 import { IDENTITY, type Orientation } from './transform'
 import { CANVAS_FRAME, type FrameRef, type TemplateInstance } from './instances'
 import { resolveRecipe, toProjectBlocks, type PanelTone, type Recipe, type ResolvedBlock } from './recipes'
@@ -346,7 +348,8 @@ export const moveBlock = discrete((id: string, dir: 1 | -1) => {
 
 function objectDefaultProps(type: string): ParamValues {
   const t = objectTypeOf(type)
-  return { ...(type === 'text' ? TEXT_DEFAULTS : {}), ...clone(t?.defaults ?? {}) }
+  const extra = type === 'text' ? TEXT_DEFAULTS : type === 'chart' ? CHART_DEFAULTS : type === 'table' ? TABLE_DEFAULTS : {}
+  return { ...extra, ...clone(t?.defaults ?? {}) }
 }
 
 /**
@@ -476,8 +479,13 @@ export const applyPalette = discrete((id: string, mode: 'light' | 'dark') => {
   const colors = pool.length ? pool : [r.primary]
   let k = 0
   const items = project.objects.items
-  items.forEach((o) => {
-    if (o.type === 'line') o.stroke = r.primary
+  items.forEach((o, i) => {
+    if (o.type === 'chart' || o.type === 'table') {
+      // 圖表的主色用配色主色；文字與格線依底下的顏色選深淺
+      const under = backdropAt({ x: o.x + o.w / 2, y: o.y + o.h / 2 }, i)
+      o.fill = r.primary
+      o.props.ink = contrast('#ffffff', under) > contrast('#1a1a1a', under) ? 'light' : 'dark'
+    } else if (o.type === 'line') o.stroke = r.primary
     else if (o.type === 'panel' && o.props.tone) o.fill = panelColor(o.props.tone as PanelTone)
     else if (o.type !== 'text' && o.type !== 'image') {
       o.fill = colors[k++ % colors.length]

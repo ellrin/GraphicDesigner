@@ -15,6 +15,7 @@
   import Swatches from '../../ui/Swatches.svelte'
   import { objectBox, targetFromCanvas } from '../../core/framing'
   import { BLOCK_SHAPES } from '../../core/blocks'
+  import ChartEditor from './chart/ChartEditor.svelte'
 
   interface Props {
     anchors: AnchorOption[]
@@ -28,6 +29,8 @@
     ui.selectedObjects.length === 1 ? project.objects.items.find((o) => o.uid === ui.selectedObjects[0]) : undefined,
   )
   const selectedType = $derived(selected && objectTypeOf(selected.type))
+  /** 圖表、表格：形狀參數與主色由 ChartEditor 負責 */
+  const isData = $derived(selected?.type === 'chart' || selected?.type === 'table')
   const c = $derived(project.canvas)
   const blocks = $derived(project.blocks.items)
   let replaceInput: HTMLInputElement | undefined = $state()
@@ -137,6 +140,10 @@
     {/if}
 
     <div class="folds">
+      {#if isData}
+        <ChartEditor uid={selected.uid} />
+      {/if}
+
       {#if selected.type === 'text'}
         <Fold id="obj-font" title="字型">
           <div class="row">
@@ -199,7 +206,7 @@
             <ParamPanel schema={selectedType.params} bind:values={selected.props} />
           {/if}
         </Fold>
-      {:else if Object.keys(selectedType.params).length}
+      {:else if Object.keys(selectedType.params).length && !isData}
         {#key selected.type}
           <Fold id="obj-params-{selected.type}" title={selected.type === 'text' ? '排版' : '形狀'}>
             <ParamPanel schema={selectedType.params} bind:values={selected.props} />
@@ -209,7 +216,7 @@
 
       <Fold id="obj-look" title="外觀">
         <div class="paint">
-          {#if selected.type !== 'line' && selected.type !== 'image'}
+          {#if selected.type !== 'line' && selected.type !== 'image' && !isData}
             <label><input type="checkbox" checked={!!selected.fill} onchange={(e) => updateObject(selected.uid, { fill: e.currentTarget.checked ? '#2f6bff' : '' })} /> {selected.type === 'text' ? '文字色' : '填色'}</label>
             {#if selected.fill}<input type="color" bind:value={selected.fill} aria-label="填色" />{/if}
           {/if}
@@ -229,7 +236,7 @@
             />
           </label>
         {/if}
-        {#if selected.fill && selected.type !== 'line' && selected.type !== 'image'}
+        {#if selected.fill && selected.type !== 'line' && selected.type !== 'image' && !isData}
           <Swatches value={selected.fill} onpick={(c) => updateObject(selected.uid, { fill: c })} />
         {:else if selected.stroke}
           <Swatches value={selected.stroke} onpick={(c) => updateObject(selected.uid, { stroke: c })} />

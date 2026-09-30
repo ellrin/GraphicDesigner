@@ -16,6 +16,7 @@
   import ObjectEditor from './ObjectEditor.svelte'
   import ContentPanel from './ContentPanel.svelte'
   import BlockFill from './BlockFill.svelte'
+  import ChartGallery from './chart/ChartGallery.svelte'
   import type { SlotSource } from '../../core/autolayout'
   import type { Pt } from '../../core/geometry'
   import Help from '../../ui/Help.svelte'
@@ -124,7 +125,7 @@
     </select>
   </label>
   <div class="types">
-    {#each objectTypes.filter((t) => t.meta.category !== 'decor' && t.meta.category !== 'panel') as t (t.id)}
+    {#each objectTypes.filter((t) => !['decor', 'panel', 'data'].includes(t.meta.category)) as t (t.id)}
       <button onclick={() => add(t.id)}>{t.id === 'image' ? '＋ 圖片…' : `＋ ${t.meta.name}`}</button>
     {/each}
   </div>
@@ -148,6 +149,10 @@
   </div>
   <input bind:this={imageInput} type="file" accept="image/*" hidden onchange={onImage} />
   {#if error}<p class="error" role="alert">{error}</p>{/if}
+</Section>
+
+<Section id="objects-chart" title="插入圖表">
+  <ChartGallery {placement} />
 </Section>
 
 <Section id="objects-2" title="背景">

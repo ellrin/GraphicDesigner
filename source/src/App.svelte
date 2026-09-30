@@ -49,6 +49,9 @@
   import { getImage, loadStoredAssets } from './core/assets'
   import { canvasBox, fitBoxToPoints, markSubject, objectBox, subjectOnCanvas, targetFromCanvas, toCanvas, type ImageSize } from './core/framing'
   import { TRIANGLE_VERTICES } from './layers/4-objects/types/triangle/shape'
+  import { RECT_CORNERS } from './layers/4-objects/types/rect/shape'
+  import { parseTable } from './core/dataTable'
+  import { insertFromFile, insertFromText, kindName, replaceData } from './layers/4-objects/chart/insert'
   import type { ImageFit, ImageFraming } from './core/objects'
   import { FONT_GROUPS, loadFont } from './core/fonts'
   import BlocksPanel from './layers/3-blocks/Panel.svelte'
@@ -77,12 +80,15 @@
   // 拖放開啟專案檔的結果：專案視窗沒開時，在畫面下方短暫顯示
   let toast = $state('')
   let toastTimer: ReturnType<typeof setTimeout> | undefined
-  $effect(() => {
-    const text = projectMessage.text
-    if (!text || projectOpen) return
+  function showToast(text: string) {
     toast = text
     clearTimeout(toastTimer)
     toastTimer = setTimeout(() => (toast = ''), 3000)
+  }
+  $effect(() => {
+    const text = projectMessage.text
+    if (!text || projectOpen) return
+    showToast(text)
   })
 
   onMount(() => {
@@ -283,12 +289,12 @@
     return out
   })
 
-  // 文字用到的字型：載入完成後重繪畫布
+  // 文字、圖表、表格用到的字型：載入完成後重繪畫布
   let fontVersion = $state(0)
   const requestedFonts = new Set<string>()
   $effect(() => {
     for (const o of project.objects.items) {
-      if (o.type !== 'text') continue
+      if (o.type !== 'text' && o.type !== 'chart' && o.type !== 'table') continue
       const family = String(o.props.fontFamily)
       if (requestedFonts.has(family)) continue
       const def = FONT_GROUPS.flatMap((g) => g.fonts).find((f) => f.family === family)
@@ -357,15 +363,17 @@
     return { key: `img:${o.uid}`, box: objectBox(o, c), size, fit: o.props.fit as ImageFit, framing: o.props as unknown as ImageFraming, obj: o }
   })
 
-  // ── 可拖曳頂點的物件（三角形、自由多邊形）──────────────
+  // ── 可拖曳頂點的物件（矩形、三角形、自由多邊形）──────────
   /** 物件的頂點（物件框內 0–1）；不是這類物件時回傳 null */
   function verticesOf(o: DesignObject): Pt[] | null {
     if (o.type === 'triangle') return TRIANGLE_VERTICES.map((k) => o.props[k] as Pt)
+    if (o.type === 'rect') return RECT_CORNERS.map((k) => o.props[k] as Pt)
     if (o.type === 'freeform') return (o.props.points as unknown as Pt[] | undefined) ?? []
     return null
   }
   function setVertices(o: DesignObject, rel: Pt[]) {
     if (o.type === 'triangle') TRIANGLE_VERTICES.forEach((k, i) => (o.props[k] = rel[i]))
+    else if (o.type === 'rect') RECT_CORNERS.forEach((k, i) => (o.props[k] = rel[i]))
     else o.props.points = rel as unknown as ParamValues[string]
   }
   /** 以畫布座標的頂點更新物件：物件框貼齊頂點 */
@@ -510,6 +518,52 @@
     return [dx / project.canvas.w, dy / project.canvas.h]
   }
 
+  // ── 圖表：貼上試算表範圍、拖放資料檔 ──────────────────
+  const isTyping = (t: EventTarget | null) =>
+    t instanceof HTMLElement && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))
+
+  /** 貼上：選取單一圖表／表格時取代它的資料；否則依資料建立新圖表 */
+  function onPaste(e: ClipboardEvent) {
+    if (!editingObjects || isTyping(e.target)) return
+    const text = e.clipboardData?.getData('text/plain') ?? ''
+    if (!text.trim()) return
+    const sel = ui.selectedObjects.length === 1 ? project.objects.items.find((o) => o.uid === ui.selectedObjects[0]) : undefined
+    if (sel && (sel.type === 'chart' || sel.type === 'table')) {
+      const t = parseTable(text)
+      if (t.columns.length) {
+        e.preventDefault()
+        showToast(replaceData(sel.uid, t))
+      }
+      return
+    }
+    const r = insertFromText(text, {})
+    if (r) {
+      e.preventDefault()
+      showToast(`已從剪貼簿建立${kindName(r.kind)}：${r.reason}`)
+    }
+  }
+
+  /** 檔案拖到頁面任何地方：專案檔就開啟；插入物件的步驟中，CSV／TSV／圖表 JSON 會建立圖表 */
+  async function onDropFile(file: File) {
+    const isJson = /\.json$/i.test(file.name)
+    if (isJson) {
+      let json: unknown = null
+      try {
+        json = JSON.parse(await file.text())
+      } catch {
+        // 交給專案檔的錯誤訊息
+      }
+      const isProject = !!json && typeof json === 'object' && !Array.isArray(json) && ['canvas', 'objects', 'compositions'].some((k) => k in json)
+      if (isProject || !editingObjects) return openProjectWithMessage(file)
+    } else if (!editingObjects || !/\.(csv|tsv|txt)$/i.test(file.name)) return
+    try {
+      const results = await insertFromFile(file, {})
+      showToast(results.length > 1 ? `已插入 ${results.length} 張圖表` : `已插入${kindName(results[0].kind)}${results[0].reason ? `：${results[0].reason}` : ''}`)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '無法讀取檔案')
+    }
+  }
+
   function onKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement
     if (target.matches('input[type="text"], input[type="number"], input:not([type]), textarea, select')) return
@@ -580,12 +634,12 @@
 
 <svelte:window
   onkeydown={onKeydown}
+  onpaste={onPaste}
   ondragover={(e) => e.preventDefault()}
   ondrop={(e) => {
-    // 檔案拖到頁面任何地方：.json 當作專案檔開啟；其他檔案忽略（避免瀏覽器離開頁面）
     e.preventDefault()
     const file = e.dataTransfer?.files?.[0]
-    if (file && /\.json$/i.test(file.name)) openProjectWithMessage(file)
+    if (file) onDropFile(file)
   }}
 />
 

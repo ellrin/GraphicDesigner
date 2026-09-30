@@ -1,0 +1,42 @@
+{
+  "header": { "type": "boolean", "label": "第一列是標題", "default": true },
+  "headerStyle": {
+    "type": "select",
+    "label": "標題列樣式",
+    "options": [
+      { "value": "line", "label": "粗體＋底線" },
+      { "value": "fill", "label": "主色底" }
+    ],
+    "default": "line"
+  },
+  "rules": {
+    "type": "select",
+    "label": "格線",
+    "options": [
+      { "value": "rows", "label": "只有橫線" },
+      { "value": "grid", "label": "完整格線" },
+      { "value": "none", "label": "無" }
+    ],
+    "default": "rows"
+  },
+  "zebra": { "type": "boolean", "label": "隔列底色", "default": false },
+  "firstBold": { "type": "boolean", "label": "第一欄粗體", "default": false },
+  "fit": {
+    "type": "select",
+    "label": "內容太多時",
+    "options": [
+      { "value": "shrink", "label": "縮小字級（最多到 70%）" },
+      { "value": "clip", "label": "維持字級，截斷多的列" }
+    ],
+    "default": "shrink"
+  },
+  "ink": {
+    "type": "select",
+    "label": "文字與格線",
+    "options": [
+      { "value": "dark", "label": "深色（放在淺色底上）" },
+      { "value": "light", "label": "淺色（放在深色底上）" }
+    ],
+    "default": "dark"
+  }
+}

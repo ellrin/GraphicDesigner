@@ -40,6 +40,7 @@ cd source
 npm install
 npm run dev      # 開發伺服器（即時更新）
 npm run check    # 型別檢查
+npm test         # 圖表資料解析的單元測試
 npm run build    # 打包並更新最上層的 GraphicDesigner.html
 ```
 

@@ -1,0 +1,80 @@
+{
+  "colorMode": {
+    "type": "select",
+    "label": "配色",
+    "options": [
+      { "value": "palette", "label": "主色＋專案配色" },
+      { "value": "standard", "label": "標準（色盲可分辨）" },
+      { "value": "focus", "label": "強調一項，其餘灰色" },
+      { "value": "mono", "label": "主色深淺" }
+    ],
+    "default": "palette"
+  },
+  "highlight": { "type": "int", "label": "強調第幾項（0 = 自動）", "min": 0, "max": 24, "default": 0, "when": { "colorMode": ["focus"] } },
+  "ink": {
+    "type": "select",
+    "label": "文字與格線",
+    "options": [
+      { "value": "dark", "label": "深色（放在淺色底上）" },
+      { "value": "light", "label": "淺色（放在深色底上）" }
+    ],
+    "default": "dark"
+  },
+  "labels": {
+    "type": "select",
+    "label": "數值標籤",
+    "options": [
+      { "value": "auto", "label": "自動（只標重點）" },
+      { "value": "all", "label": "全部標示" },
+      { "value": "ends", "label": "只標最後一個" },
+      { "value": "none", "label": "不標示" }
+    ],
+    "default": "auto",
+    "when": { "kind": ["column", "bar", "line", "area", "stacked", "donut"] }
+  },
+  "legend": {
+    "type": "select",
+    "label": "圖例位置",
+    "options": [
+      { "value": "auto", "label": "自動" },
+      { "value": "top", "label": "上方" },
+      { "value": "bottom", "label": "下方" },
+      { "value": "right", "label": "右側（甜甜圈）" },
+      { "value": "none", "label": "不顯示" }
+    ],
+    "default": "auto",
+    "when": { "kind": ["column", "bar", "line", "area", "stacked", "donut"] }
+  },
+  "format": {
+    "type": "select",
+    "label": "數字格式",
+    "options": [
+      { "value": "auto", "label": "自動（依資料）" },
+      { "value": "int", "label": "整數" },
+      { "value": "1", "label": "小數 1 位" },
+      { "value": "2", "label": "小數 2 位" },
+      { "value": "percent", "label": "百分比 %" },
+      { "value": "wan", "label": "萬／億" }
+    ],
+    "default": "auto"
+  },
+  "grid": { "type": "boolean", "label": "格線", "default": true, "when": { "kind": ["column", "bar", "line", "area", "stacked"] } },
+  "zeroBase": { "type": "boolean", "label": "數值軸從 0 開始", "default": false, "when": { "kind": ["line"] } },
+  "smooth": { "type": "boolean", "label": "平滑曲線", "default": false, "when": { "kind": ["line", "area"] } },
+  "markers": { "type": "boolean", "label": "標出每個資料點", "default": false, "when": { "kind": ["line", "area"] } },
+  "barWidth": { "type": "number", "label": "長條寬度", "min": 0.25, "max": 0.95, "step": 0.01, "default": 0.6, "when": { "kind": ["column", "bar", "stacked"] } },
+  "radius": { "type": "number", "label": "長條圓角", "min": 0, "max": 1, "step": 0.01, "default": 0.5, "when": { "kind": ["column", "bar", "stacked"] } },
+  "hole": { "type": "number", "label": "內徑（0 = 圓餅）", "min": 0, "max": 0.85, "step": 0.01, "default": 0.62, "when": { "kind": ["donut"] } },
+  "deltaGood": {
+    "type": "select",
+    "label": "數值上升代表",
+    "options": [
+      { "value": "up", "label": "變好（綠色）" },
+      { "value": "down", "label": "變差（紅色）" },
+      { "value": "neutral", "label": "不評價（灰色）" }
+    ],
+    "default": "up",
+    "when": { "kind": ["kpi"] }
+  },
+  "sparkline": { "type": "boolean", "label": "走勢小圖", "default": true, "when": { "kind": ["kpi"] } }
+}

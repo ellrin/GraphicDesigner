@@ -30,8 +30,11 @@ export type ShapeBuilder = (ctx: ShapeContext) => Konva.Shape[]
 
 export interface ObjectTypeMeta {
   name: string
-  /** panel：範本產生的色塊，不列在「新增物件」中 */
-  category: 'shape' | 'text' | 'image' | 'decor' | 'panel'
+  /**
+   * panel：範本產生的色塊，不列在「新增物件」中
+   * data：圖表、表格（由「插入圖表」面板新增，列在自己的區塊）
+   */
+  category: 'shape' | 'text' | 'image' | 'decor' | 'panel' | 'data'
   order?: number
   /** 預設尺寸，單位是「畫布短邊」 */
   size: [number, number]
