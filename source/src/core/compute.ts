@@ -2,7 +2,7 @@
 // 所有圖層共用。
 
 import type { Frame, GuideOutput, Pt } from './geometry'
-import type { ParamSpec, ParamValues, PointValue } from './params'
+import { isActive, type ParamSpec, type ParamValues, type PointValue } from './params'
 import type { Template } from './registry'
 import { applyOrientation, generationFrame, mapPoint, unmapPoint, type Orientation } from './transform'
 
@@ -44,7 +44,7 @@ export function handlesOf(t: Template, canvas: Frame, params: ParamValues, o: Or
   const values = { ...t.defaults, ...params }
   const out: Handle[] = []
   for (const [key, spec] of Object.entries(t.params)) {
-    if (spec.type !== 'point' || spec.handle === false) continue
+    if (spec.type !== 'point' || spec.handle === false || !isActive(spec, values)) continue
     const v = values[key] as PointValue
     const pos =
       spec.space === 'canvas'

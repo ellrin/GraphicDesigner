@@ -1,9 +1,13 @@
 {
   "p1": { "type": "point", "label": "第 1 眼", "default": { "x": 0.18, "y": 0.28 } },
   "p2": { "type": "point", "label": "第 2 眼", "default": { "x": 0.62, "y": 0.22 } },
-  "p3": { "type": "point", "label": "第 3 眼", "default": { "x": 0.38, "y": 0.66 } },
-  "p4": { "type": "point", "label": "第 4 眼", "default": { "x": 0.84, "y": 0.8 } },
-  "count": { "type": "int", "label": "使用的點數", "min": 2, "max": 4, "default": 4 },
+  "p3": { "type": "point", "label": "第 3 眼", "default": { "x": 0.38, "y": 0.66 }, "showIf": { "param": "count", "atLeast": 3 } },
+  "p4": { "type": "point", "label": "第 4 眼", "default": { "x": 0.84, "y": 0.8 }, "showIf": { "param": "count", "atLeast": 4 } },
+  "p5": { "type": "point", "label": "第 5 眼", "default": { "x": 0.94, "y": 0.52 }, "showIf": { "param": "count", "atLeast": 5 } },
+  "p6": { "type": "point", "label": "第 6 眼", "default": { "x": 0.9, "y": 0.12 }, "showIf": { "param": "count", "atLeast": 6 } },
+  "p7": { "type": "point", "label": "第 7 眼", "default": { "x": 0.45, "y": 0.07 }, "showIf": { "param": "count", "atLeast": 7 } },
+  "p8": { "type": "point", "label": "第 8 眼", "default": { "x": 0.06, "y": 0.1 }, "showIf": { "param": "count", "atLeast": 8 } },
+  "count": { "type": "int", "label": "使用的點數", "min": 2, "max": 8, "default": 4 },
   "smooth": { "type": "boolean", "label": "平滑曲線", "default": true },
   "numbers": { "type": "boolean", "label": "標示順序", "default": true }
 }

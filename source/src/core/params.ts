@@ -19,6 +19,7 @@ export type ParamSpec =
    * - 'frame'（預設）：位置跟著圖形一起翻轉、旋轉
    * - 'canvas'：位置以畫布為準，不受翻轉旋轉影響（例如「靠右擺放」翻轉後仍靠右）
    * handle：是否在畫布上顯示控制點（預設 true）
+   * showIf：只在另一個數值參數 ≥ atLeast 時使用（例如「使用的點數」），否則面板與畫布都隱藏
    */
   | {
       type: 'point'
@@ -28,6 +29,7 @@ export type ParamSpec =
       max?: number
       space?: 'frame' | 'canvas'
       handle?: boolean
+      showIf?: { param: string; atLeast: number }
     }
 
 export type ParamValue = number | boolean | string | PointValue
@@ -42,3 +44,9 @@ export function defaultsOf(schema: ParamSchema): ParamValues {
 }
 
 export type ParamSchema = Record<string, ParamSpec>
+
+/** 參數目前是否使用中（showIf 條件不成立時隱藏） */
+export function isActive(spec: ParamSpec, values: ParamValues): boolean {
+  if (spec.type !== 'point' || !spec.showIf) return true
+  return Number(values[spec.showIf.param]) >= spec.showIf.atLeast
+}

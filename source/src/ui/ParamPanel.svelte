@@ -1,6 +1,6 @@
 <script lang="ts">
   // 依 ParamSchema 自動產生的參數面板，所有圖層共用。
-  import type { ParamSchema, ParamValues, PointValue } from '../core/params'
+  import { isActive, type ParamSchema, type ParamValues, type PointValue } from '../core/params'
 
   interface Props {
     schema: ParamSchema
@@ -9,7 +9,7 @@
   }
   let { schema, values = $bindable(), onreset }: Props = $props()
 
-  const entries = $derived(Object.entries(schema))
+  const entries = $derived(Object.entries(schema).filter(([, spec]) => isActive(spec, values)))
   const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(3).replace(/0+$/, ''))
 </script>
 
