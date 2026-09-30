@@ -50,7 +50,7 @@
   import { canvasBox, fitBoxToPoints, markSubject, objectBox, subjectOnCanvas, targetFromCanvas, toCanvas, type ImageSize } from './core/framing'
   import { TRIANGLE_VERTICES } from './layers/4-objects/types/triangle/shape'
   import { RECT_CORNERS } from './layers/4-objects/types/rect/shape'
-  import { TRAPEZOID_CORNERS } from './layers/4-objects/types/trapezoid/shape'
+  import { trapezoidFromVertices, trapezoidVertices } from './layers/4-objects/types/trapezoid/shape'
   import { parseTable } from './core/dataTable'
   import { insertFromFile, insertFromText, kindName, replaceData } from './layers/4-objects/chart/insert'
   import type { ImageFit, ImageFraming } from './core/objects'
@@ -366,17 +366,19 @@
 
   // ── 可拖曳頂點的物件（矩形、梯形、三角形、自由多邊形）──────
   /** 頂點存在固定參數名稱裡的物件 */
-  const VERTEX_KEYS: Record<string, readonly string[]> = { triangle: TRIANGLE_VERTICES, rect: RECT_CORNERS, trapezoid: TRAPEZOID_CORNERS }
+  const VERTEX_KEYS: Record<string, readonly string[]> = { triangle: TRIANGLE_VERTICES, rect: RECT_CORNERS }
   /** 物件的頂點（物件框內 0–1）；不是這類物件時回傳 null */
   function verticesOf(o: DesignObject): Pt[] | null {
     const keys = VERTEX_KEYS[o.type]
     if (keys) return keys.map((k) => o.props[k] as Pt)
+    if (o.type === 'trapezoid') return trapezoidVertices(o.props)
     if (o.type === 'freeform') return (o.props.points as unknown as Pt[] | undefined) ?? []
     return null
   }
   function setVertices(o: DesignObject, rel: Pt[]) {
     const keys = VERTEX_KEYS[o.type]
     if (keys) keys.forEach((k, i) => (o.props[k] = rel[i]))
+    else if (o.type === 'trapezoid') Object.assign(o.props, trapezoidFromVertices(rel))
     else o.props.points = rel as unknown as ParamValues[string]
   }
   /** 以畫布座標的頂點更新物件：物件框貼齊頂點 */
@@ -449,7 +451,16 @@
     // 拖曳頂點：物件框跟著頂點調整
     if (vertexTarget && key.startsWith('vtx:')) {
       const corners = cornersOf(vertexTarget)
-      corners[Number(key.slice(4))] = p
+      const i = Number(key.slice(4))
+      if (vertexTarget.type === 'trapezoid') {
+        // 梯形：同一底邊的另一端跟著上下移動（沿物件自己的縱軸），兩底保持平行
+        const a = (vertexTarget.rotation * Math.PI) / 180
+        const u = { x: -Math.sin(a), y: Math.cos(a) }
+        const d = (p.x - corners[i].x) * u.x + (p.y - corners[i].y) * u.y
+        const j = i ^ 1
+        corners[j] = { x: corners[j].x + d * u.x, y: corners[j].y + d * u.y }
+      }
+      corners[i] = p
       placeVertices(vertexTarget, corners)
       return
     }
